@@ -1,32 +1,56 @@
 #include <iostream>
 #include <bifrost/CompactedDBG.hpp>
+#include "argument_parsing.h"
+using namespace std;
 
-int main()
-{
-    CDBG_Build_opt bf_options;
 
-    bf_options.fastx_filename_in.push_back("/path/to/file/1.fq");
-    bf_options.fastx_filename_in.push_back("/path/to/file/2.fq");
-    bf_options.k = 31;
-    bf_options.nb_unique_kmers = 24883500;
-    bf_options.nb_non_unique_kmers = 8749400;
-    bf_options.prefixFilenameOut = "myTestout";
-    bf_options.nb_threads = 4;
-    bf_options.clipTips = true;
-    bf_options.deleteIsolated = true;
+
+// ==============================
+// Function: main()
+// ==============================
+int main(int argc, char const *argv[]){
+
+    // ==============================
+    // Argument Parser
+    // ==============================
+    OptionsWrapper options;
+    seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
+    // catch parse error
+    if (res != seqan::ArgumentParser::PARSE_OK)
+        return res == seqan::ArgumentParser::PARSE_ERROR;
+
+    // ==============================
+    // Global program variables
+    // ==============================
+    // all file names in --indir with full path
+    vector<string> sample_fastx_names;
+
+    // ==============================
+    // Loop for all FastX files
+    // ==============================
+    bool isReadSuccessful = detect_indir_files(options, sample_fastx_names);
+
+    // ==============================
+    // Initialize graph
+    // ==============================
+    CDBG_Build_opt graph_options;
+    if(isReadSuccessful==EXIT_SUCCESS)
+        init_graph_options(options, sample_fastx_names, graph_options);
+
+
 
     // ---------- RUN CDBG ----------
-    CompactedDBG<> cdbg(bf_options.k, bf_options.g);
+    CompactedDBG<> cdbg(graph_options.k, graph_options.g);
     cout << "[PROGRESS] Building CDBG..." << endl;
-    cdbg.build(bf_options);
+    cdbg.build(graph_options);
 
     // ------- SIMPLIFY CDBG -------
     cout << "[PROGRESS] Simplifying CDBG..." << endl;
-    cdbg.simplify(bf_options.deleteIsolated, bf_options.clipTips, bf_options.verbose);
+    cdbg.simplify(graph_options.deleteIsolated, graph_options.clipTips, graph_options.verbose);
 
     // --------- WRITE CDBG ---------
     cout << "[PROGRESS] Writing GFA..." << endl;
-    cdbg.write(bf_options.prefixFilenameOut, bf_options.nb_threads, true, bf_options.verbose);
+    cdbg.write(graph_options.prefixFilenameOut, graph_options.nb_threads, true, graph_options.verbose);
 
     cout << "The DBG has " << cdbg.size() << " unitigs.\n" << endl;
 }
