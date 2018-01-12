@@ -12,7 +12,9 @@ seqan::ArgumentParser::ParseResult parseCommandLine(OptionsWrapper &options, int
     // setup arg parser
     seqan::ArgumentParser parser("PopIns2");
     addDescription(parser, "Population-scale detection of novel-sequence insertions using de Bruijn Graphs");
-    //setVersion(parser, "0.3");
+#if defined VERSION
+    setVersion(parser, VERSION);
+#endif
     addUsageLine(parser, "\\--indir DIR \\--prefix STRING \\--unique-kmers INT \\--non-unique-kmers INT [OPTIONS] \\fP ");
 
     // options
@@ -135,7 +137,6 @@ void init_graph_options(OptionsWrapper& options, std::vector<std::string> &sampl
     graph_options.clipTips = options.clip_tips;
     graph_options.deleteIsolated = options.rm_iso;
 }
-
 
 
 
