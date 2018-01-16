@@ -3,4 +3,5 @@ build/*.o
 popins2
 .kdev4/*
 PopIns2.kdev4
-
+doc/html/*
+doc/latex/*

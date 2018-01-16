@@ -10,7 +10,7 @@
 seqan::ArgumentParser::ParseResult parseCommandLine(OptionsWrapper &options, int argc, char const ** argv){
 
     // setup arg parser
-    seqan::ArgumentParser parser("PopIns2");
+    seqan::ArgumentParser parser("popins2");
     addDescription(parser, "Population-scale detection of novel-sequence insertions using de Bruijn Graphs");
 #if defined VERSION
     setVersion(parser, VERSION);

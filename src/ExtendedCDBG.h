@@ -11,6 +11,7 @@
 // Includes
 // =========================
 #include "CDBG_Data_extension.h"
+#include "argument_parsing.h"
 
 
 // =========================
@@ -26,7 +27,10 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
     public:
         ExtendedCDBG(int kmer_length = 31, int minimizer_length = 23);
 
+        void init_ids();
+        void print_ids();
 
+        bool connected_components(const CDBG_Build_opt &graph_options);
 
 };
 

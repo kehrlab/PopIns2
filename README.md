@@ -3,7 +3,7 @@ Population-scale detection of novel-sequence insertions using de Bruijn Graphs
 
 ### Requirements:
 
-- GCC 5.4.0 or higher
+- GCC (tested with: 5.4.0, 5.4.1)
 - [SeqAn](https://www.seqan.de/)
 - [Bifrost](https://github.com/pmelsted/bfgraph)
 
@@ -14,6 +14,14 @@ git clone https://github.com/kehrlab/PopIns2.git
 cd PopIns2
 mkdir build
 make
+```
+
+### Build Documentation (optional):
+
+You can auto-build a html and latex code documentation with doxygen by
+```
+cd doc
+doxygen Doxyfile
 ```
 
 ### Run:

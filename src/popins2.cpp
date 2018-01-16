@@ -1,7 +1,8 @@
 #include <iostream>
 #include <bifrost/CompactedDBG.hpp>
-#include "argument_parsing.h"
+#include "argument_parsing.h"           /* seqAn argument parser */
 #include "CDBG_Data_extension.h"
+#include "ExtendedCDBG.h"
 using namespace std;
 
 
@@ -42,13 +43,19 @@ int main(int argc, char const *argv[]){
     // Run graph functions
     // ==============================
     // build
-    CompactedDBG<> cdbg(graph_options.k, graph_options.g);
+    ExtendedCDBG cdbg(graph_options.k, graph_options.g);
     cout << "[PROGRESS] Building CDBG..." << endl;
     cdbg.build(graph_options);
 
     // simplify
     cout << "[PROGRESS] Simplifying CDBG..." << endl;
     cdbg.simplify(graph_options.deleteIsolated, graph_options.clipTips, graph_options.verbose);
+
+    // TEST START
+    cdbg.init_ids();
+    cdbg.print_ids();
+    cdbg.connected_components(graph_options);
+    // TEST END
 
     // write
     cout << "[PROGRESS] Writing GFA..." << endl;

@@ -29,8 +29,10 @@ struct UnitigExtension : public CDBG_Data_t<UnitigExtension> {
         unsigned ID;
 
     public:
-        unsigned getConnectedcomponent() const {return ID;}
-        void setConnectedcomponent(const unsigned cc) {ID = cc;}
+        UnitigExtension(const unsigned initID = 0);
+
+        unsigned getID() const {return ID;}
+        void setID(const unsigned id) {ID = id;}
 
         void join(const UnitigMap<UnitigExtension>& um_dest, const UnitigMap<UnitigExtension>& um_src);
         void sub(const UnitigMap<UnitigExtension>& um_src, UnitigExtension& new_data, const bool last_extraction) const;

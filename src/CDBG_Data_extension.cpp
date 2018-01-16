@@ -2,12 +2,19 @@
 
 
 
+UnitigExtension::UnitigExtension(const unsigned initID) : ID(initID) {}
+
+
 void UnitigExtension::join(const UnitigMap< UnitigExtension >& um_dest, const UnitigMap< UnitigExtension >& um_src){
-    if (um_dest.getData()->getConnectedcomponent() < um_src.getData()->getConnectedcomponent())
-        um_dest.setData(um_src.getData());
+    /*
+     * Irrelevant at the moment.
+    */
 }
 
 
 void UnitigExtension::sub(const UnitigMap< UnitigExtension >& um_src, UnitigExtension& new_data, const bool last_extraction) const{
-    // TODO
+    /*
+     * Irrelevant at the moment.
+    */
 }
+
