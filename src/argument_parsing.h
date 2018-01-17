@@ -56,7 +56,7 @@ struct OptionsWrapper{
 seqan::ArgumentParser::ParseResult parseCommandLine(OptionsWrapper &options, int argc, char const ** argv);
 bool detect_indir_files(OptionsWrapper &options, std::vector<std::string> &sample_fastx_names);
 void init_graph_options(OptionsWrapper &options, std::vector<std::string> &sample_fastx_names, CDBG_Build_opt &graph_options);
-
+bool check_ProgramOptions(CDBG_Build_opt &graph_options);
 
 
 

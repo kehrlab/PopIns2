@@ -38,11 +38,12 @@ int main(int argc, char const *argv[]){
     CDBG_Build_opt graph_options;
     if(isReadSuccessful==EXIT_SUCCESS)
         init_graph_options(options, sample_fastx_names, graph_options);
+    if(!check_ProgramOptions(graph_options))
+        return 1;   // some input options are not appropriate to construct the CDBG
 
     // ==============================
     // Run graph functions
     // ==============================
-    // build
     ExtendedCDBG cdbg(graph_options.k, graph_options.g);
     cout << "[PROGRESS] Building CDBG..." << endl;
     cdbg.build(graph_options);
@@ -53,7 +54,6 @@ int main(int argc, char const *argv[]){
 
     // TEST START
     cdbg.init_ids();
-    cdbg.print_ids();
     cdbg.connected_components(graph_options);
     // TEST END
 
@@ -61,4 +61,9 @@ int main(int argc, char const *argv[]){
     cout << "[PROGRESS] Writing GFA..." << endl;
     cdbg.write(graph_options.prefixFilenameOut, graph_options.nb_threads, true, graph_options.verbose);
     cout << "The DBG has " << cdbg.size() << " unitigs.\n" << endl;
+
+    return 0;
 }
+
+
+

@@ -1,5 +1,5 @@
 #include "ExtendedCDBG.h"
-#include <seqan/misc/union_find.h>
+#include <unordered_set>
 
 
 
@@ -28,7 +28,23 @@ void ExtendedCDBG::print_ids(){
 
 
 /*!
- * \fn      bool connected_components(const T &options)
+ * \fn      size_t ExtendedCDBG::count_connected_components()
+ * \brief   This function computes the amount of distict connected components in the graph. The connected_components()
+ *          function need to be ran successfully to call count_connected_components(). This function is mainly for
+ *          debug and test purposes.
+ * \return  number of distinct connected components
+ */
+size_t ExtendedCDBG::count_connected_components(){
+    std:unordered_set<unsigned> unique_set;
+    for (auto &unitig : *this){
+        unique_set.insert(seqan::findSet(UF, unitig.getData()->getID()));
+    }
+    return unique_set.size();
+}
+
+
+/*!
+ * \fn      bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options)
  * \brief   This function computes the connected components for at the current state of the graph.
  * \ref     seqan/include/seqan/misc/union_find.h
  * \return  0 if successful
@@ -36,7 +52,6 @@ void ExtendedCDBG::print_ids(){
 bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
     // initiate UF structure
     if (graph_options.verbose) std::cout << "[VERBOSE] Initiating UNION-FIND" << std::endl;
-    seqan::UnionFind<unsigned> UF; // default value is -1
     resize(UF, (*this).size());
 
     // run UF merges
@@ -52,8 +67,6 @@ bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
         for (auto INeighbour = neighbours.begin(); INeighbour != neighbours.end(); ++INeighbour)
             seqan::joinSets(UF, seqan::findSet(UF, IUnitig->getData()->getID()), seqan::findSet(UF, INeighbour->getData()->getID()));
     }
-
-    // TODO(TEST): write external unit test
 
     return 0;
 }

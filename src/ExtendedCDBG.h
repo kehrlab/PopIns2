@@ -10,6 +10,7 @@
 // =========================
 // Includes
 // =========================
+#include <seqan/misc/union_find.h>
 #include "CDBG_Data_extension.h"
 #include "argument_parsing.h"
 
@@ -24,6 +25,9 @@
 */
 struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
 
+    private:
+        seqan::UnionFind<unsigned> UF;
+
     public:
         ExtendedCDBG(int kmer_length = 31, int minimizer_length = 23);
 
@@ -31,6 +35,7 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
         void print_ids();
 
         bool connected_components(const CDBG_Build_opt &graph_options);
+        size_t count_connected_components();
 
 };
 
