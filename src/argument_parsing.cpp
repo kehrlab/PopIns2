@@ -146,120 +146,125 @@ void init_graph_options(OptionsWrapper& options, std::vector<std::string> &sampl
 * \ref          https://github.com/pmelsted/bfgraph/blob/master/src/Bifrost.cpp
 * \return       true if successful
 */
-bool check_ProgramOptions(CDBG_Build_opt &graph_options) {
+bool check_ProgramOptions(CDBG_Build_opt& opt) {
 
     bool ret = true;
 
     size_t max_threads = std::thread::hardware_concurrency();
 
-    if (graph_options.nb_threads <= 0){
+    if (opt.nb_threads <= 0){
 
         cerr << "Error: Number of threads cannot be less than or equal to 0" << endl;
         ret = false;
     }
-    else if (graph_options.nb_threads > max_threads){
+
+    if (opt.nb_threads > max_threads){
 
         cerr << "Error: Number of threads cannot be greater than or equal to " << max_threads << endl;
         ret = false;
     }
 
-    if (graph_options.read_chunksize <= 0) {
+    if (opt.read_chunksize <= 0) {
 
         cerr << "Error: Chunk size of reads to share among threads cannot be less than or equal to 0" << endl;
         ret = false;
     }
 
-    if (graph_options.k <= 0){
+    if (opt.k <= 0){
 
         cerr << "Error: Length k of k-mers cannot be less than or equal to 0" << endl;
         ret = false;
     }
 
-    if (graph_options.k >= MAX_KMER_SIZE){
+    if (opt.k >= MAX_KMER_SIZE){
 
         cerr << "Error: Length k of k-mers cannot exceed or be equal to " << MAX_KMER_SIZE << endl;
         ret = false;
     }
 
-    if (graph_options.g <= 0){
+    if (opt.g <= 0){
 
         cerr << "Error: Length g of minimizers cannot be less than or equal to 0" << endl;
         ret = false;
     }
 
-    if (graph_options.g >= MAX_KMER_SIZE){
+    if (opt.g >= MAX_KMER_SIZE){
 
         cerr << "Error: Length g of minimizers cannot exceed or be equal to " << MAX_KMER_SIZE << endl;
         ret = false;
     }
 
-    if (graph_options.nb_unique_kmers <= 0){
+    /*if (opt.nb_unique_kmers < 0){
 
-        cerr << "Error: Number of Bloom filter bits per unique k-mer cannot be less than or equal to 0" << endl;
+        cerr << "Error: Number of Bloom filter bits per unique k-mer cannot be less than 0" << endl;
         ret = false;
     }
 
-    if (!graph_options.reference_mode && (graph_options.nb_non_unique_kmers <= 0)){
+    if (!opt.reference_mode && (opt.nb_non_unique_kmers < 0)){
 
-        cerr << "Error: Number of Bloom filter bits per non unique k-mer cannot be less than or equal to 0" << endl;
+        cerr << "Error: Number of Bloom filter bits per non unique k-mer cannot be less than 0" << endl;
         ret = false;
-    }
+    }*/
 
-    if (!graph_options.reference_mode && (graph_options.nb_non_unique_kmers > graph_options.nb_unique_kmers)){
+    if (!opt.reference_mode && (opt.nb_non_unique_kmers > opt.nb_unique_kmers)){
 
         cerr << "Error: The estimated number of non unique k-mers ";
         cerr << "cannot be greater than the estimated number of unique k-mers" << endl;
         ret = false;
     }
 
-    if (graph_options.nb_bits_unique_kmers_bf <= 0){
+    /*if (opt.nb_bits_unique_kmers_bf < 0){
 
-        cerr << "Error: Number of Bloom filter bits per unique k-mer cannot be less than or equal to 0" << endl;
+        cerr << "Error: Number of Bloom filter bits per unique k-mer cannot be less than 0" << endl;
         ret = false;
     }
 
-    if (!graph_options.reference_mode && (graph_options.nb_bits_non_unique_kmers_bf <= 0)){
+    if (!opt.reference_mode && (opt.nb_bits_non_unique_kmers_bf < 0)){
 
-        cerr << "Error: Number of Bloom filter bits per non unique k-mer cannot be less than or equal to 0" << endl;
+        cerr << "Error: Number of Bloom filter bits per non unique k-mer cannot be less than 0" << endl;
         ret = false;
-    }
+    }*/
 
-    if (graph_options.outFilenameBBF.length() != 0){
+    if (opt.outFilenameBBF.length() != 0){
 
-        FILE* fp = fopen(graph_options.outFilenameBBF.c_str(), "wb");
+        FILE* fp = fopen(opt.outFilenameBBF.c_str(), "wb");
 
         if (fp == NULL) {
 
-            cerr << "Error: Could not open file for writing output Blocked Bloom filter: " << graph_options.outFilenameBBF << endl;
+            cerr << "Error: Could not open file for writing output Blocked Bloom filter: " << opt.outFilenameBBF << endl;
             ret = false;
         }
         else fclose(fp);
     }
 
-    if (graph_options.inFilenameBBF.length() != 0){
+    if (opt.inFilenameBBF.length() != 0){
 
-        FILE* fp = fopen(graph_options.inFilenameBBF.c_str(), "rb");
+        FILE* fp = fopen(opt.inFilenameBBF.c_str(), "rb");
 
         if (fp == NULL) {
 
-            cerr << "Error: Could not read file input Blocked Bloom filter: " << graph_options.inFilenameBBF << endl;
+            cerr << "Error: Could not read file input Blocked Bloom filter: " << opt.inFilenameBBF << endl;
             ret = false;
         }
         else fclose(fp);
     }
 
-    graph_options.filenameOut = graph_options.prefixFilenameOut + (graph_options.outputGFA ? ".gfa" : ".fasta");
+    const string out = opt.prefixFilenameOut + (opt.outputGFA ? ".gfa" : ".fasta");
 
-    FILE* fp = fopen(graph_options.filenameOut.c_str(), "w");
+    FILE* fp = fopen(out.c_str(), "w");
 
     if (fp == NULL) {
 
-        cerr << "Error: Could not open file for writing output graph in GFA format: " << graph_options.filenameOut << endl;
+        cerr << "Error: Could not open file for writing output graph in GFA format: " << out << endl;
         ret = false;
     }
-    else fclose(fp);
+    else {
 
-    if (graph_options.fastx_filename_in.size() == 0) {
+        fclose(fp);
+        if (remove(out.c_str()) != 0) cerr << "Error: Could not remove temporary file " << out << endl;
+    }
+
+    if (opt.fastx_filename_in.size() == 0) {
 
         cerr << "Error: Missing FASTA/FASTQ input files" << endl;
         ret = false;
@@ -270,7 +275,7 @@ bool check_ProgramOptions(CDBG_Build_opt &graph_options) {
         vector<string>::const_iterator it;
         int intStat;
 
-        for(it = graph_options.fastx_filename_in.begin(); it != graph_options.fastx_filename_in.end(); ++it) {
+        for (it = opt.fastx_filename_in.begin(); it != opt.fastx_filename_in.end(); ++it) {
 
             intStat = stat(it->c_str(), &stFileInfo);
 
@@ -283,4 +288,7 @@ bool check_ProgramOptions(CDBG_Build_opt &graph_options) {
 
     return ret;
 }
+
+
+
 

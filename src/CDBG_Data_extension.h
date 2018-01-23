@@ -27,12 +27,16 @@ struct UnitigExtension : public CDBG_Data_t<UnitigExtension> {
 
     private:
         unsigned ID;
+        float entropy;
 
     public:
-        UnitigExtension(const unsigned initID = 0);
+        UnitigExtension(const unsigned initID = 0, const float initEntropy = -1);
 
         unsigned getID() const {return ID;}
         void setID(const unsigned id) {ID = id;}
+
+        float getEntropy() const {return entropy;}
+        void setEntropy(const float e) {entropy = e;}
 
         void join(const UnitigMap<UnitigExtension>& um_dest, const UnitigMap<UnitigExtension>& um_src);
         void sub(const UnitigMap<UnitigExtension>& um_src, UnitigExtension& new_data, const bool last_extraction) const;

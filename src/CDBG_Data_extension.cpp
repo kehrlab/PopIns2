@@ -2,7 +2,7 @@
 
 
 
-UnitigExtension::UnitigExtension(const unsigned initID) : ID(initID) {}
+UnitigExtension::UnitigExtension(const unsigned initID, const float initEntropy) : ID(initID), entropy(initEntropy) {}
 
 
 void UnitigExtension::join(const UnitigMap< UnitigExtension >& um_dest, const UnitigMap< UnitigExtension >& um_src){

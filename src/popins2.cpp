@@ -44,6 +44,7 @@ int main(int argc, char const *argv[]){
     // ==============================
     // Run graph functions
     // ==============================
+    //ExtendedCDBG cdbg(graph_options.k, graph_options.g);
     ExtendedCDBG cdbg(graph_options.k, graph_options.g);
     cout << "[PROGRESS] Building CDBG..." << endl;
     cdbg.build(graph_options);
@@ -54,7 +55,8 @@ int main(int argc, char const *argv[]){
 
     // TEST START
     cdbg.init_ids();
-    cdbg.connected_components(graph_options);
+    if (cdbg.connected_components(graph_options))
+        cdbg.print_ids();
     // TEST END
 
     // write

@@ -1,5 +1,6 @@
 #include "ExtendedCDBG.h"
 #include <unordered_set>
+#include <unordered_map>
 
 
 
@@ -10,8 +11,8 @@ ExtendedCDBG::ExtendedCDBG(int kmer_length, int minimizer_length): CompactedDBG<
 void ExtendedCDBG::init_ids(){
     unsigned i=0;
     for (auto& unitig : *this){
-        const UnitigExtension ue(i);
-        unitig.setData(&ue);
+        UnitigExtension* ue = unitig.getData();      // ue is a POINTER to a UnitigExtension
+        ue->setID(i);
         ++i;
     }
 }
@@ -47,7 +48,7 @@ size_t ExtendedCDBG::count_connected_components(){
  * \fn      bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options)
  * \brief   This function computes the connected components for at the current state of the graph.
  * \ref     seqan/include/seqan/misc/union_find.h
- * \return  0 if successful
+ * \return  true if successful
  */
 bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
     // initiate UF structure
@@ -68,6 +69,49 @@ bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
             seqan::joinSets(UF, seqan::findSet(UF, IUnitig->getData()->getID()), seqan::findSet(UF, INeighbour->getData()->getID()));
     }
 
-    return 0;
+    return true;
 }
+
+
+/*!
+ * \fn          float entropy(const std::string &sequence)
+ * \brief       This function computes an entropy for a given string that can be used to filter/mark low complexity sequences.
+ * \remark      Function taken from PopIns.
+ * \return      The entropy [0,1] of all binucleotides.
+ */
+float averageEntropy(const std::string &sequence){
+    // create a dictionary counting the occurrence of all dinucleotides
+    unordered_map<std::string, unsigned> diCounts(16);
+    unsigned counted = 0;
+    for (unsigned i = 0; i < sequence.length()-1; ++i){
+        std::string dimer = sequence.substr(i,2);
+        if (sequence[i]!='N' && sequence[i+1]!='N'){
+            // set if dimer not in counter table yet
+            if(diCounts.find(dimer) == diCounts.end()){
+                diCounts[dimer] = 1;
+                counted++;
+            }
+            // otherwise increase
+            else{
+                diCounts[dimer] += 1;
+                counted++;
+            }
+        }
+    }
+
+    // calculate the entropy for dinucleotide counts
+    unsigned entropy = 0;
+    for(unordered_map<std::string,unsigned>::const_iterator it = diCounts.cbegin(); it != diCounts.cend(); ++it){
+        if (it->second == 0) continue;
+        float p = float(it->second) / counted;
+        entropy -= p * log(p) / log(2);
+    }
+
+    return entropy / 4;
+}
+
+
+
+
+
 

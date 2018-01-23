@@ -37,6 +37,7 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
         bool connected_components(const CDBG_Build_opt &graph_options);
         size_t count_connected_components();
 
+        float entropy(const std::string &sequence);
 };
 
 
