@@ -98,12 +98,12 @@ bool detect_indir_files(OptionsWrapper &options, std::vector<std::string> &sampl
     if ((dir = opendir(seqan::toCString(options.indir))) != NULL){
         // print all the files and directories within directory
         while ((ent = readdir(dir)) != NULL){
-            std::string current_fastq = ent->d_name;
+            std::string current_fastx = ent->d_name;
             // exclude UNIX directory navigation links
-            if (current_fastq!="." && current_fastq!=".."){
+            if (current_fastx!="." && current_fastx!=".."){
                 if (options.verbose)
-                    cout << "FILE DETECTED: " << current_fastq << endl;
-                sample_fastx_names.push_back(options.indir+current_fastq);
+                    cout << "FILE DETECTED: " << current_fastx << endl;
+                sample_fastx_names.push_back(options.indir+current_fastx);
             }
         }
         closedir(dir);
@@ -136,6 +136,7 @@ void init_graph_options(OptionsWrapper& options, std::vector<std::string> &sampl
     graph_options.nb_threads = options.threads;
     graph_options.clipTips = options.clip_tips;
     graph_options.deleteIsolated = options.rm_iso;
+    graph_options.verbose = options.verbose;
 }
 
 

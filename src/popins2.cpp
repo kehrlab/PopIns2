@@ -30,13 +30,13 @@ int main(int argc, char const *argv[]){
     // ==============================
     // Loop for all FastX files
     // ==============================
-    bool isReadSuccessful = detect_indir_files(options, sample_fastx_names);
+    bool isFilereadSuccessful = detect_indir_files(options, sample_fastx_names);
 
     // ==============================
     // Initialize graph
     // ==============================
     CDBG_Build_opt graph_options;
-    if(isReadSuccessful==EXIT_SUCCESS)
+    if(isFilereadSuccessful==EXIT_SUCCESS)
         init_graph_options(options, sample_fastx_names, graph_options);
     if(!check_ProgramOptions(graph_options))
         return 1;   // some input options are not appropriate to construct the CDBG
@@ -44,7 +44,6 @@ int main(int argc, char const *argv[]){
     // ==============================
     // Run graph functions
     // ==============================
-    //ExtendedCDBG cdbg(graph_options.k, graph_options.g);
     ExtendedCDBG cdbg(graph_options.k, graph_options.g);
     cout << "[PROGRESS] Building CDBG..." << endl;
     cdbg.build(graph_options);
