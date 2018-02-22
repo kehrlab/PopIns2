@@ -55,14 +55,14 @@ int main(int argc, char const *argv[]){
 
     // TEST START
     cdbg.init_ids();
-    if (cdbg.connected_components(graph_options))
-        cdbg.print_ids();
+    cdbg.print_ids();
+    //FIXME: cdbg.connected_components(graph_options))
     // TEST END
 
     // write
     cout << "[PROGRESS] Writing GFA..." << endl;
     cdbg.write(graph_options.prefixFilenameOut, graph_options.nb_threads, true, graph_options.verbose);
-    cout << "The DBG has " << cdbg.size() << " unitigs.\n" << endl;
+    cout << "[DEBUG] The DBG has " << cdbg.size() << " unitigs.\n" << endl;
 
     return 0;
 }

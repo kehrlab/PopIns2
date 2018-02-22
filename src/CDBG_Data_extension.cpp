@@ -18,3 +18,8 @@ void UnitigExtension::sub(const UnitigMap< UnitigExtension >& um_src, UnitigExte
     */
 }
 
+
+string UnitigExtension::serialize() const{
+    string s = std::to_string(getID());
+    return s;
+}

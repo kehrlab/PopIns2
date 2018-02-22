@@ -11,18 +11,18 @@ seqan::ArgumentParser::ParseResult parseCommandLine(OptionsWrapper &options, int
 
     // setup arg parser
     seqan::ArgumentParser parser("popins2");
-    addDescription(parser, "Population-scale detection of novel-sequence insertions using de Bruijn Graphs");
+    addDescription(parser, "Population-scale detection of novel-sequence insertions using colored de Bruijn Graphs");
 #if defined VERSION
     setVersion(parser, VERSION);
 #endif
-    addUsageLine(parser, "\\--indir DIR \\--prefix STRING \\--unique-kmers INT \\--non-unique-kmers INT [OPTIONS] \\fP ");
+    addUsageLine(parser, "\\--input-files-dir DIR \\--output-file STRING \\--unique-kmers INT \\--non-unique-kmers INT [OPTIONS] \\fP ");
 
     // options
-    addOption(parser, seqan::ArgParseOption("i", "indir", "Source directory with FASTQ file(s).", seqan::ArgParseArgument::STRING, "DIRECTORY"));
-    setRequired(parser, "indir", true);
+    addOption(parser, seqan::ArgParseOption("f", "input-files-dir", "Source directory with FASTQ file(s).", seqan::ArgParseArgument::STRING, "DIRECTORY"));
+    setRequired(parser, "input-files-dir", true);
 
-    addOption(parser, seqan::ArgParseOption("o", "prefix", "Prefix for the GFA file", seqan::ArgParseArgument::STRING, "TEXT"));
-    setRequired(parser, "prefix", true);
+    addOption(parser, seqan::ArgParseOption("o", "output-file", "Prefix for the GFA file", seqan::ArgParseArgument::STRING, "TEXT"));
+    setRequired(parser, "output-file", true);
 
     addOption(parser, seqan::ArgParseOption("n", "unique-kmers", "Amount of unique kmers.", seqan::ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "unique-kmers", true);
@@ -46,13 +46,13 @@ seqan::ArgumentParser::ParseResult parseCommandLine(OptionsWrapper &options, int
     setDefaultValue(parser, "threads", "1");
     setMinValue(parser, "t", "1");
 
+    addOption(parser, seqan::ArgParseOption("i", "clip-tips", "Remove ends of the dBG with length <k"));
+
+    addOption(parser, seqan::ArgParseOption("d", "del-isolated", "Remove single contigs with length <k"));
+
     addOption(parser, seqan::ArgParseOption("v", "verbose", "Print more output"));
 
-    addOption(parser, seqan::ArgParseOption("c", "clip-tips", "Remove ends of the dBG with length <k"));
-
-    addOption(parser, seqan::ArgParseOption("r", "remove-isolated", "Remove single contigs with length <k"));
-
-    addOption(parser, seqan::ArgParseOption("f", "bloom-filter-file", "Filename for a binary file storing the bloom filter data structure.", seqan::ArgParseArgument::STRING, "TEXT"));
+    addOption(parser, seqan::ArgParseOption("l", "load-mbbf", "Filename for an input file storing the bloom filter data structure.", seqan::ArgParseArgument::STRING, "TEXT"));
 
    // parse cmd line
     seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, argv);
@@ -62,8 +62,8 @@ seqan::ArgumentParser::ParseResult parseCommandLine(OptionsWrapper &options, int
         return res;
 
     // Extract option values to options struct
-    getOptionValue(options.indir, parser, "indir");
-    getOptionValue(options.prefix, parser, "prefix");
+    getOptionValue(options.indir, parser, "input-files-dir");
+    getOptionValue(options.prefix, parser, "output-file");
     getOptionValue(options.unique_kmers, parser, "unique-kmers");
     getOptionValue(options.non_unique_kmers, parser, "non-unique-kmers");
 
@@ -71,11 +71,11 @@ seqan::ArgumentParser::ParseResult parseCommandLine(OptionsWrapper &options, int
     getOptionValue(options.minimizer_length, parser, "minimizer-length");
     getOptionValue(options.threads, parser, "threads");
 
-    options.verbose = isSet(parser, "verbose");
     options.clip_tips = isSet(parser, "clip-tips");
-    options.rm_iso = isSet(parser, "remove-isolated");
+    options.rm_iso = isSet(parser, "del-isolated");
+    options.verbose = isSet(parser, "verbose");
 
-    getOptionValue(options.bloom_filter_file, parser, "bloom-filter-file");
+    getOptionValue(options.bloom_filter_file, parser, "load-mbbf");
 
     // if parse+extraction was successful
     return seqan::ArgumentParser::PARSE_OK;
@@ -127,7 +127,7 @@ bool detect_indir_files(OptionsWrapper &options, std::vector<std::string> &sampl
 *               initialization.
 */
 void init_graph_options(OptionsWrapper& options, std::vector<std::string> &sample_fastx_names, CDBG_Build_opt& graph_options){
-    graph_options.fastx_filename_in = sample_fastx_names;
+    graph_options.filename_in = sample_fastx_names;
     graph_options.k = options.kmer_length;
     graph_options.nb_unique_kmers = options.unique_kmers;
     graph_options.nb_non_unique_kmers = options.non_unique_kmers;
@@ -194,36 +194,12 @@ bool check_ProgramOptions(CDBG_Build_opt& opt) {
         ret = false;
     }
 
-    /*if (opt.nb_unique_kmers < 0){
-
-        cerr << "Error: Number of Bloom filter bits per unique k-mer cannot be less than 0" << endl;
-        ret = false;
-    }
-
-    if (!opt.reference_mode && (opt.nb_non_unique_kmers < 0)){
-
-        cerr << "Error: Number of Bloom filter bits per non unique k-mer cannot be less than 0" << endl;
-        ret = false;
-    }*/
-
     if (!opt.reference_mode && (opt.nb_non_unique_kmers > opt.nb_unique_kmers)){
 
         cerr << "Error: The estimated number of non unique k-mers ";
         cerr << "cannot be greater than the estimated number of unique k-mers" << endl;
         ret = false;
     }
-
-    /*if (opt.nb_bits_unique_kmers_bf < 0){
-
-        cerr << "Error: Number of Bloom filter bits per unique k-mer cannot be less than 0" << endl;
-        ret = false;
-    }
-
-    if (!opt.reference_mode && (opt.nb_bits_non_unique_kmers_bf < 0)){
-
-        cerr << "Error: Number of Bloom filter bits per non unique k-mer cannot be less than 0" << endl;
-        ret = false;
-    }*/
 
     if (opt.outFilenameBBF.length() != 0){
 
@@ -264,7 +240,7 @@ bool check_ProgramOptions(CDBG_Build_opt& opt) {
         if (remove(out.c_str()) != 0) cerr << "Error: Could not remove temporary file " << out << endl;
     }
 
-    if (opt.fastx_filename_in.size() == 0) {
+    if (opt.filename_in.size() == 0) {
 
         cerr << "Error: Missing FASTA/FASTQ input files" << endl;
         ret = false;
@@ -275,7 +251,7 @@ bool check_ProgramOptions(CDBG_Build_opt& opt) {
         vector<string>::const_iterator it;
         int intStat;
 
-        for (it = opt.fastx_filename_in.begin(); it != opt.fastx_filename_in.end(); ++it) {
+        for (it = opt.filename_in.begin(); it != opt.filename_in.end(); ++it) {
 
             intStat = stat(it->c_str(), &stFileInfo);
 

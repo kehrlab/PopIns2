@@ -44,9 +44,7 @@ struct OptionsWrapper{
     std::string bloom_filter_file;
 
     // default constructor
-    OptionsWrapper() :
-    verbose(false), clip_tips(false), rm_iso(false)
-    {}
+    OptionsWrapper() : clip_tips(false), rm_iso(false), verbose(false){}
 };
 
 

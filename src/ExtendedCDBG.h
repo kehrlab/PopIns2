@@ -28,11 +28,14 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
     private:
         seqan::UnionFind<unsigned> UF;
 
+        bool init_status;
+
     public:
         ExtendedCDBG(int kmer_length = 31, int minimizer_length = 23);
 
         void init_ids();
         void print_ids();
+        bool is_init();
 
         bool connected_components(const CDBG_Build_opt &graph_options);
         size_t count_connected_components();

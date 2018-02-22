@@ -4,27 +4,39 @@
 
 
 
+// default constructor
 ExtendedCDBG::ExtendedCDBG(int kmer_length, int minimizer_length): CompactedDBG< UnitigExtension >(kmer_length, minimizer_length){
+    init_status = false;    // IDs are not initiated at construction time (see init_ids())
 }
 
 
 void ExtendedCDBG::init_ids(){
-    unsigned i=0;
+    size_t i=1;           // starting index is 1 because that's how Bifrost counts
     for (auto& unitig : *this){
         UnitigExtension* ue = unitig.getData();      // ue is a POINTER to a UnitigExtension
         ue->setID(i);
         ++i;
     }
+    init_status = true;
 }
 
 
 void ExtendedCDBG::print_ids(){
-    std::cout << "[DEBUG] ";
-    for (auto &unitig : *this){
-        unsigned id = unitig.getData()->getID();
-        std::cout << id << ", ";
+    if (is_init() == true){
+        std::cout << "[DEBUG] ";
+        for (auto &unitig : *this){
+            unsigned id = unitig.getData()->getID();
+            std::cout << id << ", ";
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
+    else
+        cerr << "[WARNING] Unitig IDs were not printed because they are not initialized." << endl;
+}
+
+
+bool ExtendedCDBG::is_init(){
+    return init_status;
 }
 
 
@@ -36,7 +48,7 @@ void ExtendedCDBG::print_ids(){
  * \return  number of distinct connected components
  */
 size_t ExtendedCDBG::count_connected_components(){
-    std:unordered_set<unsigned> unique_set;
+    std::unordered_set<unsigned> unique_set;
     for (auto &unitig : *this){
         unique_set.insert(seqan::findSet(UF, unitig.getData()->getID()));
     }
@@ -44,6 +56,7 @@ size_t ExtendedCDBG::count_connected_components(){
 }
 
 
+// FIXME: I set the unitig IDs from start index 0 to 1. This causes a segmentation fault somewhere here.
 /*!
  * \fn      bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options)
  * \brief   This function computes the connected components for at the current state of the graph.
@@ -74,12 +87,15 @@ bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
 
 
 /*!
- * \fn          float entropy(const std::string &sequence)
- * \brief       This function computes an entropy for a given string that can be used to filter/mark low complexity sequences.
+ * \fn          float ExtendedCDBG::entropy(const std::string &sequence)
+ * \brief       This function computes an entropy for a given string that can be used to filter/mark low complexity
+ *              sequences. If all dimers are equaly distributed the entropy is high ("highly chaotic system"), if
+ *              all dimers follow a certain pattern the entropy is low ("highly ordered system"). We'd probably like
+ *              to mark low entropy unitigs since they have a chance to disrupt/branch the de Bruijn Graph.
  * \remark      Function taken from PopIns.
  * \return      The entropy [0,1] of all binucleotides.
  */
-float averageEntropy(const std::string &sequence){
+float ExtendedCDBG::entropy(const std::string &sequence){
     // create a dictionary counting the occurrence of all dinucleotides
     unordered_map<std::string, unsigned> diCounts(16);
     unsigned counted = 0;
