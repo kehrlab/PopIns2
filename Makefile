@@ -22,6 +22,7 @@ CXXFLAGS += -DDATE=\""$(DATE)"\" -DVERSION=\""$(VERSION)"\"
 # Enable warnings
 CXXFLAGS += -W -Wall -Wno-long-long -pedantic -Wno-variadic-macros -Wno-unused-result
 CXXFLAGS += -fno-stack-protector
+CXXFLAGS += -march=native
 
 # DEBUG build
 #CXXFLAGS += -g -O0 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
