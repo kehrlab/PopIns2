@@ -55,40 +55,6 @@ int main(int argc, char const *argv[]){
     // TEST START
     cdbg.init_ids();
 
-    uint8_t test_bit_encoding;
-    for (auto &unitig : cdbg){
-        ForwardCDBG<UnitigExtension, false> fw_dbg = unitig.getSuccessors();
-        BackwardCDBG<UnitigExtension, false> bw_dbg = unitig.getPredecessors();
-
-        unsigned i=0;
-        for (auto &suc : fw_dbg) ++i;
-        unsigned j=0;
-        for (auto &pre : bw_dbg) ++j;
-
-        if (unitig.getData()->getID() == 4) {
-            UnitigMap<UnitigExtension>::neighbor_iterator suc1 = fw_dbg.begin();
-            UnitigMap<UnitigExtension>::neighbor_iterator pre1 = bw_dbg.begin();
-
-            size_t pre1id = pre1->getData()->getID();
-            cout << "Predecessor: " << pre1id << endl;
-            char pre1tail = (pre1->getTail()).getChar(graph_options.k-1);   // getChar(offset) returns the base from Kmer at offset from the beginning
-            cout << "Predecessor's last base: " << pre1tail << endl;
-
-            size_t suc1id = suc1->getData()->getID();
-            cout << "Successor: " << suc1id << endl;
-            char suc1head = (suc1->getHead()).getChar(0);                   // getChar(offset) returns the base from Kmer at offset from the beginning
-            cout << "Successor's first base: " << suc1head << endl;
-
-            uint8_t pre_bit = bitmask_encoder_predecessor[pre1tail];
-            uint8_t suc_bit = bitmask_encoder_successor[suc1head];
-            test_bit_encoding = setNeighborPairFromBases(pre_bit, suc_bit);
-        }
-    }
-    pair<uint8_t, uint8_t> test_bit_decoding = getBasesFromNeighborPair(test_bit_encoding);
-    uint8_t f = test_bit_decoding.first;
-    uint8_t s = test_bit_decoding.second;
-    cout << "\n After bit operations the PRE and SUC are: (" << bitmask_decoder[f] << "," << bitmask_decoder[s] << ")" << endl;
-
     // TEST END
 
     // write
