@@ -26,9 +26,11 @@
 struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
 
     private:
-        seqan::UnionFind<unsigned> UF;
 
         bool init_status;
+
+        seqan::UnionFind<unsigned> UF;
+
 
     public:
         ExtendedCDBG(int kmer_length = 31, int minimizer_length = 23);
@@ -39,6 +41,8 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
 
         bool connected_components(const CDBG_Build_opt &graph_options);
         size_t count_connected_components();
+        void print_components();
+        seqan::UnionFind<unsigned> getUF() const {return UF;}
 
         float entropy(const std::string &sequence);
 };

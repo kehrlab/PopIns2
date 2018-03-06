@@ -7,6 +7,16 @@
 #define UNITIG_EXTENSION_H_
 
 
+
+// =========================
+// Includes + defines
+// =========================
+#include <bifrost/CompactedDBG.hpp>     /* has the CDBG_Data_t template */
+#include <string>                       /* std::to_string() */
+#include <tuple>                        /* std::Pair */
+#include <cstdint>                      /* uint8_t */
+
+
 static const uint8_t bitmask_encoder_successor[256] = {
   0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
   0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
@@ -53,15 +63,6 @@ static const char bitmask_decoder[16] = {
     0b01001110, 0b01001110, 0b01001110, 0b01000111,     // N, N, N, G
     0b01000001, 0b01000011, 0b01000111, 0b01010100      // A, C, G, T
 };
-
-
-// =========================
-// Includes + defines
-// =========================
-#include <bifrost/CompactedDBG.hpp>     /* has the CDBG_Data_t template */
-#include <string>                       /* std::to_string() */
-#include <tuple>                        /* std::Pair */
-
 
 
 // =========================

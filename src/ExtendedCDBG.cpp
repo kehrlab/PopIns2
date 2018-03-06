@@ -56,7 +56,6 @@ size_t ExtendedCDBG::count_connected_components(){
 }
 
 
-// FIXME: I set the unitig IDs from start index 0 to 1. This causes a segmentation fault somewhere here.
 /*!
  * \fn      bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options)
  * \brief   This function computes the connected components for at the current state of the graph.
@@ -67,23 +66,50 @@ bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
     // initiate UF structure
     if (graph_options.verbose) std::cout << "[VERBOSE] Initiating UNION-FIND" << std::endl;
     resize(UF, (*this).size());
+    //std::cout << "UF size " << seqan::length(UF._values) << std::endl;    //[DEBUG]
 
     // run UF merges
     if (graph_options.verbose) std::cout << "[VERBOSE] Running UNION-FIND" << std::endl;
-    for (auto IUnitig = (*this).begin(); IUnitig != (*this).end(); ++IUnitig){
+    for (auto &unitig : *this){
         // TODO: progress indicator here
 
-        /*  Get all successors of a node (unitig).
-         *  I could have used ancestors as well but it doesn't matter since every link will
-         *  be found if the iterator handles each unitig once.
+        /*  Get all predecessors AND successors of a node (unitig).
+         *  I need to iterate through both since either one of them could miss
+         *  links, and therefore split components, where both unitigs
+         *  "face each other", e.g.:
+         *        u1 ----------->
+         *                 <-------------- u2
+         * which is in GFA:
+         *      L   u1  +   u2  -
+         *      L   u2  +   u1  -
          */
-        ForwardCDBG<UnitigExtension, false> neighbours = IUnitig->getSuccessors();
-        for (auto INeighbour = neighbours.begin(); INeighbour != neighbours.end(); ++INeighbour)
-            seqan::joinSets(UF, seqan::findSet(UF, IUnitig->getData()->getID()), seqan::findSet(UF, INeighbour->getData()->getID()));
+        size_t unitig_id = unitig.getData()->getID();
+
+        BackwardCDBG<UnitigExtension, false> predecessors = unitig.getPredecessors();
+        for (auto &it_pre : predecessors){
+            size_t pre_id = it_pre.getData()->getID();
+            seqan::joinSets(UF, seqan::findSet(UF, unitig_id), seqan::findSet(UF, pre_id));
+        }
+
+        ForwardCDBG<UnitigExtension, false> successorss = unitig.getSuccessors();
+        for (auto &it_suc : successorss){
+            size_t suc_id = it_suc.getData()->getID();
+            seqan::joinSets(UF, seqan::findSet(UF, unitig_id), seqan::findSet(UF, suc_id));
+        }
     }
 
     return true;
 }
+
+
+void ExtendedCDBG::print_components(){
+    for (auto &unitig : *this){
+        size_t uid = unitig.getData()->getID();
+        unsigned ucc = seqan::findSet(UF, uid);
+        cout << "ID:" << uid << " | " << "CC:" << ucc << endl;
+    }
+}
+
 
 
 /*!

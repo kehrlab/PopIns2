@@ -19,7 +19,7 @@ SEQAN_DEFINE_TEST(test_bifrost_parameter){
     graph_opt.prefixFilenameOut = "union_test_out";
     graph_opt.nb_unique_kmers = 2488350;
     graph_opt.nb_non_unique_kmers = 874940;
-    graph_opt.nb_threads = 4;
+    graph_opt.nb_threads = 1;
     graph_opt.clipTips = true;
     graph_opt.deleteIsolated = true;
     SEQAN_ASSERT_EQ(check_ProgramOptions(graph_opt), true);
@@ -41,11 +41,13 @@ SEQAN_DEFINE_TEST(test_init){
     SEQAN_ASSERT_EQ(g.is_init(), true);
 }
 
-// FIXME: CC isn't working atm
+/* WARNING: connected_components() here in the test environment works only single threaded, no idea why, it works
+ * multithreaded within the main program.
+ */
 SEQAN_DEFINE_TEST(test_connectedcomponents){
     bool cc_build = g.connected_components(graph_opt);
     SEQAN_ASSERT_EQ(cc_build, true);
-    unsigned nb_cc = g.count_connected_components();
+    size_t nb_cc = g.count_connected_components();
     SEQAN_ASSERT_EQ(nb_cc, 93u);
 }
 
@@ -105,9 +107,9 @@ SEQAN_DEFINE_TEST(test_neighbors_and_bit_operations){
 SEQAN_BEGIN_TESTSUITE(test_popins2){
 	// call tests here
     SEQAN_CALL_TEST(test_bifrost_parameter);
-	SEQAN_CALL_TEST(test_bifrost_graphfunctions);
+    SEQAN_CALL_TEST(test_bifrost_graphfunctions);
     SEQAN_CALL_TEST(test_init);
-    //SEQAN_CALL_TEST(test_connectedcomponents);
+    SEQAN_CALL_TEST(test_connectedcomponents);
     SEQAN_CALL_TEST(test_neighbors_and_bit_operations);
 }
 SEQAN_END_TESTSUITE
