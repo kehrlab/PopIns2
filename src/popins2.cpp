@@ -57,11 +57,14 @@ int main(int argc, char const *argv[]){
     cdbg.connected_components(graph_options);
     size_t nb_cc = cdbg.count_connected_components();
 
+    //cdbg.dfs();
+
     /*
     cout << "nb_cc " << nb_cc << endl;
     for (auto &unitig : cdbg){
-        size_t uid = unitig.getData()->getID();
-        unsigned ucc = seqan::findSet(cdbg.getUF(), uid);
+        unsigned uid = unitig.getData()->getID();
+        seqan::UnionFind<unsigned> UF = cdbg.getUF();
+        unsigned ucc = seqan::findSet(UF, uid);
         cout << "ID:" << uid << " | CC:" << ucc;
 
         BackwardCDBG<UnitigExtension, false> bw_dbg = unitig.getPredecessors();

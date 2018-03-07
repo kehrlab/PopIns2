@@ -5,8 +5,10 @@
 
 
 // default constructor
-ExtendedCDBG::ExtendedCDBG(int kmer_length, int minimizer_length): CompactedDBG< UnitigExtension >(kmer_length, minimizer_length){
-    init_status = false;    // IDs are not initiated at construction time (see init_ids())
+ExtendedCDBG::ExtendedCDBG(int kmer_length, int minimizer_length) : CompactedDBG< UnitigExtension >(kmer_length, minimizer_length), init_status(false), dfs_time(0) {
+    /* 1) IDs are not initiated at construction time (see init_ids())
+     * 2) The UnionFind vector will be empty an construction time, will be resized at use.
+     */
 }
 
 
@@ -65,7 +67,7 @@ size_t ExtendedCDBG::count_connected_components(){
 bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
     // initiate UF structure
     if (graph_options.verbose) std::cout << "[VERBOSE] Initiating UNION-FIND" << std::endl;
-    resize(UF, (*this).size());
+    resize(UF, (*this).size()+1);   // however, UF needs to be +1 bigger than the graph size. Probably due to start index 1 of IDs
     //std::cout << "UF size " << seqan::length(UF._values) << std::endl;    //[DEBUG]
 
     // run UF merges
@@ -87,13 +89,13 @@ bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
 
         BackwardCDBG<UnitigExtension, false> predecessors = unitig.getPredecessors();
         for (auto &it_pre : predecessors){
-            size_t pre_id = it_pre.getData()->getID();
+            unsigned pre_id = it_pre.getData()->getID();
             seqan::joinSets(UF, seqan::findSet(UF, unitig_id), seqan::findSet(UF, pre_id));
         }
 
-        ForwardCDBG<UnitigExtension, false> successorss = unitig.getSuccessors();
-        for (auto &it_suc : successorss){
-            size_t suc_id = it_suc.getData()->getID();
+        ForwardCDBG<UnitigExtension, false> successors = unitig.getSuccessors();
+        for (auto &it_suc : successors){
+            unsigned suc_id = it_suc.getData()->getID();
             seqan::joinSets(UF, seqan::findSet(UF, unitig_id), seqan::findSet(UF, suc_id));
         }
     }
@@ -109,7 +111,6 @@ void ExtendedCDBG::print_components(){
         cout << "ID:" << uid << " | " << "CC:" << ucc << endl;
     }
 }
-
 
 
 /*!
@@ -151,6 +152,42 @@ float ExtendedCDBG::entropy(const std::string &sequence){
 
     return entropy / 4;
 }
+
+
+/*!
+ * \fn      void ExtendedCDBG::dfs()
+ * \brief   Depth-first search
+ */
+void ExtendedCDBG::dfs(){
+    for (auto &unitig : *this)
+        if (unitig.getData()->dfs_color == 'w')
+            dfs_visit(unitig);
+}
+
+
+void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
+    dfs_time += 1;
+    um.getData()->dfs_discovertime = dfs_time;
+    um.getData()->dfs_color = 'g';
+
+    ForwardCDBG<UnitigExtension, false> successors = um.getSuccessors();
+    for (auto &suc : successors){
+        if (suc.getData()->dfs_color == 'w'){
+            suc.getData()->dfs_ancestor = um.getData()->getID();
+            dfs_visit(suc);
+        }
+    }
+
+    um.getData()->dfs_color = 'b';
+    dfs_time += 1;
+    um.getData()->dfs_finishtime = dfs_time;
+}
+
+
+
+
+
+
 
 
 

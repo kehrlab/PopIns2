@@ -19,7 +19,7 @@ SEQAN_DEFINE_TEST(test_bifrost_parameter){
     graph_opt.prefixFilenameOut = "union_test_out";
     graph_opt.nb_unique_kmers = 2488350;
     graph_opt.nb_non_unique_kmers = 874940;
-    graph_opt.nb_threads = 1;
+    graph_opt.nb_threads = 4;
     graph_opt.clipTips = true;
     graph_opt.deleteIsolated = true;
     SEQAN_ASSERT_EQ(check_ProgramOptions(graph_opt), true);
@@ -41,9 +41,6 @@ SEQAN_DEFINE_TEST(test_init){
     SEQAN_ASSERT_EQ(g.is_init(), true);
 }
 
-/* WARNING: connected_components() here in the test environment works only single threaded, no idea why, it works
- * multithreaded within the main program.
- */
 SEQAN_DEFINE_TEST(test_connectedcomponents){
     bool cc_build = g.connected_components(graph_opt);
     SEQAN_ASSERT_EQ(cc_build, true);

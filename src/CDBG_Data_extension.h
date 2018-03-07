@@ -91,7 +91,18 @@ struct UnitigExtension : public CDBG_Data_t<UnitigExtension> {
         std::vector<uint8_t> neighborPairs;
 
     public:
-        UnitigExtension(const unsigned initID = 0, const float initEntropy = -1);
+        // -----------------
+        // | DFS variables |
+        // -----------------
+        char dfs_color;
+        size_t dfs_ancestor;
+        size_t dfs_discovertime;
+        size_t dfs_finishtime;
+
+        // --------------
+        // | Functions  |
+        // --------------
+        UnitigExtension();   // hidden inits! (see definition)
 
         unsigned getID() const {return ID;}
         void setID(const unsigned id) {ID = id;}

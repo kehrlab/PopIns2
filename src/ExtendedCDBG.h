@@ -31,9 +31,11 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
 
         seqan::UnionFind<unsigned> UF;
 
+        size_t dfs_time;
+
 
     public:
-        ExtendedCDBG(int kmer_length = 31, int minimizer_length = 23);
+        ExtendedCDBG(int kmer_length = 31, int minimizer_length = 23);      // hidden inits! (see definition)
 
         void init_ids();
         void print_ids();
@@ -45,6 +47,9 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
         seqan::UnionFind<unsigned> getUF() const {return UF;}
 
         float entropy(const std::string &sequence);
+
+        void dfs();
+        void dfs_visit(UnitigMap<UnitigExtension> &um);
 };
 
 

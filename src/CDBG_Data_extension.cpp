@@ -2,7 +2,7 @@
 
 
 
-UnitigExtension::UnitigExtension(const unsigned initID, const float initEntropy) : ID(initID), entropy(initEntropy) {}
+UnitigExtension::UnitigExtension() : ID(0), entropy(-1), dfs_color('w'), dfs_ancestor(0), dfs_discovertime(0), dfs_finishtime(0) {}
 
 
 void UnitigExtension::join(const UnitigMap< UnitigExtension >& um_dest, const UnitigMap< UnitigExtension >& um_src){
