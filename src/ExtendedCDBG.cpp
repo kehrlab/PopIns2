@@ -37,9 +37,34 @@ void ExtendedCDBG::print_ids(){
 }
 
 
-bool ExtendedCDBG::is_init(){
-    return init_status;
+void ExtendedCDBG::print_unitig_info(){
+    // --------------------------------------------------------------------------
+    // | ID | CC | Pre | Suc | DFS color | DFS discovery time | DFS finish time |
+    // --------------------------------------------------------------------------
+    for (auto &unitig : *this){
+        unsigned uid = unitig.getData()->getID();
+        unsigned ucc = seqan::findSet(UF, uid);
+        cout << "ID:" << uid << " | CC:" << ucc;
+
+        BackwardCDBG<UnitigExtension, false> bw_dbg = unitig.getPredecessors();
+        cout << " | Pre:";
+        for (auto &predecessor : bw_dbg){
+            size_t pre_id = predecessor.getData()->getID();
+            cout << pre_id << ",";
+        }
+
+        ForwardCDBG<UnitigExtension, false> fw_dbg = unitig.getSuccessors();
+        cout << " | Suc:";
+        for (auto &successor : fw_dbg){
+            size_t suc_id = successor.getData()->getID();
+            cout << suc_id << ",";
+        }
+
+        cout << " | " << unitig.getData()->dfs_color << " | d.time:" << unitig.getData()->dfs_discovertime << " | f.time:" << unitig.getData()->dfs_finishtime;
+        cout << endl;
+    }
 }
+
 
 
 /*!
@@ -104,15 +129,6 @@ bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
 }
 
 
-void ExtendedCDBG::print_components(){
-    for (auto &unitig : *this){
-        size_t uid = unitig.getData()->getID();
-        unsigned ucc = seqan::findSet(UF, uid);
-        cout << "ID:" << uid << " | " << "CC:" << ucc << endl;
-    }
-}
-
-
 /*!
  * \fn          float ExtendedCDBG::entropy(const std::string &sequence)
  * \brief       This function computes an entropy for a given string that can be used to filter/mark low complexity
@@ -165,6 +181,10 @@ void ExtendedCDBG::dfs(){
 }
 
 
+/*!
+ * \fn      void ExtendedCDBG::dfs_visit()
+ * \brief   Depth-first search neighbor traversal and visiting time updates
+ */
 void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
     dfs_time += 1;
     um.getData()->dfs_discovertime = dfs_time;

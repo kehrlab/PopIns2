@@ -55,35 +55,9 @@ int main(int argc, char const *argv[]){
     // TEST START
     cdbg.init_ids();
     cdbg.connected_components(graph_options);
-    size_t nb_cc = cdbg.count_connected_components();
 
-    //cdbg.dfs();
-
-    /*
-    cout << "nb_cc " << nb_cc << endl;
-    for (auto &unitig : cdbg){
-        unsigned uid = unitig.getData()->getID();
-        seqan::UnionFind<unsigned> UF = cdbg.getUF();
-        unsigned ucc = seqan::findSet(UF, uid);
-        cout << "ID:" << uid << " | CC:" << ucc;
-
-        BackwardCDBG<UnitigExtension, false> bw_dbg = unitig.getPredecessors();
-        cout << " | Pre:";
-        for (auto &predecessor : bw_dbg){
-            size_t pre_id = predecessor.getData()->getID();
-            cout << pre_id << ",";
-        }
-
-        ForwardCDBG<UnitigExtension, false> fw_dbg = unitig.getSuccessors();
-        cout << " | Suc:";
-        for (auto &successor : fw_dbg){
-            size_t suc_id = successor.getData()->getID();
-            cout << suc_id << ",";
-        }
-        cout << endl;
-    }
-    */
-
+    cdbg.dfs();
+    cdbg.print_unitig_info();
     // TEST END
 
     // write

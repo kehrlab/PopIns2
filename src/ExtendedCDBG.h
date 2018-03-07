@@ -37,13 +37,14 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
     public:
         ExtendedCDBG(int kmer_length = 31, int minimizer_length = 23);      // hidden inits! (see definition)
 
+        void print_unitig_info();
+
         void init_ids();
         void print_ids();
-        bool is_init();
+        bool is_init() const {return init_status;}
 
         bool connected_components(const CDBG_Build_opt &graph_options);
         size_t count_connected_components();
-        void print_components();
         seqan::UnionFind<unsigned> getUF() const {return UF;}
 
         float entropy(const std::string &sequence);
