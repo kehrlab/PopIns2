@@ -32,6 +32,7 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
         seqan::UnionFind<unsigned> UF;
 
         size_t dfs_time;
+        bool dfs_passed;
 
 
     public:
@@ -51,6 +52,10 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
 
         void dfs();
         void dfs_visit(UnitigMap<UnitigExtension> &um);
+        bool is_dfs_passed() const {return dfs_passed;}
+
+        bool single_source_longest_paths(UnitigMap<UnitigExtension> &um);
+        void traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink);
 };
 
 

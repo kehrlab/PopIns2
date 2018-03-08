@@ -95,7 +95,7 @@ struct UnitigExtension : public CDBG_Data_t<UnitigExtension> {
         // | DFS variables |
         // -----------------
         char dfs_color;
-        size_t dfs_ancestor;
+        unsigned dfs_ancestor;
         size_t dfs_discovertime;
         size_t dfs_finishtime;
 

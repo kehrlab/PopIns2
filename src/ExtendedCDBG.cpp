@@ -5,7 +5,7 @@
 
 
 // default constructor
-ExtendedCDBG::ExtendedCDBG(int kmer_length, int minimizer_length) : CompactedDBG< UnitigExtension >(kmer_length, minimizer_length), init_status(false), dfs_time(0) {
+ExtendedCDBG::ExtendedCDBG(int kmer_length, int minimizer_length) : CompactedDBG< UnitigExtension >(kmer_length, minimizer_length), init_status(false), dfs_time(0), dfs_passed(false) {
     /* 1) IDs are not initiated at construction time (see init_ids())
      * 2) The UnionFind vector will be empty an construction time, will be resized at use.
      */
@@ -178,6 +178,8 @@ void ExtendedCDBG::dfs(){
     for (auto &unitig : *this)
         if (unitig.getData()->dfs_color == 'w')
             dfs_visit(unitig);
+
+    dfs_passed = true;
 }
 
 
@@ -202,6 +204,70 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
     dfs_time += 1;
     um.getData()->dfs_finishtime = dfs_time;
 }
+
+
+/*!
+ * \fn          bool ExtendedCDBG::single_source_longest_paths(UnitigMap<UnitigExtension> &um)
+ * \brief       Traverse the graph and find all longest paths from a given start node.
+ * \return      true if successful
+ */
+bool ExtendedCDBG::single_source_longest_paths(UnitigMap<UnitigExtension> &um){
+    if (!dfs_passed)
+        return 0;
+
+    unsigned uid = um.getData()->getID();
+    unsigned ucc = seqan::findSet(UF, uid);
+
+    /*  FIXME: it is an incredible overhead to check ALL nodes here again whether they are in the same component.
+     *  I need a data structure within ExtendedCDBG so that I only need to work on unitigs of the same CC.
+     */
+    // find all sinks in the connected component ("unitig" is a potential sink in this loop)
+    for (auto &unitig : *this){
+        // only continue within same connected component
+        if (ucc != seqan::findSet(UF, unitig.getData()->getID()))
+            continue;
+
+        // check if sink
+        if (unitig.getData()->dfs_finishtime - unitig.getData()->dfs_discovertime == 1){
+            std::vector<unsigned> path;
+            path.push_back(unitig.getData()->getID());
+            traceback(path, unitig);
+
+            // [DEBUG] start
+            for (unsigned id : path) cout << id << ",";
+            cout << endl;
+            // [DEBUG] end
+        }
+    }
+
+
+
+    return 1;
+}
+
+
+/*!
+ * \fn          void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink)
+ * \brief       This function walks back on the DFS trace of the nodes, from a given sink to its source.
+ * \return      a list containing the path from sink to source, i.e. in reverse directional order
+ */
+void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink){
+    unsigned dfs_anc = um_sink.getData()->dfs_ancestor;
+    vec.push_back(dfs_anc);
+
+    // if um_sink is a source node, then the dfs_ancestor is zero (default init) and we can stop traversing
+    if (dfs_anc != 0){
+        /* The only shorter way than looking for the ID in the whole graph again is by using the fact that the node with
+        * the ancestor ID must be within the four predecessors of the unitig.
+        */
+        BackwardCDBG<UnitigExtension, false> predecessors = um_sink.getPredecessors();
+        for (auto &pre : predecessors)
+            if (pre.getData()->getID() == dfs_anc)
+                traceback(vec, pre);
+    }
+}
+
+
 
 
 
