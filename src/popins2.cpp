@@ -56,12 +56,11 @@ int main(int argc, char const *argv[]){
     cdbg.init_ids();
     cdbg.connected_components(graph_options);
 
-    cdbg.dfs();
     //cdbg.print_unitig_info();
-    if (cdbg.is_dfs_passed())
-        for (auto &unitig : cdbg)
-            if (unitig.getData()->getID() == 3)    // test case: unitig ID 3 is a source with at least ID 38 as sink (only one I checked manually)
-                cdbg.single_source_longest_paths(unitig);
+    for (auto &unitig : cdbg)
+        if (unitig.getData()->getID() == 3)    // test case: unitig ID 3 is a source with at least ID 38 as sink (only one I checked manually)
+            cdbg.dfs(unitig);
+    //cdbg.print_unitig_info();
 
     // TEST END
 

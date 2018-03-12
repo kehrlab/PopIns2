@@ -38,9 +38,9 @@ void ExtendedCDBG::print_ids(){
 
 
 void ExtendedCDBG::print_unitig_info(){
-    // --------------------------------------------------------------------------
-    // | ID | CC | Pre | Suc | DFS color | DFS discovery time | DFS finish time |
-    // --------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------------------
+    // | ID | CC | Pre | Suc | DFS color | DFS predecessor| DFS discovery time | DFS finish time |
+    // -------------------------------------------------------------------------------------------
     for (auto &unitig : *this){
         unsigned uid = unitig.getData()->getID();
         unsigned ucc = seqan::findSet(UF, uid);
@@ -60,7 +60,7 @@ void ExtendedCDBG::print_unitig_info(){
             cout << suc_id << ",";
         }
 
-        cout << " | " << unitig.getData()->dfs_color << " | d.time:" << unitig.getData()->dfs_discovertime << " | f.time:" << unitig.getData()->dfs_finishtime;
+        cout << " | " << unitig.getData()->dfs_color << " | dfs-pre:" << unitig.getData()->dfs_ancestor << " | d.time:" << unitig.getData()->dfs_discovertime << " | f.time:" << unitig.getData()->dfs_finishtime;
         cout << endl;
     }
 }
@@ -171,14 +171,17 @@ float ExtendedCDBG::entropy(const std::string &sequence){
 
 
 /*!
- * \fn      void ExtendedCDBG::dfs()
- * \brief   Depth-first search
+ * \fn      void ExtendedCDBG::dfs(UnitigMap<UnitigExtension> &um)
+ * \brief   Local depth-first search (DFS) within a connected component.
  */
-void ExtendedCDBG::dfs(){
-    for (auto &unitig : *this)
-        if (unitig.getData()->dfs_color == 'w')
-            dfs_visit(unitig);
-
+void ExtendedCDBG::dfs(UnitigMap<UnitigExtension> &um){
+    cout << "[DEBUG] I start at " << um.getData()->getID() << endl;
+    ForwardCDBG<UnitigExtension, false> successors = um.getSuccessors();
+    for (auto &suc : successors)
+        if (suc.getData()->dfs_color == 'w'){
+            suc.getData()->dfs_ancestor = um.getData()->getID();
+            dfs_visit(suc);
+        }
     dfs_passed = true;
 }
 
@@ -191,7 +194,7 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
     dfs_time += 1;
     um.getData()->dfs_discovertime = dfs_time;
     um.getData()->dfs_color = 'g';
-
+    cout << "[DEBUG] I grayed " << um.getData()->getID() << endl;
     ForwardCDBG<UnitigExtension, false> successors = um.getSuccessors();
     for (auto &suc : successors){
         if (suc.getData()->dfs_color == 'w'){
@@ -201,50 +204,35 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
     }
 
     um.getData()->dfs_color = 'b';
+    cout << "[DEBUG] I blacked " << um.getData()->getID() << endl;
     dfs_time += 1;
     um.getData()->dfs_finishtime = dfs_time;
-}
 
+    // if DFS hits a sink, return the current DFS path to source
+    if (um.getData()->isSink()){
+        cout << "[DEBUG] Hey, " << um.getData()->getID() << " is a sink! " << endl;
+        std::vector<unsigned> path;
+        path.push_back(um.getData()->getID());
+        cout << "[DEBUG] I traced " << um.getData()->getID() << endl;
+        traceback(path, um);
 
-/*!
- * \fn          bool ExtendedCDBG::single_source_longest_paths(UnitigMap<UnitigExtension> &um)
- * \brief       Traverse the graph and find all longest paths from a given start node.
- * \return      true if successful
- */
-bool ExtendedCDBG::single_source_longest_paths(UnitigMap<UnitigExtension> &um){
-    if (!dfs_passed)
-        return 0;
-
-    unsigned uid = um.getData()->getID();
-    unsigned ucc = seqan::findSet(UF, uid);
-
-    /*  FIXME: it is an incredible overhead to check ALL nodes here again whether they are in the same component.
-     *  I need a data structure within ExtendedCDBG so that I only need to work on unitigs of the same CC.
-     */
-    // find all sinks in the connected component ("unitig" is a potential sink in this loop)
-    for (auto &unitig : *this){
-        // only continue within same connected component
-        if (ucc != seqan::findSet(UF, unitig.getData()->getID()))
-            continue;
-
-        // check if sink
-        if (unitig.getData()->dfs_finishtime - unitig.getData()->dfs_discovertime == 1){
-            std::vector<unsigned> path;
-            path.push_back(unitig.getData()->getID());
-            traceback(path, unitig);
-
-            // [DEBUG] start
-            for (unsigned id : path) cout << id << ",";
-            cout << endl;
-            // [DEBUG] end
-        }
+        // [DEBUG] start
+        for (unsigned id : path) cout << id << ",";
+        cout << endl;
+        // [DEBUG] end
     }
-
-
-
-    return 1;
 }
 
+/*
+
+ * \fn          void ExtendedCDBG::f()
+ * \brief       
+ * \return      
+
+void ExtendedCDBG::f(){
+
+}
+*/
 
 /*!
  * \fn          void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink)
@@ -253,6 +241,7 @@ bool ExtendedCDBG::single_source_longest_paths(UnitigMap<UnitigExtension> &um){
  */
 void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink){
     unsigned dfs_anc = um_sink.getData()->dfs_ancestor;
+    cout << "[DEBUG] I traced " << dfs_anc << endl;
     vec.push_back(dfs_anc);
 
     // if um_sink is a source node, then the dfs_ancestor is zero (default init) and we can stop traversing
@@ -264,6 +253,9 @@ void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &
         for (auto &pre : predecessors)
             if (pre.getData()->getID() == dfs_anc)
                 traceback(vec, pre);
+    }
+    else{
+        cout << "[DEBUG] I stopped tracing, because " << um_sink.getData()->getID() << " anc is " << dfs_anc << endl;
     }
 }
 

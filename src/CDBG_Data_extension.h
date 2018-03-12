@@ -114,6 +114,8 @@ struct UnitigExtension : public CDBG_Data_t<UnitigExtension> {
         void sub(const UnitigMap<UnitigExtension>& um_src, UnitigExtension& new_data, const bool last_extraction) const;
         string serialize() const;
 
+        bool isSink() const {return dfs_finishtime-dfs_discovertime == 1 ? true : false;}
+
 };
 
 

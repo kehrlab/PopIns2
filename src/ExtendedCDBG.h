@@ -50,11 +50,10 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
 
         float entropy(const std::string &sequence);
 
-        void dfs();
+        void dfs(UnitigMap<UnitigExtension> &um);
         void dfs_visit(UnitigMap<UnitigExtension> &um);
         bool is_dfs_passed() const {return dfs_passed;}
 
-        bool single_source_longest_paths(UnitigMap<UnitigExtension> &um);
         void traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink);
 };
 
