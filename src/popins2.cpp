@@ -58,7 +58,7 @@ int main(int argc, char const *argv[]){
 
     //cdbg.print_unitig_info();
     for (auto &unitig : cdbg)
-        if (unitig.getData()->getID() == 3)    // test case: unitig ID 3 is a source with at least ID 38 as sink (only one I checked manually)
+        if (unitig.getData()->getID() == 3)    // test case: unitig ID 3 as source
             cdbg.dfs(unitig);
     //cdbg.print_unitig_info();
 
