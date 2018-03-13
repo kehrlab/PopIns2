@@ -182,6 +182,10 @@ void ExtendedCDBG::dfs(UnitigMap<UnitigExtension> &um){
             suc.getData()->dfs_ancestor = um.getData()->getID();
             dfs_visit(suc);
         }
+    um.getData()->dfs_color = 'b';
+    dfs_time += 1;
+    um.getData()->dfs_finishtime = dfs_time;
+
     dfs_passed = true;
 }
 
@@ -195,11 +199,26 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
     um.getData()->dfs_discovertime = dfs_time;
     um.getData()->dfs_color = 'g';
     cout << "[DEBUG] I grayed " << um.getData()->getID() << endl;
-    ForwardCDBG<UnitigExtension, false> successors = um.getSuccessors();
-    for (auto &suc : successors){
-        if (suc.getData()->dfs_color == 'w'){
-            suc.getData()->dfs_ancestor = um.getData()->getID();
-            dfs_visit(suc);
+
+    // strand awareness
+    if (um.strand){     // if forward strand (+)
+        cout << "[DEBUG] " << um.getData()->getID() << " is forward, I will check successors." << endl;
+        ForwardCDBG<UnitigExtension, false> successors = um.getSuccessors();
+        for (auto &suc : successors){
+            if (suc.getData()->dfs_color == 'w'){
+                suc.getData()->dfs_ancestor = um.getData()->getID();
+                dfs_visit(suc);
+            }
+        }
+    }
+    else{               // if reverse complement (-)
+        cout << "[DEBUG] " << um.getData()->getID() << " is revComp, I will check predecessors." << endl;
+        BackwardCDBG<UnitigExtension, false> predecessors = um.getPredecessors();
+        for (auto &pre : predecessors){
+            if (pre.getData()->dfs_color == 'w'){
+                pre.getData()->dfs_ancestor = um.getData()->getID();
+                dfs_visit(pre);
+            }
         }
     }
 
@@ -214,6 +233,7 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
         std::vector<unsigned> path;
         path.push_back(um.getData()->getID());
         cout << "[DEBUG] I traced " << um.getData()->getID() << endl;
+
         traceback(path, um);
 
         // [DEBUG] start
@@ -222,6 +242,57 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
         // [DEBUG] end
     }
 }
+
+
+/*!
+ * \fn          void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink)
+ * \brief       This function walks back on the DFS trace of the nodes, from a given sink to its source.
+ * \details     It is important for the traceback to know in which orientation the unitigs are. This was either
+ *              predecessors or ancestors have to be choosen for further path traversal. E.g.:
+ *                 -----> 1
+ *                    -----> 2
+ *                        <----- rc(3)
+ *                           <----- rc(4)
+ *                               -----> 5
+ *              Trace: 5, rc(4), rc(3), 2, 1
+ * \return      a list containing the path from sink to source, i.e. in reverse directional order
+ */
+void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink){
+    if(um_sink.strand){
+        cout << "[DEBUG] " << um_sink.getData()->getID() << " is forward, I will trace predecessors." << endl;
+    }
+    else{
+        cout << "[DEBUG] " << um_sink.getData()->getID() << " is revComp, I will trace successors." << endl;
+    }
+
+    unsigned dfs_anc = um_sink.getData()->dfs_ancestor;
+    cout << "[DEBUG] I traced " << dfs_anc << endl;
+    vec.push_back(dfs_anc);
+
+    // if um_sink is a source node, then the dfs_ancestor is zero (default init) and we can stop traversing
+    if (dfs_anc != 0){
+        // awareness of orientation of DFS predecessor, important to detect rc(rc(unitig))
+        if (um_sink.strand){
+            // strand awareness (current unitig is +)
+            BackwardCDBG<UnitigExtension, false> predecessors = um_sink.getPredecessors();
+            for (auto &pre : predecessors)
+                if (pre.getData()->getID() == dfs_anc)
+                    traceback(vec, pre);
+        }
+        else{
+            // strand awareness (current unitig is -)
+            ForwardCDBG<UnitigExtension, false> successors = um_sink.getSuccessors();
+            for (auto &suc : successors)
+                if (suc.getData()->getID() == dfs_anc)
+                    traceback(vec, suc);
+        }
+
+    }
+    else{
+        cout << "[DEBUG] I stopped tracing, because " << um_sink.getData()->getID() << " anc is " << dfs_anc << endl;
+    }
+}
+
 
 /*
 
@@ -234,30 +305,6 @@ void ExtendedCDBG::f(){
 }
 */
 
-/*!
- * \fn          void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink)
- * \brief       This function walks back on the DFS trace of the nodes, from a given sink to its source.
- * \return      a list containing the path from sink to source, i.e. in reverse directional order
- */
-void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink){
-    unsigned dfs_anc = um_sink.getData()->dfs_ancestor;
-    cout << "[DEBUG] I traced " << dfs_anc << endl;
-    vec.push_back(dfs_anc);
-
-    // if um_sink is a source node, then the dfs_ancestor is zero (default init) and we can stop traversing
-    if (dfs_anc != 0){
-        /* The only shorter way than looking for the ID in the whole graph again is by using the fact that the node with
-        * the ancestor ID must be within the four predecessors of the unitig.
-        */
-        BackwardCDBG<UnitigExtension, false> predecessors = um_sink.getPredecessors();
-        for (auto &pre : predecessors)
-            if (pre.getData()->getID() == dfs_anc)
-                traceback(vec, pre);
-    }
-    else{
-        cout << "[DEBUG] I stopped tracing, because " << um_sink.getData()->getID() << " anc is " << dfs_anc << endl;
-    }
-}
 
 
 
