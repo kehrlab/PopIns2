@@ -62,6 +62,7 @@ int main(int argc, char const *argv[]){
             cdbg.dfs(unitig);
     //cdbg.print_unitig_info();
 
+    cdbg.annotate_kmer_coverage(sample_fastx_names);
     // TEST END
 
     // write

@@ -281,18 +281,61 @@ void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &
 }
 
 
-/*
+/*!
+ * \fn          bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_names)
+ * \brief       Reads the input files again to annotate a coverage per kmer
+ * \return      true if successful
+ */
+// TODO: Runtime can be improved with a specialized library/approach that is not reading in but just streaming kmers.
+bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_names){
 
- * \fn          void ExtendedCDBG::f()
- * \brief       
- * \return      
+    // reading one file at a time
+    std::vector<string>::const_iterator itFile = sample_fastx_names.cbegin();
+    while (itFile != sample_fastx_names.cend()){
 
-void ExtendedCDBG::f(){
+        seqan::CharString seqFileName = seqan::toCString(*itFile);
+        seqan::SeqFileIn seqFileIn;
 
+        if (!seqan::open(seqFileIn, seqan::toCString(seqFileName))){
+            // if file could not be found, retry with "./" directory prefix
+            seqan::CharString pref = "./";
+            seqan::append(pref, seqFileName);
+            if (!seqan::open(seqFileIn, seqan::toCString(pref))){
+                std::cerr << "ERROR: Could not open the file.\n";
+                return 0;
+            }
+        }
+
+        seqan::StringSet<seqan::CharString> ids;
+        seqan::StringSet<seqan::DnaString> seqs;
+        try{
+            seqan::readRecords(ids, seqs, seqFileIn);
+            // iterate reads
+            typedef seqan::Iterator<seqan::StringSet<seqan::DnaString> >::Type TStringSetIterator;
+            for (TStringSetIterator itSeq = seqan::begin(seqs); itSeq != seqan::end(seqs); ++itSeq){
+                // iterate kmers
+                size_t endpos = seqan::endPosition(*itSeq) - getK();
+                for (size_t pos = 0; pos <= endpos; ++pos){
+                    seqan::String<char, seqan::CStyle> infix = seqan::infixWithLength(*itSeq, pos, getK());
+                    Kmer kmer(infix);
+                    UnitigMap<UnitigExtension> um = find(kmer);
+
+                    // TODO: mark occurence within unitig
+                    // TODO: test if all kmers found
+                }
+            }
+        }
+        catch (exception const & e){
+            std::cout << "ERROR: " << e.what() << std::endl;
+            return 0;
+        }
+
+        seqan::close(seqFileIn);
+        itFile++;
+    }
+
+    return 1;
 }
-*/
-
-
 
 
 

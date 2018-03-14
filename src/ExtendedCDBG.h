@@ -10,8 +10,11 @@
 // =========================
 // Includes
 // =========================
+#include <seqan/seq_io.h>
 #include <seqan/misc/union_find.h>
+
 #include "CDBG_Data_extension.h"
+
 #include "argument_parsing.h"
 
 
@@ -55,6 +58,8 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
         bool is_dfs_passed() const {return dfs_passed;}
 
         void traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink);
+
+        bool annotate_kmer_coverage(const vector<string> &sample_fastx_names);
 };
 
 
