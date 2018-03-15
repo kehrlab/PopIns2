@@ -31,6 +31,7 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
     private:
 
         bool init_status;
+        bool isKmerCovInit;
 
         seqan::UnionFind<unsigned> UF;
 
@@ -60,6 +61,8 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
         void traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink);
 
         bool annotate_kmer_coverage(const vector<string> &sample_fastx_names);
+
+        void init_kmer_cov();
 };
 
 

@@ -91,6 +91,9 @@ struct UnitigExtension : public CDBG_Data_t<UnitigExtension> {
         std::vector<uint8_t> neighborPairs;
 
     public:
+
+        std::vector<unsigned short> kmer_coverage;
+
         // -----------------
         // | DFS variables |
         // -----------------
@@ -115,6 +118,8 @@ struct UnitigExtension : public CDBG_Data_t<UnitigExtension> {
         string serialize() const;
 
         bool isSink() const {return dfs_finishtime-dfs_discovertime == 1 ? true : false;}
+
+        // TODO: addNeighborPair(), if I leave neighborPairs private
 
 };
 

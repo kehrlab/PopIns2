@@ -5,16 +5,17 @@
 
 
 // default constructor
-ExtendedCDBG::ExtendedCDBG(int kmer_length, int minimizer_length) : CompactedDBG< UnitigExtension >(kmer_length, minimizer_length), init_status(false), dfs_time(0), dfs_passed(false) {
+ExtendedCDBG::ExtendedCDBG(int kmer_length, int minimizer_length) : CompactedDBG< UnitigExtension >(kmer_length, minimizer_length), init_status(false), isKmerCovInit(false), dfs_time(0), dfs_passed(false) {
     /* 1) IDs are not initiated at construction time (see init_ids())
      * 2) The UnionFind vector will be empty an construction time, will be resized at use.
+     * 3) kmer_coverage vector will be empty an construction time, will be resized at use.
      */
 }
 
 
 void ExtendedCDBG::init_ids(){
     size_t i=1;           // starting index is 1 because that's how Bifrost counts
-    for (auto& unitig : *this){
+    for (auto &unitig : *this){
         UnitigExtension* ue = unitig.getData();      // ue is a POINTER to a UnitigExtension
         ue->setID(i);
         ++i;
@@ -249,7 +250,7 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
  *              Trace: 5, rc(4), rc(3), 2, 1
  * \return      a list containing the path from sink to source, i.e. in reverse directional order
  */
-/* FIXME: I am potentially checking too many neighbors here, i.e. I do up to 8 comparisons while I only had to
+/* FIXME: I am checking too many neighbors here, i.e. I do up to 8 comparisons while I only had to
  * do up to 4, because I couldn't figure out how to trace RC properly. But it works.
  */
 void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink){
@@ -286,8 +287,13 @@ void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &
  * \brief       Reads the input files again to annotate a coverage per kmer
  * \return      true if successful
  */
-// TODO: Runtime can be improved with a specialized library/approach that is not reading in but just streaming kmers.
+// TODO: Runtime can potentially be improved with a specialized library/approach that is not loading in but just streaming kmers.
 bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_names){
+
+    if (!isKmerCovInit){
+        cerr << "ERROR: kmer_coverage has not been initialized." << endl;
+        return 0;
+    }
 
     // reading one file at a time
     std::vector<string>::const_iterator itFile = sample_fastx_names.cbegin();
@@ -317,11 +323,20 @@ bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_nam
                 size_t endpos = seqan::endPosition(*itSeq) - getK();
                 for (size_t pos = 0; pos <= endpos; ++pos){
                     seqan::String<char, seqan::CStyle> infix = seqan::infixWithLength(*itSeq, pos, getK());
+                    // WARNING: Seems to find all kmers. However, some of the following UnitigMaps have length 0.
+                    //          Only explanation to me is that the corresponding unitigs got filtered out. Since
+                    //          filter() erases unitigs and does NOT leave a mask I cannot tell 100%.
                     Kmer kmer(infix);
                     UnitigMap<UnitigExtension> um = find(kmer);
 
-                    // TODO: mark occurence within unitig
-                    // TODO: test if all kmers found
+                    // increment kmer count in unitig
+                    if (um.size != 0){
+                        um.getData()->kmer_coverage[um.dist] += 1;
+                    }
+                    // WARNING: There are all coverage vectors filled without any zero gaps. This indicates that
+                    //          the coverage was successfully recovered. However, the minimum overall coverage is 2.
+                    //          It suggests that every count was made forward and rev-comp but there are sometimes
+                    //          odd counts. I don't know how this can be at the moment.
                 }
             }
         }
@@ -333,9 +348,26 @@ bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_nam
         seqan::close(seqFileIn);
         itFile++;
     }
-
     return 1;
 }
+
+
+/*!
+ * \fn      void ExtendedCDBG::init_kmer_cov()
+ * \brief   Inits a tally to count the kmer coverage for each unitig.
+ */
+void ExtendedCDBG::init_kmer_cov(){
+    for (auto &unitig : *this){
+        size_t sz_v_kmer_cov = unitig.size - (this->getK() - 1);
+        (unitig.getData()->kmer_coverage).resize(sz_v_kmer_cov);
+    }
+    isKmerCovInit = true;
+}
+
+
+
+
+
 
 
 

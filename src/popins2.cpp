@@ -1,8 +1,13 @@
 #include <iostream>
+
 #include <bifrost/CompactedDBG.hpp>
+
 #include "argument_parsing.h"           /* seqAn argument parser */
 #include "CDBG_Data_extension.h"
 #include "ExtendedCDBG.h"
+
+//#include "../../prettyprint/prettyprint.h"      // my debug headder
+
 using namespace std;
 
 
@@ -56,13 +61,19 @@ int main(int argc, char const *argv[]){
     cdbg.init_ids();
     cdbg.connected_components(graph_options);
 
-    //cdbg.print_unitig_info();
     for (auto &unitig : cdbg)
         if (unitig.getData()->getID() == 3)    // test case: unitig ID 3 as source
             cdbg.dfs(unitig);
+
     //cdbg.print_unitig_info();
 
+    cdbg.init_kmer_cov();
     cdbg.annotate_kmer_coverage(sample_fastx_names);
+    /*
+    for ( auto &unitig : cdbg){
+        prettyprint::print(unitig.getData()->kmer_coverage);
+    }
+    */
     // TEST END
 
     // write
