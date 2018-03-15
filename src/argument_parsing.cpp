@@ -46,9 +46,9 @@ seqan::ArgumentParser::ParseResult parseCommandLine(OptionsWrapper &options, int
     setDefaultValue(parser, "threads", "1");
     setMinValue(parser, "t", "1");
 
-    addOption(parser, seqan::ArgParseOption("i", "clip-tips", "Remove ends of the dBG with length <k"));
+    addOption(parser, seqan::ArgParseOption("i", "clip-tips", "Remove branching ends (tips) of the dBG shorter than k k-mers in length"));
 
-    addOption(parser, seqan::ArgParseOption("d", "del-isolated", "Remove single contigs with length <k"));
+    addOption(parser, seqan::ArgParseOption("d", "del-isolated", "Remove single contigs shorter than k k-mers in length"));
 
     addOption(parser, seqan::ArgParseOption("v", "verbose", "Print more output"));
 
