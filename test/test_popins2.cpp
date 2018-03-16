@@ -2,6 +2,9 @@
 #define SEQAN_ENABLE_TESTING 1
 
 #include <bifrost/CompactedDBG.hpp>
+
+#include <unordered_map>
+
 #include "../src/ExtendedCDBG.h"
 #include "../src/argument_parsing.h"
 
@@ -36,7 +39,7 @@ SEQAN_DEFINE_TEST(test_bifrost_graphfunctions){
     SEQAN_ASSERT_EQ(g.write(graph_opt.prefixFilenameOut, graph_opt.nb_threads, true, graph_opt.verbose), true);
 }
 
-SEQAN_DEFINE_TEST(test_init){
+SEQAN_DEFINE_TEST(test_init_ids){
     g.init_ids();
     SEQAN_ASSERT_EQ(g.is_init(), true);
 }
@@ -99,14 +102,56 @@ SEQAN_DEFINE_TEST(test_neighbors_and_bit_operations){
     SEQAN_ASSERT_EQ(nb_potential_splitnodes, 5u);
 }
 
+/* NOTE:    This version of storing pointer doesn't work.
+ *          This test is currently not called in the the testsuite.
+ *          Instead store copies of iterator (see test_pointer_map2).
+ */
+SEQAN_DEFINE_TEST(test_pointer_map){
+    // build phase
+    std::unordered_map<unsigned, UnitigMap<UnitigExtension>*> m;
+    CompactedDBG<UnitigExtension>::iterator it = g.begin(), it_end = g.end();
+    for (; it != it_end; ++it){
+        unsigned id = it->getData()->getID();
+        UnitigMap<UnitigExtension>* p_um = &(*it);
+        cout << "ID: " << p_um->getData()->getID() << " | Pointer: " << p_um << endl;
+        m[id] = p_um;
+    }
+    SEQAN_ASSERT_EQ(m.size(), 119u);
+
+    // access phase
+    UnitigMap<UnitigExtension>* test_p_um = m[3];
+    unsigned test_id = test_p_um->getData()->getID();
+    SEQAN_ASSERT_EQ(test_id, 3u);   // CRASHES!!!
+}
+
+SEQAN_DEFINE_TEST(test_pointer_map2){
+    // build phase
+    std::unordered_map<unsigned, CompactedDBG<UnitigExtension>::iterator> m;
+    CompactedDBG<UnitigExtension>::iterator it = g.begin(), it_end = g.end();
+    for (; it != it_end; ++it){
+        unsigned id = it->getData()->getID();
+        CompactedDBG<UnitigExtension>::iterator p_um = it;
+        //cout << "ID: " << p_um->getData()->getID() << " | Pointer: " << &(*p_um) << endl;
+        m[id] = p_um;
+    }
+    SEQAN_ASSERT_EQ(m.size(), 119u);
+
+    // access phase
+    CompactedDBG<UnitigExtension>::iterator test_i_um = m[4];
+    unsigned test_id = test_i_um->getData()->getID();
+    SEQAN_ASSERT_EQ(test_id, 4u);
+    SEQAN_ASSERT_EQ(test_i_um->toString(), "CCCGCCTCGGCCTCCCAAAGTGCTGGGATTACAGGCGTGA");
+}
+
 
 
 SEQAN_BEGIN_TESTSUITE(test_popins2){
 	// call tests here
     SEQAN_CALL_TEST(test_bifrost_parameter);
     SEQAN_CALL_TEST(test_bifrost_graphfunctions);
-    SEQAN_CALL_TEST(test_init);
+    SEQAN_CALL_TEST(test_init_ids);
     SEQAN_CALL_TEST(test_connectedcomponents);
     SEQAN_CALL_TEST(test_neighbors_and_bit_operations);
+    SEQAN_CALL_TEST(test_pointer_map2);
 }
 SEQAN_END_TESTSUITE

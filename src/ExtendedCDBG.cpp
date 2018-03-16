@@ -250,7 +250,7 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
  *              Trace: 5, rc(4), rc(3), 2, 1
  * \return      a list containing the path from sink to source, i.e. in reverse directional order
  */
-/* FIXME: I am checking too many neighbors here, i.e. I do up to 8 comparisons while I only had to
+/* TODO: I am checking too many neighbors here, i.e. I do up to 8 comparisons while I only had to
  * do up to 4, because I couldn't figure out how to trace RC properly. But it works.
  */
 void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink){
@@ -330,6 +330,7 @@ bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_nam
                     UnitigMap<UnitigExtension> um = find(kmer);
 
                     // increment kmer count in unitig
+                    // FIXME: add with saturation (critical for big data!)
                     if (um.size != 0){
                         um.getData()->kmer_coverage[um.dist] += 1;
                     }
