@@ -25,11 +25,9 @@ seqan::ArgumentParser::ParseResult parseCommandLine(OptionsWrapper &options, int
     setRequired(parser, "output-file", true);
 
     addOption(parser, seqan::ArgParseOption("n", "unique-kmers", "Amount of unique kmers.", seqan::ArgParseArgument::INTEGER, "INT"));
-    setRequired(parser, "unique-kmers", true);
     setMinValue(parser, "unique-kmers", "1");
 
     addOption(parser, seqan::ArgParseOption("N", "non-unique-kmers", "Amount of non-unique kmers.", seqan::ArgParseArgument::INTEGER, "INT"));
-    setRequired(parser, "non-unique-kmers", true);
     setMinValue(parser, "non-unique-kmers", "1");
 
     addOption(parser, seqan::ArgParseOption("k", "kmer-length", "K-mer length for the dBG construction.", seqan::ArgParseArgument::INTEGER, "INT"));

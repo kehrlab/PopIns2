@@ -323,21 +323,20 @@ bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_nam
                 size_t endpos = seqan::endPosition(*itSeq) - getK();
                 for (size_t pos = 0; pos <= endpos; ++pos){
                     seqan::String<char, seqan::CStyle> infix = seqan::infixWithLength(*itSeq, pos, getK());
-                    // WARNING: Seems to find all kmers. However, some of the following UnitigMaps have length 0.
-                    //          Only explanation to me is that the corresponding unitigs got filtered out. Since
-                    //          filter() erases unitigs and does NOT leave a mask I cannot tell 100%.
                     Kmer kmer(infix);
                     UnitigMap<UnitigExtension> um = find(kmer);
 
                     // increment kmer count in unitig
-                    // FIXME: add with saturation (critical for big data!)
-                    if (um.size != 0){
-                        um.getData()->kmer_coverage[um.dist] += 1;
-                    }
-                    // WARNING: There are all coverage vectors filled without any zero gaps. This indicates that
-                    //          the coverage was successfully recovered. However, the minimum overall coverage is 2.
-                    //          It suggests that every count was made forward and rev-comp but there are sometimes
-                    //          odd counts. I don't know how this can be at the moment.
+                    if (um.size != 0)   // if kmer is in graph
+                        if (um.getData()->kmer_coverage[um.dist] < 65535)   // if unsigned short saturation isn't reached yet
+                            um.getData()->kmer_coverage[um.dist] += 1;
+
+                    // NOTE: The function finds all kmers. However, some of the following UnitigMaps have length 0.
+                    //       The only explanation to me is that the corresponding unitigs got filtered out. Since
+                    //       filter() erases unitigs and does NOT leave a mask I cannot tell 100%.
+                    //       There are all coverage vectors filled without any 'zero gaps'. This indicates that
+                    //       the coverage was successfully recovered. The minimum kmer coverage is 2, where forward
+                    //       and RC count both for the same kmer.
                 }
             }
         }

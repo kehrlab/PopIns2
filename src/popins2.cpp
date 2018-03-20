@@ -69,11 +69,13 @@ int main(int argc, char const *argv[]){
 
     cdbg.init_kmer_cov();
     cdbg.annotate_kmer_coverage(sample_fastx_names);
-    
+
+    /*
     for ( auto &unitig : cdbg){
         prettyprint::print(unitig.getData()->kmer_coverage);
     }
-    
+    */
+
     // TEST END
 
     // write
