@@ -124,7 +124,29 @@ SEQAN_DEFINE_TEST(test_pointer_map){
     SEQAN_ASSERT_EQ(test_id, 3u);   // CRASHES!!!
 }
 
+/* This is a test whether the concept of test_pointer_map works in general.
+ */
 SEQAN_DEFINE_TEST(test_pointer_map2){
+    // build phase
+    seqan::String<unsigned> testString;
+    seqan::resize(testString, 10, 0);
+    unsigned i = 0;
+    for (seqan::Iterator<seqan::String<unsigned> >::Type it = seqan::begin(testString); it != seqan::end(testString); ++it)
+    {
+        *it = i;
+        ++i;
+    }
+
+    // access phase
+    seqan::Iterator<seqan::String<unsigned> >::Type it = seqan::begin(testString), it_end = seqan::end(testString);
+    for (; it != it_end; ++it){
+        unsigned * p = &*it;
+        cout << "ItValue=" << *it << "\titAdr=" << it << "\tPtrVal=" << *p << "\tPtrAdr=" << p << endl;
+    }
+
+}
+
+SEQAN_DEFINE_TEST(test_pointer_map3){
     // build phase
     std::unordered_map<unsigned, CompactedDBG<UnitigExtension>::iterator> m;
     CompactedDBG<UnitigExtension>::iterator it = g.begin(), it_end = g.end();
@@ -152,6 +174,6 @@ SEQAN_BEGIN_TESTSUITE(test_popins2){
     SEQAN_CALL_TEST(test_init_ids);
     SEQAN_CALL_TEST(test_connectedcomponents);
     SEQAN_CALL_TEST(test_neighbors_and_bit_operations);
-    SEQAN_CALL_TEST(test_pointer_map2);
+    SEQAN_CALL_TEST(test_pointer_map3);
 }
 SEQAN_END_TESTSUITE
