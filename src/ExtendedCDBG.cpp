@@ -378,9 +378,10 @@ void ExtendedCDBG::small_bubble_removal(){
     size_t delta_k = getK()<<1;
 
     for (auto &unitig : *this){
-        if (unitig.getData()->getID() == 225){      // TEST
+        if (unitig.getData()->getID() == 257){      // TEST
             PathSet small_bubble_paths;
-            bfs_with_max_dist(unitig, small_bubble_paths, delta_k);
+            if (!bfs_with_max_dist(unitig, small_bubble_paths, delta_k))
+                cerr << "WARNING: an unexpected senario occured during the small bubble detection." << endl;
             clear_path_search_attributes();
 
             cout << "----------" << endl;       // TEST
@@ -399,14 +400,14 @@ void ExtendedCDBG::small_bubble_removal(){
 
 /*!
  * \fn      void ExtendedCDBG::bfs_with_max_dist()
- * \brief   Run a BFS until the max distance in bases from the startnode is exceeded.
+ * \brief   Run a BFS until the max distance in bases from the startnode (um) is exceeded.
  * \return  true if successful
  */
 inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, PathSet &pathset, const size_t max_dist){
 
-    um.getData()->dfs_color = 'g';
+    um.getData()->dfs_color = 's';  // 's' is special color of start node
 
-    std::queue<UnitigMap<UnitigExtension>> q;     // acts as queue here
+    std::queue<UnitigMap<UnitigExtension>> q;
 
     q.push(um);
 
@@ -416,15 +417,22 @@ inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, Path
         q.pop();
 
         for (auto &pre : um_.getPredecessors()){
-            // find undiscovered nodes in BFS < max_dist
+
+            // find undiscovered node in BFS < max_dist, push node in queue
             if (pre.getData()->dfs_color == 'w' && um_.getData()->dfs_discovertime + pre.size < max_dist){
                 pre.getData()->dfs_color = 'g';
                 pre.getData()->dfs_discovertime = um_.getData()->dfs_discovertime + pre.size;
                 pre.getData()->dfs_ancestor = um_.getData()->getID();
                 q.push(pre);
             }
+
+            // find undiscovered node in BFS >= max_dist, break traversal
+            else if (pre.getData()->dfs_color == 'w' && um_.getData()->dfs_discovertime + pre.size >= max_dist){
+                pre.getData()->dfs_color = 'g';
+            }
+
             // if already discovered node is >= max_dist (bases) away from source, we found a 'small bubble'
-            if (pre.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + pre.size >= max_dist){
+            else if (pre.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + pre.size >= max_dist && pre.getData()->dfs_color != 's'){
                 UnitigPath up;
                 if (get_reverse_bfs_paths(pre, up)){
                     pathset.push_back(up);
@@ -434,18 +442,35 @@ inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, Path
                     return 0;
                 }
             }
+
+            // BFS returned to start node
+            else if (pre.getData()->dfs_color == 's'){
+                continue;
+            }
+
+            else{
+                cerr << "WARNING: BFS (pre) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << pre.getData()->getID() << "(pre)." << endl;
+                return 0;
+            }
         }
 
         for (auto &suc : um_.getSuccessors()){
-            // find undiscovered nodes in BFS < max_dist
+
+            // find undiscovered nodes in BFS < max_dist, push node in queue
             if (suc.getData()->dfs_color == 'w' && um_.getData()->dfs_discovertime + suc.size < max_dist){
                 suc.getData()->dfs_color = 'g';
                 suc.getData()->dfs_discovertime = um_.getData()->dfs_discovertime + suc.size;
                 suc.getData()->dfs_ancestor = um_.getData()->getID();
                 q.push(suc);
             }
+
+            // find undiscovered node in BFS >= max_dist, break traversal
+            else if (suc.getData()->dfs_color == 'w' && um_.getData()->dfs_discovertime + suc.size >= max_dist){
+                suc.getData()->dfs_color = 'g';
+            }
+
             // if already discovered node is >= max_dist (bases) away from source, we found a 'small bubble'
-            if (suc.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + suc.size >= max_dist){
+            else if (suc.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + suc.size >= max_dist && suc.getData()->dfs_color != 's'){
                 UnitigPath up;
                 if (get_reverse_bfs_paths(suc, up)){
                     pathset.push_back(up);
@@ -454,9 +479,20 @@ inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, Path
                     cerr << "BFS traceback returned an error." << endl;
                     return 0;
                 }
-            }
-        }
 
+            }
+
+            // BFS returned to start node
+            else if (suc.getData()->dfs_color == 's'){
+                continue;
+            }
+
+            else{
+                cerr << "WARNING: BFS (suc) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << suc.getData()->getID() << "(suc)." << endl;
+                return 0;
+            }
+
+        }
     }
 
     return 1;
@@ -479,11 +515,24 @@ bool ExtendedCDBG::get_reverse_bfs_paths(UnitigMap<UnitigExtension> &um, UnitigP
             up.push_back(pre);
             ret_ = get_reverse_bfs_paths(pre, up);
         }
-        // former source found
-        else if (pre.getData()->dfs_ancestor == 0 && pre.getData()->dfs_color == 'g'){
+
+        // found node outside the max_dist area of BFS
+        else if (pre.getData()->dfs_ancestor == 0 && pre.getData()->dfs_color == 'w' && pre.getData()->dfs_color != 's'){
+            continue;
+        }
+
+        // former traceback source found
+        else if (pre.getData()->dfs_ancestor == 0 && pre.getData()->dfs_color == 'g' && pre.getData()->dfs_color != 's'){
+            continue;
+        }
+
+        // former BFS source found
+        else if (pre.getData()->dfs_color == 's'){
             barrier_ = true;
             ret_ = true;
+            break;
         }
+
         else{
             cerr << "ERROR: Small bubble-popping traceback ran into an undefined case from " << um.getData()->getID() << "(um) to " << pre.getData()->getID() << "(pre) while tracing predecessors." << endl;
             return ret_;
@@ -498,10 +547,23 @@ bool ExtendedCDBG::get_reverse_bfs_paths(UnitigMap<UnitigExtension> &um, UnitigP
             up.push_back(suc);
             ret_ = get_reverse_bfs_paths(suc, up);
         }
-        // former source found
-        else if (suc.getData()->dfs_ancestor == 0 && suc.getData()->dfs_color == 'g'){
-            ret_ = true;
+
+        // found node outside the max_dist area of BFS
+        else if (suc.getData()->dfs_ancestor == 0 && suc.getData()->dfs_color == 'w' && suc.getData()->dfs_color != 's'){
+            continue;
         }
+
+        // former traceback source found
+        else if (suc.getData()->dfs_ancestor == 0 && suc.getData()->dfs_color == 'g' && suc.getData()->dfs_color != 's'){
+            continue;
+        }
+
+        // former BFS source found
+        else if (suc.getData()->dfs_color == 's'){
+            ret_ = true;
+            break;
+        }
+
         else{
             cerr << "ERROR: Small bubble-popping traceback ran into an undefined case from " << um.getData()->getID() << "(um) to " << suc.getData()->getID() << "(suc) while tracing successors." << endl;
             return ret_;
