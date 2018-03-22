@@ -1,6 +1,10 @@
 #include "ExtendedCDBG.h"
+
 #include <unordered_set>
 #include <unordered_map>
+#include <vector>
+#include <queue>
+
 
 
 
@@ -173,7 +177,7 @@ float ExtendedCDBG::entropy(const std::string &sequence){
 
 /*!
  * \fn      void ExtendedCDBG::dfs(UnitigMap<UnitigExtension> &um)
- * \brief   Local depth-first search (DFS) within a connected component.
+ * \brief   Local depth-first search (DFS) within a connected component, given a certain start node.
  */
 void ExtendedCDBG::dfs(UnitigMap<UnitigExtension> &um){
     ForwardCDBG<UnitigExtension, false> successors = um.getSuccessors();
@@ -200,6 +204,7 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
     um.getData()->dfs_color = 'g';
 
     // strand awareness
+    // WARNING: I don't know whether this approach of strand awareness works yet.
     if (um.strand){     // if forward strand (+)
         ForwardCDBG<UnitigExtension, false> successors = um.getSuccessors();
         for (auto &suc : successors){
@@ -227,7 +232,7 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
     if (um.getData()->isSink()){
         std::vector<unsigned> path;
         path.push_back(um.getData()->getID());
-        traceback(path, um);
+        dfs_traceback(path, um);
 
         // [DEBUG] start
         for (unsigned id : path) cout << id << ",";
@@ -238,9 +243,9 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
 
 
 /*!
- * \fn          void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink)
+ * \fn          void ExtendedCDBG::dfs_traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink)
  * \brief       This function walks back on the DFS trace of the nodes, from a given sink to its source.
- * \details     It is important for the traceback to know in which orientation the unitigs are. This was either
+ * \details     It is important for the dfs_traceback to know in which orientation the unitigs are. This was either
  *              predecessors or ancestors have to be choosen for further path traversal. E.g.:
  *                 -----> 1
  *                    -----> 2
@@ -253,7 +258,7 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
 /* TODO: I am checking too many neighbors here, i.e. I do up to 8 comparisons while I only had to
  * do up to 4, because I couldn't figure out how to trace RC properly. But it works.
  */
-void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink){
+void ExtendedCDBG::dfs_traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink){
 
     unsigned dfs_anc = um_sink.getData()->dfs_ancestor;
     vec.push_back(dfs_anc);
@@ -267,7 +272,7 @@ void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &
         for (auto &pre : predecessors)
             if (pre.getData()->getID() == dfs_anc){
                 not_found_yet = false;
-                traceback(vec, pre);
+                dfs_traceback(vec, pre);
                 break;
             }
 
@@ -276,7 +281,7 @@ void ExtendedCDBG::traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &
         ForwardCDBG<UnitigExtension, false> successors = um_sink.getSuccessors();
         for (auto &suc : successors)
             if (suc.getData()->getID() == dfs_anc)
-                traceback(vec, suc);
+                dfs_traceback(vec, suc);
 
     }
 }
@@ -363,6 +368,179 @@ void ExtendedCDBG::init_kmer_cov(){
     }
     isKmerCovInit = true;
 }
+
+
+/*!
+ * \fn      void ExtendedCDBG::small_bubble_removal()
+ * \brief   Remove bubbles within a certain max distance (in bases) from the start node.
+ */
+void ExtendedCDBG::small_bubble_removal(){
+    size_t delta_k = getK()<<1;
+
+    for (auto &unitig : *this){
+        if (unitig.getData()->getID() == 225){      // TEST
+            PathSet small_bubble_paths;
+            bfs_with_max_dist(unitig, small_bubble_paths, delta_k);
+            clear_path_search_attributes();
+
+            cout << "----------" << endl;       // TEST
+            for (auto &set : small_bubble_paths){
+                cout << "[";
+                for (auto &um : set){
+                    cout << um.getData()->getID() << ", ";
+                }
+                cout << "]" << endl;
+            }
+            cout << "----------" << endl;       // TEST
+        }
+    }
+}
+
+
+/*!
+ * \fn      void ExtendedCDBG::bfs_with_max_dist()
+ * \brief   Run a BFS until the max distance in bases from the startnode is exceeded.
+ * \return  true if successful
+ */
+inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, PathSet &pathset, const size_t max_dist){
+
+    um.getData()->dfs_color = 'g';
+
+    std::queue<UnitigMap<UnitigExtension>> q;     // acts as queue here
+
+    q.push(um);
+
+    while (!q.empty()){
+
+        UnitigMap<UnitigExtension> um_ = q.front();
+        q.pop();
+
+        for (auto &pre : um_.getPredecessors()){
+            // find undiscovered nodes in BFS < max_dist
+            if (pre.getData()->dfs_color == 'w' && um_.getData()->dfs_discovertime + pre.size < max_dist){
+                pre.getData()->dfs_color = 'g';
+                pre.getData()->dfs_discovertime = um_.getData()->dfs_discovertime + pre.size;
+                pre.getData()->dfs_ancestor = um_.getData()->getID();
+                q.push(pre);
+            }
+            // if already discovered node is >= max_dist (bases) away from source, we found a 'small bubble'
+            if (pre.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + pre.size >= max_dist){
+                UnitigPath up;
+                if (get_reverse_bfs_paths(pre, up)){
+                    pathset.push_back(up);
+                }
+                else{
+                    cerr << "BFS traceback returned an error." << endl;
+                    return 0;
+                }
+            }
+        }
+
+        for (auto &suc : um_.getSuccessors()){
+            // find undiscovered nodes in BFS < max_dist
+            if (suc.getData()->dfs_color == 'w' && um_.getData()->dfs_discovertime + suc.size < max_dist){
+                suc.getData()->dfs_color = 'g';
+                suc.getData()->dfs_discovertime = um_.getData()->dfs_discovertime + suc.size;
+                suc.getData()->dfs_ancestor = um_.getData()->getID();
+                q.push(suc);
+            }
+            // if already discovered node is >= max_dist (bases) away from source, we found a 'small bubble'
+            if (suc.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + suc.size >= max_dist){
+                UnitigPath up;
+                if (get_reverse_bfs_paths(suc, up)){
+                    pathset.push_back(up);
+                }
+                else{
+                    cerr << "BFS traceback returned an error." << endl;
+                    return 0;
+                }
+            }
+        }
+
+    }
+
+    return 1;
+}
+
+
+/*!
+ * \fn      bool ExtendedCDBG::get_reverse_bfs_paths(UnitigMap<UnitigExtension> &um)
+ * \brief   This function returns all the bubble paths from sink to source.
+ * \return  true if successful
+ */
+bool ExtendedCDBG::get_reverse_bfs_paths(UnitigMap<UnitigExtension> &um, UnitigPath &up){
+
+    bool ret_ = false;
+    bool barrier_ = false;
+
+    for (auto &pre : um.getPredecessors()){
+        // path node
+        if (pre.getData()->dfs_ancestor != 0){
+            up.push_back(pre);
+            ret_ = get_reverse_bfs_paths(pre, up);
+        }
+        // former source found
+        else if (pre.getData()->dfs_ancestor == 0 && pre.getData()->dfs_color == 'g'){
+            barrier_ = true;
+            ret_ = true;
+        }
+        else{
+            cerr << "ERROR: Small bubble-popping traceback ran into an undefined case from " << um.getData()->getID() << "(um) to " << pre.getData()->getID() << "(pre) while tracing predecessors." << endl;
+            return ret_;
+        }
+    }
+
+    if (barrier_) return ret_;
+
+    for (auto &suc : um.getSuccessors()){
+        // path node
+        if (suc.getData()->dfs_ancestor != 0){
+            up.push_back(suc);
+            ret_ = get_reverse_bfs_paths(suc, up);
+        }
+        // former source found
+        else if (suc.getData()->dfs_ancestor == 0 && suc.getData()->dfs_color == 'g'){
+            ret_ = true;
+        }
+        else{
+            cerr << "ERROR: Small bubble-popping traceback ran into an undefined case from " << um.getData()->getID() << "(um) to " << suc.getData()->getID() << "(suc) while tracing successors." << endl;
+            return ret_;
+        }
+    }
+
+    return ret_;
+}
+
+
+/*!
+ * \fn      void ExtendedCDBG::clear_path_search_attributes()
+ * \brief   This functions resets all xfs (dfs/bfs) attributes to its default.
+ */
+inline void ExtendedCDBG::clear_path_search_attributes(){
+    for (auto &unitig : *this){
+        unitig.getData()->dfs_color = 'w';
+        unitig.getData()->dfs_ancestor = 0;
+        unitig.getData()->dfs_discovertime = 0;
+        unitig.getData()->dfs_finishtime = 0;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

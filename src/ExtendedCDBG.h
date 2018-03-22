@@ -17,6 +17,10 @@
 
 #include "argument_parsing.h"
 
+typedef std::vector<std::vector<UnitigMap<UnitigExtension> > > PathSet;
+typedef std::vector<UnitigMap<UnitigExtension> > UnitigPath;
+
+
 
 // =========================
 // Structs
@@ -57,13 +61,22 @@ struct ExtendedCDBG : public CompactedDBG<UnitigExtension> {
         void dfs(UnitigMap<UnitigExtension> &um);
         void dfs_visit(UnitigMap<UnitigExtension> &um);
         bool is_dfs_passed() const {return dfs_passed;}
-
-        void traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink);
-
-        bool annotate_kmer_coverage(const vector<string> &sample_fastx_names);
+        void dfs_traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink);
 
         void init_kmer_cov();
+        bool annotate_kmer_coverage(const vector<string> &sample_fastx_names);
+
+        void clear_path_search_attributes();
+
+        void small_bubble_removal();    // bubble popping main
+        bool bfs_with_max_dist(UnitigMap<UnitigExtension> &um, PathSet &pathset, const size_t max_dist);       // inline function to detect bubbles smaller than delta_k
+        bool get_reverse_bfs_paths(UnitigMap<UnitigExtension>& um, UnitigPath &up);   // get all paths from sink to source
 };
+
+
+
+
+
 
 
 

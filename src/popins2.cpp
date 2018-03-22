@@ -61,9 +61,12 @@ int main(int argc, char const *argv[]){
     cdbg.init_ids();
     cdbg.connected_components(graph_options);
 
+    // WARNING: add a bool whether dfs/bfs (=xfs) variables are on initial state
+    /*
     for (auto &unitig : cdbg)
         if (unitig.getData()->getID() == 3)    // test case: unitig ID 3 as source
             cdbg.dfs(unitig);
+    */
 
     //cdbg.print_unitig_info();
 
@@ -72,9 +75,12 @@ int main(int argc, char const *argv[]){
 
     /*
     for ( auto &unitig : cdbg){
+        cout << "[[" << unitig.getData()->getID() << "]]";
         prettyprint::print(unitig.getData()->kmer_coverage);
+        cout << endl;
     }
     */
+    cdbg.small_bubble_removal();
 
     // TEST END
 
