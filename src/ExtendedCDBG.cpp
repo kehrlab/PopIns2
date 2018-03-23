@@ -378,22 +378,24 @@ void ExtendedCDBG::small_bubble_removal(){
     size_t delta_k = getK()<<1;
 
     for (auto &unitig : *this){
-        if (unitig.getData()->getID() == 257){      // TEST
+        //if (unitig.getData()->getID() == 257){      // TEST
             PathSet small_bubble_paths;
             if (!bfs_with_max_dist(unitig, small_bubble_paths, delta_k))
                 cerr << "WARNING: an unexpected senario occured during the small bubble detection." << endl;
             clear_path_search_attributes();
 
-            cout << "----------" << endl;       // TEST
+            cout << "----" << unitig.getData()->getID() << "----" << endl;       // TEST
+            cout << "[";
             for (auto &set : small_bubble_paths){
                 cout << "[";
                 for (auto &um : set){
                     cout << um.getData()->getID() << ", ";
                 }
-                cout << "]" << endl;
+                cout << "]";
             }
-            cout << "----------" << endl;       // TEST
-        }
+            cout << "]" << endl;
+            cout << "----------" << endl << endl;       // TEST
+        //}
     }
 }
 
@@ -431,14 +433,31 @@ inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, Path
                 pre.getData()->dfs_color = 'g';
             }
 
-            // if already discovered node is >= max_dist (bases) away from source, we found a 'small bubble'
+            // if already discovered node is >= max_dist (bases) away from source, we possibly found a small bubble
             else if (pre.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + pre.size >= max_dist && pre.getData()->dfs_color != 's'){
-                UnitigPath up;
-                if (get_reverse_bfs_paths(pre, up)){
-                    pathset.push_back(up);
+                // small bubble detected
+                if (um_.getData()->getID() != pre.getData()->getID()){
+                    UnitigPath up;
+                    if (get_reverse_bfs_paths(pre, up)){
+                        if (!up.empty()){
+                            pathset.push_back(up);
+                        }
+                        else{
+                            cerr << "CATCH CASE: [7]: Selfloop detected." << endl;
+                            break;
+                        }
+                    }
+                    else{
+                        cerr << "WARNING: BFS traceback returned an error." << endl;
+                        return 0;
+                    }
+                }
+                else if (um_.getData()->getID() == pre.getData()->getID()){
+                    cerr << "CATCH CASE: [5]: Selfloop detected." << endl;
+                    break;      // segmentation fault (core dump) if I put it only 'continue'
                 }
                 else{
-                    cerr << "BFS traceback returned an error." << endl;
+                    cerr << "WARNING: [1]: BFS (pre) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << pre.getData()->getID() << "(pre)." << endl;
                     return 0;
                 }
             }
@@ -449,7 +468,7 @@ inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, Path
             }
 
             else{
-                cerr << "WARNING: BFS (pre) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << pre.getData()->getID() << "(pre)." << endl;
+                cerr << "WARNING: [2]: BFS (pre) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << pre.getData()->getID() << "(pre)." << endl;
                 return 0;
             }
         }
@@ -469,17 +488,33 @@ inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, Path
                 suc.getData()->dfs_color = 'g';
             }
 
-            // if already discovered node is >= max_dist (bases) away from source, we found a 'small bubble'
+            // if already discovered node is >= max_dist (bases) away from source, we possibly found a 'small bubble'
             else if (suc.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + suc.size >= max_dist && suc.getData()->dfs_color != 's'){
-                UnitigPath up;
-                if (get_reverse_bfs_paths(suc, up)){
-                    pathset.push_back(up);
+                // small bubble detected
+                if (um_.getData()->getID() != suc.getData()->getID()){
+                    UnitigPath up;
+                    if (get_reverse_bfs_paths(suc, up)){
+                        if (!up.empty()){
+                            pathset.push_back(up);
+                        }
+                        else{
+                            cerr << "CATCH CASE: [8]: Selfloop detected." << endl;
+                            break;
+                        }
+                    }
+                    else{
+                        cerr << "WARNING: BFS traceback returned an error." << endl;
+                        return 0;
+                    }
+                }
+                else if (um_.getData()->getID() == suc.getData()->getID()){
+                    cerr << "CATCH CASE: [6]: Selfloop detected." << endl;
+                    break;      // segmentation fault (core dump) if I put it only 'continue'
                 }
                 else{
-                    cerr << "BFS traceback returned an error." << endl;
+                    cerr << "WARNING: [3]: BFS (suc) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << suc.getData()->getID() << "(suc)." << endl;
                     return 0;
                 }
-
             }
 
             // BFS returned to start node
@@ -487,8 +522,14 @@ inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, Path
                 continue;
             }
 
+            // small ring/circle/circuit detected, NOTE this code only needs to be in the successors loop since the predecessors need to mark the partner unitig first
+            else if (suc.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + suc.size < max_dist && suc.getData()->dfs_color != 's'){
+                // What TODO with this case?
+                continue;
+            }
+
             else{
-                cerr << "WARNING: BFS (suc) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << suc.getData()->getID() << "(suc)." << endl;
+                cerr << "WARNING: [4]: BFS (suc) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << suc.getData()->getID() << "(suc)." << endl;
                 return 0;
             }
 

@@ -57,6 +57,12 @@ int main(int argc, char const *argv[]){
     cout << "[PROGRESS] Simplifying CDBG..." << endl;
     cdbg.simplify(graph_options.deleteIsolated, graph_options.clipTips, graph_options.verbose);
 
+    // write
+    cout << "[PROGRESS] Writing GFA..." << endl;
+    cdbg.write(graph_options.prefixFilenameOut, graph_options.nb_threads, true, graph_options.verbose);
+    cout << "[DEBUG] The DBG has " << cdbg.size() << " unitigs.\n" << endl;
+
+
     // TEST START
     cdbg.init_ids();
     cdbg.connected_components(graph_options);
@@ -84,10 +90,6 @@ int main(int argc, char const *argv[]){
 
     // TEST END
 
-    // write
-    cout << "[PROGRESS] Writing GFA..." << endl;
-    cdbg.write(graph_options.prefixFilenameOut, graph_options.nb_threads, true, graph_options.verbose);
-    cout << "[DEBUG] The DBG has " << cdbg.size() << " unitigs.\n" << endl;
 
     return 0;
 }
