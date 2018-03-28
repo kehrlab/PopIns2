@@ -9,18 +9,26 @@
 
 
 // default constructor
-ExtendedCDBG::ExtendedCDBG(int kmer_length, int minimizer_length) : CompactedDBG< UnitigExtension >(kmer_length, minimizer_length), init_status(false), isKmerCovInit(false), dfs_time(0), dfs_passed(false) {
+ExtendedCCDBG::ExtendedCCDBG(int kmer_length, int minimizer_length) : ColoredCDBG<UnitigExtension> (kmer_length, minimizer_length), init_status(false), isKmerCovInit(false), dfs_time(0), dfs_passed(false) {
     /* 1) IDs are not initiated at construction time (see init_ids())
      * 2) The UnionFind vector will be empty an construction time, will be resized at use.
      * 3) kmer_coverage vector will be empty an construction time, will be resized at use.
      */
 }
 
+/*
+inline UnitigExtension* ExtendedCCDBG::getDataDirectly(UnitigColorMap &ucm){
+    DataAccessor<UnitigExtension>* da = ucm.getData();
+    UnitigExtension* data = da->getData(ucm);
+    return data;
+}
+*/
 
-void ExtendedCDBG::init_ids(){
+void ExtendedCCDBG::init_ids(){
     size_t i=1;           // starting index is 1 because that's how Bifrost counts
     for (auto &unitig : *this){
-        UnitigExtension* ue = unitig.getData();      // ue is a POINTER to a UnitigExtension
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);      // ue is a POINTER to a UnitigExtension
         ue->setID(i);
         ++i;
     }
@@ -28,11 +36,13 @@ void ExtendedCDBG::init_ids(){
 }
 
 
-void ExtendedCDBG::print_ids(){
+void ExtendedCCDBG::print_ids(){
     if (is_init() == true){
         std::cout << "[DEBUG] ";
         for (auto &unitig : *this){
-            unsigned id = unitig.getData()->getID();
+            DataAccessor<UnitigExtension>* da = unitig.getData();
+            UnitigExtension* ue = da->getData(unitig);
+            unsigned id = ue->getID();
             std::cout << id << ", ";
         }
         std::cout << std::endl;
@@ -42,30 +52,34 @@ void ExtendedCDBG::print_ids(){
 }
 
 
-void ExtendedCDBG::print_unitig_info(){
+void ExtendedCCDBG::print_unitig_info(){
     // -------------------------------------------------------------------------------------------
     // | ID | CC | Pre | Suc | DFS color | DFS predecessor| DFS discovery time | DFS finish time |
     // -------------------------------------------------------------------------------------------
     for (auto &unitig : *this){
-        unsigned uid = unitig.getData()->getID();
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+        unsigned uid = ue->getID();
         unsigned ucc = seqan::findSet(UF, uid);
         cout << "ID:" << uid << " | CC:" << ucc;
 
-        BackwardCDBG<UnitigExtension, false> bw_dbg = unitig.getPredecessors();
         cout << " | Pre:";
-        for (auto &predecessor : bw_dbg){
-            size_t pre_id = predecessor.getData()->getID();
+        for (auto &predecessor : unitig.getPredecessors()){
+            DataAccessor<UnitigExtension>* da = predecessor.getData();
+            UnitigExtension* ue = da->getData(predecessor);
+            size_t pre_id = ue->getID();
             cout << pre_id << ",";
         }
 
-        ForwardCDBG<UnitigExtension, false> fw_dbg = unitig.getSuccessors();
         cout << " | Suc:";
-        for (auto &successor : fw_dbg){
-            size_t suc_id = successor.getData()->getID();
+        for (auto &successor : unitig.getSuccessors()){
+            DataAccessor<UnitigExtension>* da = successor.getData();
+            UnitigExtension* ue = da->getData(successor);
+            size_t suc_id = ue->getID();
             cout << suc_id << ",";
         }
 
-        cout << " | " << unitig.getData()->dfs_color << " | dfs-pre:" << unitig.getData()->dfs_ancestor << " | d.time:" << unitig.getData()->dfs_discovertime << " | f.time:" << unitig.getData()->dfs_finishtime;
+        cout << " | " << ue->dfs_color << " | dfs-pre:" << ue->dfs_ancestor << " | d.time:" << ue->dfs_discovertime << " | f.time:" << ue->dfs_finishtime;
         cout << endl;
     }
 }
@@ -79,10 +93,12 @@ void ExtendedCDBG::print_unitig_info(){
  *          debug and test purposes.
  * \return  number of distinct connected components
  */
-size_t ExtendedCDBG::count_connected_components(){
+size_t ExtendedCCDBG::count_connected_components(){
     std::unordered_set<unsigned> unique_set;
     for (auto &unitig : *this){
-        unique_set.insert(seqan::findSet(UF, unitig.getData()->getID()));
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+        unique_set.insert(seqan::findSet(UF, ue->getID()));
     }
     return unique_set.size();
 }
@@ -94,7 +110,7 @@ size_t ExtendedCDBG::count_connected_components(){
  * \ref     seqan/include/seqan/misc/union_find.h
  * \return  true if successful
  */
-bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
+bool ExtendedCCDBG::connected_components(const CCDBG_Build_opt &graph_options){
     // initiate UF structure
     if (graph_options.verbose) std::cout << "[VERBOSE] Initiating UNION-FIND" << std::endl;
     resize(UF, (*this).size()+1);   // however, UF needs to be +1 bigger than the graph size. Probably due to start index 1 of IDs
@@ -115,17 +131,21 @@ bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
          *      L   u1  +   u2  -
          *      L   u2  +   u1  -
          */
-        size_t unitig_id = unitig.getData()->getID();
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+        size_t unitig_id = ue->getID();
 
-        BackwardCDBG<UnitigExtension, false> predecessors = unitig.getPredecessors();
-        for (auto &it_pre : predecessors){
-            unsigned pre_id = it_pre.getData()->getID();
+        for (auto &it_pre : unitig.getPredecessors()){
+            DataAccessor<UnitigExtension>* da = it_pre.getData();
+            UnitigExtension* ue = da->getData(it_pre);
+            unsigned pre_id = ue->getID();
             seqan::joinSets(UF, seqan::findSet(UF, unitig_id), seqan::findSet(UF, pre_id));
         }
 
-        ForwardCDBG<UnitigExtension, false> successors = unitig.getSuccessors();
-        for (auto &it_suc : successors){
-            unsigned suc_id = it_suc.getData()->getID();
+        for (auto &it_suc : unitig.getSuccessors()){
+            DataAccessor<UnitigExtension>* da = it_suc.getData();
+            UnitigExtension* ue = da->getData(it_suc);
+            unsigned suc_id = ue->getID();
             seqan::joinSets(UF, seqan::findSet(UF, unitig_id), seqan::findSet(UF, suc_id));
         }
     }
@@ -143,7 +163,7 @@ bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options){
  * \remark      Function taken from PopIns.
  * \return      The entropy [0,1] of all binucleotides.
  */
-float ExtendedCDBG::entropy(const std::string &sequence){
+float ExtendedCCDBG::entropy(const std::string &sequence){
     // create a dictionary counting the occurrence of all dinucleotides
     unordered_map<std::string, unsigned> diCounts(16);
     unsigned counted = 0;
@@ -176,62 +196,71 @@ float ExtendedCDBG::entropy(const std::string &sequence){
 
 
 /*!
- * \fn      void ExtendedCDBG::dfs(UnitigMap<UnitigExtension> &um)
+ * \fn      void ExtendedCDBG::dfs(UnitigColorMap<UnitigExtension> &um)
  * \brief   Local depth-first search (DFS) within a connected component, given a certain start node.
  */
-void ExtendedCDBG::dfs(UnitigMap<UnitigExtension> &um){
-    ForwardCDBG<UnitigExtension, false> successors = um.getSuccessors();
-    for (auto &suc : successors)
-        if (suc.getData()->dfs_color == 'w'){
-            suc.getData()->dfs_ancestor = um.getData()->getID();
+void ExtendedCCDBG::dfs(const UnitigColorMap<UnitigExtension> &um){
+    DataAccessor<UnitigExtension>* da = um.getData();
+    UnitigExtension* um_ue = da->getData(um);
+
+    for (auto &suc : um.getSuccessors()){
+        DataAccessor<UnitigExtension>* da = suc.getData();
+        UnitigExtension* ue = da->getData(suc);
+        if (ue->dfs_color == 'w'){
+            ue->dfs_ancestor = um_ue->getID();
             dfs_visit(suc);
         }
-    um.getData()->dfs_color = 'b';
+    }
+    um_ue->dfs_color = 'b';
     dfs_time += 1;
-    um.getData()->dfs_finishtime = dfs_time;
+    um_ue->dfs_finishtime = dfs_time;
 
     dfs_passed = true;
 }
 
 
 /*!
- * \fn      void ExtendedCDBG::dfs_visit()
+ * \fn      void ExtendedCDBG::dfs_visit(UnitigColorMap<UnitigExtension> &um)
  * \brief   Depth-first search neighbor traversal and visiting time updates
  */
-void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
+void ExtendedCCDBG::dfs_visit(const UnitigColorMap<UnitigExtension> &um){
     dfs_time += 1;
-    um.getData()->dfs_discovertime = dfs_time;
-    um.getData()->dfs_color = 'g';
+    DataAccessor<UnitigExtension>* um_da = um.getData();
+    UnitigExtension* um_ue = um_da->getData(um);
+    um_ue->dfs_discovertime = dfs_time;
+    um_ue->dfs_color = 'g';
 
     // strand awareness
     // WARNING: I don't know whether this approach of strand awareness works yet.
     if (um.strand){     // if forward strand (+)
-        ForwardCDBG<UnitigExtension, false> successors = um.getSuccessors();
-        for (auto &suc : successors){
-            if (suc.getData()->dfs_color == 'w'){
-                suc.getData()->dfs_ancestor = um.getData()->getID();
+        for (auto &suc : um.getSuccessors()){
+            DataAccessor<UnitigExtension>* suc_da = suc.getData();
+            UnitigExtension* suc_ue = suc_da->getData(suc);
+            if (suc_ue->dfs_color == 'w'){
+                suc_ue->dfs_ancestor = um_ue->getID();
                 dfs_visit(suc);
             }
         }
     }
     else{               // if reverse complement (-)
-        BackwardCDBG<UnitigExtension, false> predecessors = um.getPredecessors();
-        for (auto &pre : predecessors){
-            if (pre.getData()->dfs_color == 'w'){
-                pre.getData()->dfs_ancestor = um.getData()->getID();
+        for (auto &pre : um.getPredecessors()){
+            DataAccessor<UnitigExtension>* pre_da = pre.getData();
+            UnitigExtension* pre_ue = pre_da->getData(pre);
+            if (pre_ue->dfs_color == 'w'){
+                pre_ue->dfs_ancestor = um_ue->getID();
                 dfs_visit(pre);
             }
         }
     }
 
-    um.getData()->dfs_color = 'b';
+    um_ue->dfs_color = 'b';
     dfs_time += 1;
-    um.getData()->dfs_finishtime = dfs_time;
+    um_ue->dfs_finishtime = dfs_time;
 
     // if DFS hits a sink, return the current DFS path to source
-    if (um.getData()->isSink()){
+    if (um_ue->isSink()){
         std::vector<unsigned> path;
-        path.push_back(um.getData()->getID());
+        path.push_back(um_ue->getID());
         dfs_traceback(path, um);
 
         // [DEBUG] start
@@ -243,7 +272,7 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
 
 
 /*!
- * \fn          void ExtendedCDBG::dfs_traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink)
+ * \fn          void ExtendedCDBG::dfs_traceback(vector<unsigned> &vec, const UnitigMap<UnitigExtension> &um_sink)
  * \brief       This function walks back on the DFS trace of the nodes, from a given sink to its source.
  * \details     It is important for the dfs_traceback to know in which orientation the unitigs are. This was either
  *              predecessors or ancestors have to be choosen for further path traversal. E.g.:
@@ -258,9 +287,11 @@ void ExtendedCDBG::dfs_visit(UnitigMap<UnitigExtension> &um){
 /* TODO: I am checking too many neighbors here, i.e. I do up to 8 comparisons while I only had to
  * do up to 4, because I couldn't figure out how to trace RC properly. But it works.
  */
-void ExtendedCDBG::dfs_traceback(vector<unsigned> &vec, UnitigMap<UnitigExtension> &um_sink){
+void ExtendedCCDBG::dfs_traceback(vector<unsigned> &vec, const UnitigColorMap<UnitigExtension> &um_sink){
+    DataAccessor<UnitigExtension>* da = um_sink.getData();
+    UnitigExtension* ue = da->getData(um_sink);
 
-    unsigned dfs_anc = um_sink.getData()->dfs_ancestor;
+    unsigned dfs_anc = ue->dfs_ancestor;
     vec.push_back(dfs_anc);
 
     // if um_sink is a source node, then the dfs_ancestor is zero (default init) and we can stop traversing
@@ -268,20 +299,24 @@ void ExtendedCDBG::dfs_traceback(vector<unsigned> &vec, UnitigMap<UnitigExtensio
 
         bool not_found_yet = true;
 
-        BackwardCDBG<UnitigExtension, false> predecessors = um_sink.getPredecessors();
-        for (auto &pre : predecessors)
-            if (pre.getData()->getID() == dfs_anc){
+        for (auto &pre : um_sink.getPredecessors()){
+            DataAccessor<UnitigExtension>* pre_da = pre.getData();
+            UnitigExtension* pre_ue = pre_da->getData(pre);
+            if (pre_ue->getID() == dfs_anc){
                 not_found_yet = false;
                 dfs_traceback(vec, pre);
                 break;
             }
+        }
 
         if (!not_found_yet) return;
 
-        ForwardCDBG<UnitigExtension, false> successors = um_sink.getSuccessors();
-        for (auto &suc : successors)
-            if (suc.getData()->getID() == dfs_anc)
+        for (auto &suc : um_sink.getSuccessors()){
+            DataAccessor<UnitigExtension>* suc_da = suc.getData();
+            UnitigExtension* suc_ue = suc_da->getData(suc);
+            if (suc_ue->getID() == dfs_anc)
                 dfs_traceback(vec, suc);
+        }
 
     }
 }
@@ -293,7 +328,7 @@ void ExtendedCDBG::dfs_traceback(vector<unsigned> &vec, UnitigMap<UnitigExtensio
  * \return      true if successful
  */
 // TODO: Runtime can potentially be improved with a specialized library/approach that is not loading in but just streaming kmers.
-bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_names){
+bool ExtendedCCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_names){
 
     if (!isKmerCovInit){
         cerr << "ERROR: kmer_coverage has not been initialized." << endl;
@@ -329,12 +364,14 @@ bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_nam
                 for (size_t pos = 0; pos <= endpos; ++pos){
                     seqan::String<char, seqan::CStyle> infix = seqan::infixWithLength(*itSeq, pos, getK());
                     Kmer kmer(infix);
-                    UnitigMap<UnitigExtension> um = find(kmer);
+                    UnitigColorMap<UnitigExtension> um = find(kmer);
+                    DataAccessor<UnitigExtension>* da = um.getData();
+                    UnitigExtension* ue = da->getData(um);
 
                     // increment kmer count in unitig
                     if (um.size != 0)   // if kmer is in graph
-                        if (um.getData()->kmer_coverage[um.dist] < 65535)   // if unsigned short saturation isn't reached yet
-                            um.getData()->kmer_coverage[um.dist] += 1;
+                        if (ue->kmer_coverage[um.dist] < 65535)   // if unsigned short saturation isn't reached yet
+                            ue->kmer_coverage[um.dist] += 1;
 
                     // NOTE: The function finds all kmers. However, some of the following UnitigMaps have length 0.
                     //       The only explanation to me is that the corresponding unitigs got filtered out. Since
@@ -361,10 +398,13 @@ bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_nam
  * \fn      void ExtendedCDBG::init_kmer_cov()
  * \brief   Inits a tally to count the kmer coverage for each unitig.
  */
-void ExtendedCDBG::init_kmer_cov(){
+void ExtendedCCDBG::init_kmer_cov(){
     for (auto &unitig : *this){
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+
         size_t sz_v_kmer_cov = unitig.size - (this->getK() - 1);
-        (unitig.getData()->kmer_coverage).resize(sz_v_kmer_cov);
+        (ue->kmer_coverage).resize(sz_v_kmer_cov);
     }
     isKmerCovInit = true;
 }
@@ -374,22 +414,27 @@ void ExtendedCDBG::init_kmer_cov(){
  * \fn      void ExtendedCDBG::small_bubble_removal()
  * \brief   Remove bubbles within a certain max distance (in bases) from the start node.
  */
-void ExtendedCDBG::small_bubble_removal(){
+void ExtendedCCDBG::small_bubble_removal(){
     size_t delta_k = getK()<<1;
 
     for (auto &unitig : *this){
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+
         //if (unitig.getData()->getID() == 257){      // TEST
             PathSet small_bubble_paths;
             if (!bfs_with_max_dist(unitig, small_bubble_paths, delta_k))
                 cerr << "WARNING: an unexpected senario occured during the small bubble detection." << endl;
             clear_path_search_attributes();
 
-            cout << "----" << unitig.getData()->getID() << "----" << endl;       // TEST
+            cout << "----" << ue->getID() << "----" << endl;       // TEST
             cout << "[";
             for (auto &set : small_bubble_paths){
                 cout << "[";
                 for (auto &um : set){
-                    cout << um.getData()->getID() << ", ";
+                    DataAccessor<UnitigExtension>* um_da = um.getData();
+                    UnitigExtension* um_ue = um_da->getData(um);
+                    cout << um_ue->getID() << ", ";
                 }
                 cout << "]";
             }
@@ -401,42 +446,50 @@ void ExtendedCDBG::small_bubble_removal(){
 
 
 /*!
- * \fn      void ExtendedCDBG::bfs_with_max_dist()
+ * \fn      void ExtendedCDBG::bfs_with_max_dist(const UnitigColorMap<UnitigExtension> &um, PathSet &pathset, const size_t max_dist)
  * \brief   Run a BFS until the max distance in bases from the startnode (um) is exceeded.
  * \return  true if successful
  */
-inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, PathSet &pathset, const size_t max_dist){
+inline bool ExtendedCCDBG::bfs_with_max_dist(const UnitigColorMap<UnitigExtension> &um, PathSet &pathset, const size_t max_dist){
+    DataAccessor<UnitigExtension>* da = um.getData();
+    UnitigExtension* ue = da->getData(um);
 
-    um.getData()->dfs_color = 's';  // 's' is special color of start node
+    ue->dfs_color = 's';  // 's' is special color of start node
 
-    std::queue<UnitigMap<UnitigExtension>> q;
+    std::queue<UnitigColorMap<UnitigExtension>> q;
 
     q.push(um);
 
     while (!q.empty()){
 
-        UnitigMap<UnitigExtension> um_ = q.front();
+        UnitigColorMap<UnitigExtension> um_ = q.front();
         q.pop();
+
+        DataAccessor<UnitigExtension>* da_ = um_.getData();
+        UnitigExtension* ue_ = da_->getData(um_);
 
         for (auto &pre : um_.getPredecessors()){
 
+            DataAccessor<UnitigExtension>* pre_da = pre.getData();
+            UnitigExtension* pre_ue = pre_da->getData(pre);
+
             // find undiscovered node in BFS < max_dist, push node in queue
-            if (pre.getData()->dfs_color == 'w' && um_.getData()->dfs_discovertime + pre.size < max_dist){
-                pre.getData()->dfs_color = 'g';
-                pre.getData()->dfs_discovertime = um_.getData()->dfs_discovertime + pre.size;
-                pre.getData()->dfs_ancestor = um_.getData()->getID();
+            if (pre_ue->dfs_color == 'w' && ue_->dfs_discovertime + pre.size < max_dist){
+                pre_ue->dfs_color = 'g';
+                pre_ue->dfs_discovertime = ue_->dfs_discovertime + pre.size;
+                pre_ue->dfs_ancestor = ue_->getID();
                 q.push(pre);
             }
 
             // find undiscovered node in BFS >= max_dist, break traversal
-            else if (pre.getData()->dfs_color == 'w' && um_.getData()->dfs_discovertime + pre.size >= max_dist){
-                pre.getData()->dfs_color = 'g';
+            else if (pre_ue->dfs_color == 'w' && ue_->dfs_discovertime + pre.size >= max_dist){
+                pre_ue->dfs_color = 'g';
             }
 
             // if already discovered node is >= max_dist (bases) away from source, we possibly found a small bubble
-            else if (pre.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + pre.size >= max_dist && pre.getData()->dfs_color != 's'){
+            else if (pre_ue->dfs_color == 'g' && ue_->dfs_discovertime + pre.size >= max_dist && pre_ue->dfs_color != 's'){
                 // small bubble detected
-                if (um_.getData()->getID() != pre.getData()->getID()){
+                if (ue_->getID() != pre_ue->getID()){
                     UnitigPath up;
                     if (get_reverse_bfs_paths(pre, up)){
                         if (!up.empty()){
@@ -452,46 +505,49 @@ inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, Path
                         return 0;
                     }
                 }
-                else if (um_.getData()->getID() == pre.getData()->getID()){
+                else if (ue_->getID() == pre_ue->getID()){
                     cerr << "CATCH CASE: [5]: Selfloop detected." << endl;
                     break;      // segmentation fault (core dump) if I put it only 'continue'
                 }
                 else{
-                    cerr << "WARNING: [1]: BFS (pre) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << pre.getData()->getID() << "(pre)." << endl;
+                    cerr << "WARNING: [1]: BFS (pre) ran into an undefined case from " << ue_->getID() << "(um) to " << pre_ue->getID() << "(pre)." << endl;
                     return 0;
                 }
             }
 
             // BFS returned to start node
-            else if (pre.getData()->dfs_color == 's'){
+            else if (pre_ue->dfs_color == 's'){
                 continue;
             }
 
             else{
-                cerr << "WARNING: [2]: BFS (pre) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << pre.getData()->getID() << "(pre)." << endl;
+                cerr << "WARNING: [2]: BFS (pre) ran into an undefined case from " << ue_->getID() << "(um) to " << pre_ue->getID() << "(pre)." << endl;
                 return 0;
             }
         }
 
         for (auto &suc : um_.getSuccessors()){
 
+            DataAccessor<UnitigExtension>* suc_da = suc.getData();
+            UnitigExtension* suc_ue = suc_da->getData(suc);
+
             // find undiscovered nodes in BFS < max_dist, push node in queue
-            if (suc.getData()->dfs_color == 'w' && um_.getData()->dfs_discovertime + suc.size < max_dist){
-                suc.getData()->dfs_color = 'g';
-                suc.getData()->dfs_discovertime = um_.getData()->dfs_discovertime + suc.size;
-                suc.getData()->dfs_ancestor = um_.getData()->getID();
+            if (suc_ue->dfs_color == 'w' && ue_->dfs_discovertime + suc.size < max_dist){
+                suc_ue->dfs_color = 'g';
+                suc_ue->dfs_discovertime = ue_->dfs_discovertime + suc.size;
+                suc_ue->dfs_ancestor = ue_->getID();
                 q.push(suc);
             }
 
             // find undiscovered node in BFS >= max_dist, break traversal
-            else if (suc.getData()->dfs_color == 'w' && um_.getData()->dfs_discovertime + suc.size >= max_dist){
-                suc.getData()->dfs_color = 'g';
+            else if (suc_ue->dfs_color == 'w' && ue_->dfs_discovertime + suc.size >= max_dist){
+                suc_ue->dfs_color = 'g';
             }
 
             // if already discovered node is >= max_dist (bases) away from source, we possibly found a 'small bubble'
-            else if (suc.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + suc.size >= max_dist && suc.getData()->dfs_color != 's'){
+            else if (suc_ue->dfs_color == 'g' && ue_->dfs_discovertime + suc.size >= max_dist && suc_ue->dfs_color != 's'){
                 // small bubble detected
-                if (um_.getData()->getID() != suc.getData()->getID()){
+                if (ue_->getID() != suc_ue->getID()){
                     UnitigPath up;
                     if (get_reverse_bfs_paths(suc, up)){
                         if (!up.empty()){
@@ -507,29 +563,29 @@ inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, Path
                         return 0;
                     }
                 }
-                else if (um_.getData()->getID() == suc.getData()->getID()){
+                else if (ue_->getID() == suc_ue->getID()){
                     cerr << "CATCH CASE: [6]: Selfloop detected." << endl;
                     break;      // segmentation fault (core dump) if I put it only 'continue'
                 }
                 else{
-                    cerr << "WARNING: [3]: BFS (suc) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << suc.getData()->getID() << "(suc)." << endl;
+                    cerr << "WARNING: [3]: BFS (suc) ran into an undefined case from " << ue_->getID() << "(um) to " << suc_ue->getID() << "(suc)." << endl;
                     return 0;
                 }
             }
 
             // BFS returned to start node
-            else if (suc.getData()->dfs_color == 's'){
+            else if (suc_ue->dfs_color == 's'){
                 continue;
             }
 
             // small ring/circle/circuit detected, NOTE this code only needs to be in the successors loop since the predecessors need to mark the partner unitig first
-            else if (suc.getData()->dfs_color == 'g' && um_.getData()->dfs_discovertime + suc.size < max_dist && suc.getData()->dfs_color != 's'){
+            else if (suc_ue->dfs_color == 'g' && ue_->dfs_discovertime + suc.size < max_dist && suc_ue->dfs_color != 's'){
                 // What TODO with this case?
                 continue;
             }
 
             else{
-                cerr << "WARNING: [4]: BFS (suc) ran into an undefined case from " << um_.getData()->getID() << "(um) to " << suc.getData()->getID() << "(suc)." << endl;
+                cerr << "WARNING: [4]: BFS (suc) ran into an undefined case from " << ue_->getID() << "(um) to " << suc_ue->getID() << "(suc)." << endl;
                 return 0;
             }
 
@@ -541,41 +597,46 @@ inline bool ExtendedCDBG::bfs_with_max_dist(UnitigMap<UnitigExtension> &um, Path
 
 
 /*!
- * \fn      bool ExtendedCDBG::get_reverse_bfs_paths(UnitigMap<UnitigExtension> &um)
+ * \fn      bool ExtendedCDBG::get_reverse_bfs_paths(const UnitigColorMap<UnitigExtension> &um, UnitigPath &up)
  * \brief   This function returns all the bubble paths from sink to source.
  * \return  true if successful
  */
-bool ExtendedCDBG::get_reverse_bfs_paths(UnitigMap<UnitigExtension> &um, UnitigPath &up){
+bool ExtendedCCDBG::get_reverse_bfs_paths(const UnitigColorMap<UnitigExtension> &um, UnitigPath &up){
+    DataAccessor<UnitigExtension>* da = um.getData();
+    UnitigExtension* ue = da->getData(um);
 
     bool ret_ = false;
     bool barrier_ = false;
 
     for (auto &pre : um.getPredecessors()){
+        DataAccessor<UnitigExtension>* pre_da = pre.getData();
+        UnitigExtension* pre_ue = pre_da->getData(pre);
+
         // path node
-        if (pre.getData()->dfs_ancestor != 0){
+        if (pre_ue->dfs_ancestor != 0){
             up.push_back(pre);
             ret_ = get_reverse_bfs_paths(pre, up);
         }
 
         // found node outside the max_dist area of BFS
-        else if (pre.getData()->dfs_ancestor == 0 && pre.getData()->dfs_color == 'w' && pre.getData()->dfs_color != 's'){
+        else if (pre_ue->dfs_ancestor == 0 && pre_ue->dfs_color == 'w' && pre_ue->dfs_color != 's'){
             continue;
         }
 
         // former traceback source found
-        else if (pre.getData()->dfs_ancestor == 0 && pre.getData()->dfs_color == 'g' && pre.getData()->dfs_color != 's'){
+        else if (pre_ue->dfs_ancestor == 0 && pre_ue->dfs_color == 'g' && pre_ue->dfs_color != 's'){
             continue;
         }
 
         // former BFS source found
-        else if (pre.getData()->dfs_color == 's'){
+        else if (pre_ue->dfs_color == 's'){
             barrier_ = true;
             ret_ = true;
             break;
         }
 
         else{
-            cerr << "ERROR: Small bubble-popping traceback ran into an undefined case from " << um.getData()->getID() << "(um) to " << pre.getData()->getID() << "(pre) while tracing predecessors." << endl;
+            cerr << "ERROR: [9]: Small bubble-popping traceback ran into an undefined case from " << ue->getID() << "(um) to " << pre_ue->getID() << "(pre) while tracing predecessors." << endl;
             return ret_;
         }
     }
@@ -583,30 +644,32 @@ bool ExtendedCDBG::get_reverse_bfs_paths(UnitigMap<UnitigExtension> &um, UnitigP
     if (barrier_) return ret_;
 
     for (auto &suc : um.getSuccessors()){
+        DataAccessor<UnitigExtension>* suc_da = suc.getData();
+        UnitigExtension* suc_ue = suc_da->getData(suc);
         // path node
-        if (suc.getData()->dfs_ancestor != 0){
+        if (suc_ue->dfs_ancestor != 0){
             up.push_back(suc);
             ret_ = get_reverse_bfs_paths(suc, up);
         }
 
         // found node outside the max_dist area of BFS
-        else if (suc.getData()->dfs_ancestor == 0 && suc.getData()->dfs_color == 'w' && suc.getData()->dfs_color != 's'){
+        else if (suc_ue->dfs_ancestor == 0 && suc_ue->dfs_color == 'w' && suc_ue->dfs_color != 's'){
             continue;
         }
 
         // former traceback source found
-        else if (suc.getData()->dfs_ancestor == 0 && suc.getData()->dfs_color == 'g' && suc.getData()->dfs_color != 's'){
+        else if (suc_ue->dfs_ancestor == 0 && suc_ue->dfs_color == 'g' && suc_ue->dfs_color != 's'){
             continue;
         }
 
         // former BFS source found
-        else if (suc.getData()->dfs_color == 's'){
+        else if (suc_ue->dfs_color == 's'){
             ret_ = true;
             break;
         }
 
         else{
-            cerr << "ERROR: Small bubble-popping traceback ran into an undefined case from " << um.getData()->getID() << "(um) to " << suc.getData()->getID() << "(suc) while tracing successors." << endl;
+            cerr << "ERROR: [10]: Small bubble-popping traceback ran into an undefined case from " << ue->getID() << "(um) to " << suc_ue->getID() << "(suc) while tracing successors." << endl;
             return ret_;
         }
     }
@@ -619,12 +682,15 @@ bool ExtendedCDBG::get_reverse_bfs_paths(UnitigMap<UnitigExtension> &um, UnitigP
  * \fn      void ExtendedCDBG::clear_path_search_attributes()
  * \brief   This functions resets all xfs (dfs/bfs) attributes to its default.
  */
-inline void ExtendedCDBG::clear_path_search_attributes(){
+inline void ExtendedCCDBG::clear_path_search_attributes(){
     for (auto &unitig : *this){
-        unitig.getData()->dfs_color = 'w';
-        unitig.getData()->dfs_ancestor = 0;
-        unitig.getData()->dfs_discovertime = 0;
-        unitig.getData()->dfs_finishtime = 0;
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+
+        ue->dfs_color = 'w';
+        ue->dfs_ancestor = 0;
+        ue->dfs_discovertime = 0;
+        ue->dfs_finishtime = 0;
     }
 }
 

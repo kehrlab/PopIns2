@@ -11,7 +11,10 @@
 // =========================
 // Includes + defines
 // =========================
-#include <bifrost/CompactedDBG.hpp>     /* has the CDBG_Data_t template */
+#include <bifrost/ColoredCDBG.hpp>      /* has the CDBG_Data_t template */
+#include <bifrost/DataManager.hpp>
+#include <bifrost/UnitigMap.hpp>
+
 #include <string>                       /* std::to_string() */
 #include <tuple>                        /* std::Pair */
 #include <cstdint>                      /* uint8_t */
@@ -75,7 +78,7 @@ static const char bitmask_decoder[16] = {
 * \details      The struct has to inherit from the CDBG_Data_t struct and implement at least all its virtual functions.
 * \ref          https://github.com/pmelsted/bfgraph/blob/master/src/CompactedDBG.hpp
 */
-struct UnitigExtension : public CDBG_Data_t<UnitigExtension> {
+struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<UnitigExtension> {
 
     private:
         unsigned ID;
@@ -113,8 +116,13 @@ struct UnitigExtension : public CDBG_Data_t<UnitigExtension> {
         float getEntropy() const {return entropy;}
         void setEntropy(const float e) {entropy = e;}
 
-        void join(const UnitigMap<UnitigExtension>& um_dest, const UnitigMap<UnitigExtension>& um_src);
-        void sub(const UnitigMap<UnitigExtension>& um_src, UnitigExtension& new_data, const bool last_extraction) const;
+        static void join(const UnitigColorMap<UnitigExtension>& um_dest,
+                         const UnitigColorMap<UnitigExtension>& um_src);
+        static void sub(UnitigExtension* data_dest,
+                        const UnitigColors &uc_dest,
+                        const UnitigMapBase &um_dest,
+                        const UnitigColorMap<UnitigExtension> &um_src,
+                        const bool last_extraction);
         string serialize() const;
 
         bool isSink() const {return dfs_finishtime-dfs_discovertime == 1 ? true : false;}

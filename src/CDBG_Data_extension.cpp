@@ -5,17 +5,13 @@
 UnitigExtension::UnitigExtension() : ID(0), entropy(-1), dfs_color('w'), dfs_ancestor(0), dfs_discovertime(0), dfs_finishtime(0) {}
 
 
-void UnitigExtension::join(const UnitigMap< UnitigExtension >& um_dest, const UnitigMap< UnitigExtension >& um_src){
-    /*
-     * Irrelevant at the moment.
-    */
+void UnitigExtension::join(const UnitigColorMap<UnitigExtension> &um_dest, const UnitigColorMap<UnitigExtension> &um_src){
+    // Irrelevant at the moment.
 }
 
 
-void UnitigExtension::sub(const UnitigMap< UnitigExtension >& um_src, UnitigExtension& new_data, const bool last_extraction) const{
-    /*
-     * Irrelevant at the moment.
-    */
+void UnitigExtension::sub(UnitigExtension* data_dest, const UnitigColors &uc_dest, const UnitigMapBase &um_dest, const UnitigColorMap<UnitigExtension> &um_src, const bool last_extraction){
+    // Irrelevant at the moment.
 }
 
 

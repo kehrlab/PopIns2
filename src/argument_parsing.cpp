@@ -116,7 +116,7 @@ bool detect_indir_files(OptionsWrapper &options, std::vector<std::string> &sampl
 
 
 /*!
-* \fn           bool init_graph_options(OptionsWrapper &options, CDBG_Build_opt &graph_options)
+* \fn           bool init_graph_options(OptionsWrapper &options, CCDBG_Build_opt &graph_options)
 * \brief        Function parsing the program options to a wrapper struct to initialize a Bifrost graph.
 * \details      The general question might arises, why there are two options structs. The global options struct
 *               takes care about forcing mandatory inputs and limiting parameters to a certain range. It also creates
@@ -124,8 +124,8 @@ bool detect_indir_files(OptionsWrapper &options, std::vector<std::string> &sampl
 *               The graph options struct wraps all parameters that are exclusively necessary for the graph
 *               initialization.
 */
-void init_graph_options(OptionsWrapper& options, std::vector<std::string> &sample_fastx_names, CDBG_Build_opt& graph_options){
-    graph_options.filename_in = sample_fastx_names;
+void init_graph_options(OptionsWrapper& options, std::vector<std::string> &sample_fastx_names, CCDBG_Build_opt& graph_options){
+    graph_options.filename_seq_in = sample_fastx_names;
     graph_options.k = options.kmer_length;
     graph_options.nb_unique_kmers = options.unique_kmers;
     graph_options.nb_non_unique_kmers = options.non_unique_kmers;
@@ -139,13 +139,13 @@ void init_graph_options(OptionsWrapper& options, std::vector<std::string> &sampl
 
 
 /*!
-* \fn           bool check_ProgramOptions(CDBG_Build_opt &graph_options)
+* \fn           bool check_ProgramOptions(CCDBG_Build_opt &graph_options)
 * \brief        Function to check whether the settings are appropriate to construct a CDBG.
 * \remark       This function is copied from Bifrost.
 * \ref          https://github.com/pmelsted/bfgraph/blob/master/src/Bifrost.cpp
 * \return       true if successful
 */
-bool check_ProgramOptions(CDBG_Build_opt& opt) {
+bool check_ProgramOptions(CCDBG_Build_opt& opt) {
 
     bool ret = true;
 
@@ -239,18 +239,80 @@ bool check_ProgramOptions(CDBG_Build_opt& opt) {
         if (remove(out.c_str()) != 0) cerr << "Error: Could not remove temporary file " << out << endl;
     }
 
-    if (opt.filename_in.size() == 0) {
+    if (opt.filename_seq_in.size() == 0) {
 
-        cerr << "Error: Missing FASTA/FASTQ input files" << endl;
+        cerr << "Error: Missing input files" << endl;
         ret = false;
     }
     else {
 
         struct stat stFileInfo;
+        vector<string> filename_seq_in_tmp;
+
+        char* buffer = new char[4096]();
+
+        for (vector<string>::const_iterator it = opt.filename_seq_in.begin(); it != opt.filename_seq_in.end(); ++it) {
+
+            const int iStat = stat(it->c_str(), &stFileInfo);
+
+            if (iStat != 0) {
+
+                cerr << "Error: File not found, " << *it << endl;
+                ret = false;
+            }
+
+            const string s_ext = it->substr(it->find_last_of(".") + 1);
+
+            if ((s_ext == "txt")){
+
+                FILE* fp = fopen(it->c_str(), "r");
+
+                if (fp != NULL){
+
+                    fclose(fp);
+
+                    ifstream ifs_file_txt(*it);
+                    istream i_file_txt(ifs_file_txt.rdbuf());
+
+                    while (i_file_txt.getline(buffer, 4096)){
+
+                        fp = fopen(buffer, "r");
+
+                        if (fp == NULL) {
+
+                            cerr << "Error: Could not open file " << buffer << " for reading" << endl;
+                            ret = false;
+                        }
+                        else {
+
+                            fclose(fp);
+                            filename_seq_in_tmp.push_back(string(buffer));
+                        }
+                    }
+
+                    ifs_file_txt.close();
+                }
+                else {
+
+                    cerr << "Error: Could not open file " << *it << " for reading" << endl;
+                    ret = false;
+                }
+            }
+            else filename_seq_in_tmp.push_back(*it);
+        }
+
+        opt.filename_seq_in = move(filename_seq_in_tmp);
+
+        delete[] buffer;
+    }
+
+    if (opt.filename_colors_in.size() != 0) {
+
+        struct stat stFileInfo;
         vector<string>::const_iterator it;
         int intStat;
 
-        for (it = opt.filename_in.begin(); it != opt.filename_in.end(); ++it) {
+        for (it = opt.filename_colors_in.begin(); it != opt.filename_colors_in.end(); ++it) {
 
             intStat = stat(it->c_str(), &stFileInfo);
 
@@ -263,6 +325,13 @@ bool check_ProgramOptions(CDBG_Build_opt& opt) {
 
     return ret;
 }
+
+
+
+
+
+
+
 
 
 

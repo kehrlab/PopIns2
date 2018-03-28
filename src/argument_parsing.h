@@ -11,7 +11,7 @@
 // Includes
 // =========================
 #include <seqan/arg_parse.h>
-#include <bifrost/CompactedDBG.hpp>     /* compacted dBG data structure from Bifrost API */
+#include <bifrost/ColoredCDBG.hpp>     /* compacted dBG data structure from Bifrost API */
 
 
 // =========================
@@ -53,8 +53,8 @@ struct OptionsWrapper{
 // =========================
 seqan::ArgumentParser::ParseResult parseCommandLine(OptionsWrapper &options, int argc, char const ** argv);
 bool detect_indir_files(OptionsWrapper &options, std::vector<std::string> &sample_fastx_names);
-void init_graph_options(OptionsWrapper &options, std::vector<std::string> &sample_fastx_names, CDBG_Build_opt &graph_options);
-bool check_ProgramOptions(CDBG_Build_opt &graph_options);
+void init_graph_options(OptionsWrapper &options, std::vector<std::string> &sample_fastx_names, CCDBG_Build_opt &graph_options);
+bool check_ProgramOptions(CCDBG_Build_opt &graph_options);
 
 
 

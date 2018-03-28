@@ -16,7 +16,7 @@ LDLIBS = -lbifrost -pthread -lroaring -lz -lrt -rdynamic
 
 # Date and version number from git
 DATE := on $(shell git log --pretty=format:"%cd" --date=iso | cut -f 1,2 -d " " | head -n 1)
-VERSION := 0.1.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
+VERSION := 0.2.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
 CXXFLAGS += -DDATE=\""$(DATE)"\" -DVERSION=\""$(VERSION)"\"
 
 # Enable warnings

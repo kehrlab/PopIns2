@@ -40,7 +40,7 @@ int main(int argc, char const *argv[]){
     // ==============================
     // Initialize graph
     // ==============================
-    CDBG_Build_opt graph_options;
+    CCDBG_Build_opt graph_options;
     if(isFilereadSuccessful==EXIT_SUCCESS)
         init_graph_options(options, sample_fastx_names, graph_options);
     if(!check_ProgramOptions(graph_options))
@@ -49,23 +49,25 @@ int main(int argc, char const *argv[]){
     // ==============================
     // Run graph functions
     // ==============================
-    ExtendedCDBG cdbg(graph_options.k, graph_options.g);
-    cout << "[PROGRESS] Building CDBG..." << endl;
-    cdbg.build(graph_options);
+    ExtendedCCDBG ccdbg(graph_options.k, graph_options.g);
+    cout << "[PROGRESS] Building CCDBG..." << endl;
+    ccdbg.build(graph_options);
 
     // simplify
-    cout << "[PROGRESS] Simplifying CDBG..." << endl;
-    cdbg.simplify(graph_options.deleteIsolated, graph_options.clipTips, graph_options.verbose);
+    cout << "[PROGRESS] Simplifying CCDBG..." << endl;
+    ccdbg.simplify(graph_options.deleteIsolated, graph_options.clipTips, graph_options.verbose);
 
     // write
     cout << "[PROGRESS] Writing GFA..." << endl;
-    cdbg.write(graph_options.prefixFilenameOut, graph_options.nb_threads, true, graph_options.verbose);
-    cout << "[DEBUG] The DBG has " << cdbg.size() << " unitigs.\n" << endl;
+    ccdbg.write(graph_options.prefixFilenameOut, graph_options.nb_threads, graph_options.verbose);
+    cout << "[DEBUG] The DBG has " << ccdbg.size() << " unitigs.\n" << endl;
 
 
     // TEST START
-    cdbg.init_ids();
-    cdbg.connected_components(graph_options);
+    /*
+    ccdbg.init_ids();
+    ccdbg.connected_components(graph_options);
+    */
 
     // WARNING: add a bool whether dfs/bfs (=xfs) variables are on initial state
     /*
@@ -76,17 +78,23 @@ int main(int argc, char const *argv[]){
 
     //cdbg.print_unitig_info();
 
-    cdbg.init_kmer_cov();
-    cdbg.annotate_kmer_coverage(sample_fastx_names);
+    /*
+    ccdbg.init_kmer_cov();
+    ccdbg.annotate_kmer_coverage(sample_fastx_names);
+    */
 
     /*
-    for ( auto &unitig : cdbg){
-        cout << "[[" << unitig.getData()->getID() << "]]";
-        prettyprint::print(unitig.getData()->kmer_coverage);
+    for ( auto &unitig : ccdbg){
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+
+        cout << "[[" << ue->getID() << "]]";
+        prettyprint::print(ue->kmer_coverage);
         cout << endl;
     }
     */
-    cdbg.small_bubble_removal();
+
+    // ccdbg.small_bubble_removal();
 
     // TEST END
 
