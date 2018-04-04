@@ -14,7 +14,7 @@
 #include <seqan/misc/union_find.h>
 
 #include "ColoredCDBG_Data_extension.h"
-#include "ColoredCDBG_argument_parsing.h"
+#include "argument_parsing.h"
 
 typedef std::vector<std::vector<UnitigColorMap<UnitigExtension> > > PathSet;
 typedef std::vector<UnitigColorMap<UnitigExtension> > UnitigPath;

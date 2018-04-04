@@ -1,6 +1,8 @@
 #include <iostream>
 
-#include "ColoredCDBG_argument_parsing.h"           /* seqAn argument parser */
+#include "argument_parsing.h"           /* seqAn argument parser */
+#include "popins2_single_sample_dBG.h"
+
 #include "ColoredCDBG_Data_extension.h"
 #include "ColoredCDBG_Graph_extension.h"
 
@@ -15,6 +17,7 @@ using namespace std;
 // ==============================
 int main(int argc, char const *argv[]){
 
+    /*
     // ==============================
     // Argument Parser
     // ==============================
@@ -54,9 +57,11 @@ int main(int argc, char const *argv[]){
     cout << "[PROGRESS] Writing GFA..." << endl;
     ccdbg.write(graph_options.prefixFilenameOut, graph_options.nb_threads, graph_options.verbose);
     cout << "[DEBUG] The DBG has " << ccdbg.size() << " unitigs.\n" << endl;
-
+    */
 
     // TEST START
+    popins_single_sample_dBG(argc, argv);
+
     /*
     ccdbg.init_ids();
     ccdbg.connected_components(graph_options);
