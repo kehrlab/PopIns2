@@ -1,10 +1,10 @@
 /*!
-* \file    src/ExtendedCDBG.h
-* \brief   Library for a compacted de Bruijn Graph using data extension.
+* \file    src/ColoredCDBG_Graph_extension.h
+* \brief   Library for a colored compacted de Bruijn Graph using data extension.
 *
 */
-#ifndef EXTENDED_CDBG_H_
-#define EXTENDED_CDBG_H_
+#ifndef COLORED_CDBG_GRAPH_EXTENSION_
+#define COLORED_CDBG_GRAPH_EXTENSION_
 
 
 // =========================
@@ -13,9 +13,8 @@
 #include <seqan/seq_io.h>
 #include <seqan/misc/union_find.h>
 
-#include "CDBG_Data_extension.h"
-
-#include "argument_parsing.h"
+#include "ColoredCDBG_Data_extension.h"
+#include "ColoredCDBG_argument_parsing.h"
 
 typedef std::vector<std::vector<UnitigColorMap<UnitigExtension> > > PathSet;
 typedef std::vector<UnitigColorMap<UnitigExtension> > UnitigPath;
@@ -26,9 +25,9 @@ typedef std::vector<UnitigColorMap<UnitigExtension> > UnitigPath;
 // Structs
 // =========================
 /*!
-* \class        ExtendedCDBG
-* \headerfile   src/ExtendedCDBG.h
-* \brief        Struct to store a CompactedDBG plus data extensions.
+* \class        ExtendedCCDBG
+* \headerfile   src/ColoredCDBG_Graph_extension.h
+* \brief        Struct to store a colored compacted DBG plus data extensions.
 */
 struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
@@ -84,4 +83,4 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
 
 
-#endif /*EXTENDED_CDBG_H_*/
+#endif /*COLORED_CDBG_GRAPH_EXTENSION_*/

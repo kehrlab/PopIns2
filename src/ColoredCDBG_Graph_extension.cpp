@@ -1,4 +1,4 @@
-#include "ExtendedCDBG.h"
+#include "ColoredCDBG_Graph_extension.h"
 
 #include <unordered_set>
 #include <unordered_map>

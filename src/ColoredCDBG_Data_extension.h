@@ -1,17 +1,17 @@
 /*!
-* \file    src/CDBG_Data_extension.h
-* \brief   Library for extending the functionality of the CompactedDBG by implementing the data wrapper CDBG_Data_t
+* \file    src/ColoredCDBG_Data_extension.h
+* \brief   Library for extending the functionality of the colored compacted DBG by implementing the data wrapper CCDBG_Data_t
 *
 */
-#ifndef UNITIG_EXTENSION_H_
-#define UNITIG_EXTENSION_H_
+#ifndef COLORED_CDBG_DATA_EXTENSION_
+#define COLORED_CDBG_DATA_EXTENSION_
 
 
 
 // =========================
 // Includes + defines
 // =========================
-#include <bifrost/ColoredCDBG.hpp>      /* has the CDBG_Data_t template */
+#include <bifrost/ColoredCDBG.hpp>      /* has the CCDBG_Data_t template */
 #include <bifrost/DataManager.hpp>
 #include <bifrost/UnitigMap.hpp>
 
@@ -73,10 +73,10 @@ static const char bitmask_decoder[16] = {
 // =========================
 /*!
 * \class        UnitigExtension
-* \headerfile   src/CDBG_Data_extension.h
-* \brief        Struct extending the functionality of the CompactedDBG.
-* \details      The struct has to inherit from the CDBG_Data_t struct and implement at least all its virtual functions.
-* \ref          https://github.com/pmelsted/bfgraph/blob/master/src/CompactedDBG.hpp
+* \headerfile   src/ColoredCDBG_Data_extension.h
+* \brief        Struct extending the functionality of the colored compacted DBG.
+* \details      The struct has to inherit from the CCDBG_Data_t struct and implement at least all its static functions.
+* \ref          https://github.com/pmelsted/bfgraph/blob/master/src/ColoredCDBG.hpp
 */
 struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<UnitigExtension> {
 
@@ -140,4 +140,4 @@ std::pair<uint8_t, uint8_t> getBasesFromNeighborPair(const uint8_t neighborPair)
 
 
 
-#endif /*UNITIG_EXTENSION_H_*/
+#endif /*COLORED_CDBG_DATA_EXTENSION_*/

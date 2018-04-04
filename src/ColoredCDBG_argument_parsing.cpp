@@ -1,6 +1,7 @@
 #include <seqan/arg_parse.h>    /* seqan's lib for argparse */
 #include <dirent.h>             /* read folder */
-#include "argument_parsing.h"   /* self header */
+#include "ColoredCDBG_argument_parsing.h"           /* seqAn argument parser */
+
 
 
 /*!

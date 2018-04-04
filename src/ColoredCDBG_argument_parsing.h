@@ -1,17 +1,17 @@
 /*!
-* \file    src/argument_parsing.h
+* \file    src/ColoredCDBG_argument_parsing.h
 * \brief   Library for the command line parsing, user interaction and directory navigation.
 *
 */
-#ifndef ARGUMENT_PARSING_H_
-#define ARGUMENT_PARSING_H_
+#ifndef COLORED_CDBG_ARGUMENT_PARSING_H_
+#define COLORED_CDBG_ARGUMENT_PARSING_H_
 
 
 // =========================
 // Includes
 // =========================
 #include <seqan/arg_parse.h>
-#include <bifrost/ColoredCDBG.hpp>     /* compacted dBG data structure from Bifrost API */
+#include <bifrost/ColoredCDBG.hpp>     /* colored compacted dBG data structure from Bifrost API */
 
 
 // =========================
@@ -19,7 +19,7 @@
 // =========================
 /*!
 * \class        OptionsWrapper
-* \headerfile   src/argument_parsing.h
+* \headerfile   src/ColoredCDBG_argument_parsing.h
 * \brief        Struct containing the command line arguments.
 * \remark       The parameter are (mostly) a copy of Bifrost's parameter input.
 * \ref          https://github.com/pmelsted/bfgraph/blob/master/src/Bifrost.cpp
@@ -58,4 +58,4 @@ bool check_ProgramOptions(CCDBG_Build_opt &graph_options);
 
 
 
-#endif /*ARGUMENT_PARSING_H_*/
+#endif /*COLORED_CDBG_ARGUMENT_PARSING_H_*/

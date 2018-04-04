@@ -1,10 +1,8 @@
 #include <iostream>
 
-#include <bifrost/CompactedDBG.hpp>
-
-#include "argument_parsing.h"           /* seqAn argument parser */
-#include "CDBG_Data_extension.h"
-#include "ExtendedCDBG.h"
+#include "ColoredCDBG_argument_parsing.h"           /* seqAn argument parser */
+#include "ColoredCDBG_Data_extension.h"
+#include "ColoredCDBG_Graph_extension.h"
 
 #include "../../prettyprint/prettyprint.h"      // my debug headder
 
@@ -27,14 +25,9 @@ int main(int argc, char const *argv[]){
         return res == seqan::ArgumentParser::PARSE_ERROR;
 
     // ==============================
-    // Global program variables
+    // Read FastX files
     // ==============================
-    // all file names in --indir with full path
-    vector<string> sample_fastx_names;
-
-    // ==============================
-    // Loop for all FastX files
-    // ==============================
+    vector<string> sample_fastx_names;      // all file names in --indir with full path
     bool isFilereadSuccessful = detect_indir_files(options, sample_fastx_names);
 
     // ==============================

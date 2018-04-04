@@ -41,3 +41,6 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/%.h
 clean:
 	rm -f $(OBJS) $(TARGET)
 
+purge:
+	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors
+
