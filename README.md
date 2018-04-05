@@ -42,7 +42,7 @@ SYNOPSIS
     popins2 --indir DIR --prefix STRING --unique-kmers INT --non-unique-kmers INT [OPTIONS] 
 
 DESCRIPTION
-    Population-scale detection of novel-sequence insertions using de Bruijn Graphs
+    Population-scale detection of novel-sequence insertions using colored de Bruijn Graphs
 
 OPTIONS
     -h, --help

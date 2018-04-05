@@ -7,9 +7,12 @@
 #define ARGUMENT_PARSING_H_
 
 
+#include <bifrost/ColoredCDBG.hpp>
+
+#include <vector>
 #include <dirent.h>             /* read folder */
 #include <seqan/arg_parse.h>
-#include <bifrost/ColoredCDBG.hpp>     /* colored compacted dBG data structure from Bifrost API */
+using namespace std;
 
 
 
@@ -41,7 +44,7 @@ inline seqan::ArgumentParser::ParseResult parseGraphOptionsSpecifier<CCDBG_Build
     // get all FASTA files in input directory, that came from CompactedDBG.write()
     // ================================================================================
     string indir;
-    seqan::getOptionValue(indir, parser, "input-files-dir");
+    seqan::getOptionValue(indir, parser, "file-dir");
     vector<string> sample_fastx_names;      // all file names in --indir with full path
     DIR *dir;
     struct dirent *ent;
@@ -80,7 +83,7 @@ inline seqan::ArgumentParser::ParseResult parseGraphOptionsSpecifier<CDBG_Build_
     // get all FASTA files in input directory, that came from CompactedDBG.write()
     // ================================================================================
     string indir;
-    seqan::getOptionValue(indir, parser, "input-files-dir");
+    seqan::getOptionValue(indir, parser, "file-dir");
     vector<string> sample_fastx_names;      // all file names in --indir with full path
     DIR *dir;
     struct dirent *ent;
@@ -126,11 +129,11 @@ inline seqan::ArgumentParser::ParseResult parseGraphOptions(TType &graph_opt, in
 #if defined VERSION
     setVersion(parser, VERSION);
 #endif
-    addUsageLine(parser, "\\--input-files-dir DIR \\--output-file STRING \\--unique-kmers INT \\--non-unique-kmers INT [OPTIONS] \\fP ");
+    addUsageLine(parser, "\\--file-dir DIR \\--output-file STRING [OPTIONS] \\fP ");
 
     // options
-    addOption(parser, seqan::ArgParseOption("f", "input-files-dir", "Source directory with FASTQ file(s).", seqan::ArgParseArgument::STRING, "DIRECTORY"));
-    setRequired(parser, "input-files-dir", true);
+    addOption(parser, seqan::ArgParseOption("f", "file-dir", "Source directory with input FASTX file(s).", seqan::ArgParseArgument::STRING, "DIRECTORY"));
+    setRequired(parser, "file-dir", true);
 
     addOption(parser, seqan::ArgParseOption("o", "output-file", "Prefix for the GFA file", seqan::ArgParseArgument::STRING, "TEXT"));
     setRequired(parser, "output-file", true);

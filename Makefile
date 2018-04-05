@@ -16,7 +16,7 @@ LDLIBS = -lbifrost -pthread -lroaring -lz -lrt -rdynamic
 
 # Date and version number from git
 DATE := on $(shell git log --pretty=format:"%cd" --date=iso | cut -f 1,2 -d " " | head -n 1)
-VERSION := 0.2.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
+VERSION := 0.3.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
 CXXFLAGS += -DDATE=\""$(DATE)"\" -DVERSION=\""$(VERSION)"\"
 
 # Enable warnings
@@ -42,5 +42,5 @@ clean:
 	rm -f $(OBJS) $(TARGET)
 
 purge:
-	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors
+	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors *.fasta
 

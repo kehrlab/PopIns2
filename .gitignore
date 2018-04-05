@@ -9,3 +9,4 @@ test/*
 !test/Makefile
 !test/test_popins2.cpp
 myTestout*
+tmp/*

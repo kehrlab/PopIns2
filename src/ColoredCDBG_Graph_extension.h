@@ -7,14 +7,10 @@
 #define COLORED_CDBG_GRAPH_EXTENSION_
 
 
-// =========================
-// Includes
-// =========================
 #include <seqan/seq_io.h>
 #include <seqan/misc/union_find.h>
 
 #include "ColoredCDBG_Data_extension.h"
-#include "argument_parsing.h"
 
 typedef std::vector<std::vector<UnitigColorMap<UnitigExtension> > > PathSet;
 typedef std::vector<UnitigColorMap<UnitigExtension> > UnitigPath;
@@ -22,7 +18,7 @@ typedef std::vector<UnitigColorMap<UnitigExtension> > UnitigPath;
 
 
 // =========================
-// Structs
+// Struct
 // =========================
 /*!
 * \class        ExtendedCCDBG
