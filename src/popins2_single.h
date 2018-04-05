@@ -26,7 +26,7 @@ int popins2_single(int argc, char const *argv[]){
     // Argument Parser
     // ==============================
     CDBG_Build_opt cdbg_build_opt;
-    seqan::ArgumentParser::ParseResult res = parseGraphOptions(cdbg_build_opt, argc, argv);
+    seqan::ArgumentParser::ParseResult res = parseCompactedDBGOptions(cdbg_build_opt, argc, argv);
     // catch parse error
     if (res != seqan::ArgumentParser::PARSE_OK){
         if (res == seqan::ArgumentParser::PARSE_HELP)

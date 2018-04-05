@@ -10,6 +10,8 @@
 #include "argument_parsing.h"           /* seqAn argument parser */
 #include "ColoredCDBG_Graph_extension.h"
 
+#include "../../prettyprint/prettyprint.h"      // my debug headder
+
 
 
 /*!
@@ -26,7 +28,8 @@ int popins2_merge(int argc, char const *argv[]){
     // Argument Parser
     // ==============================
     CCDBG_Build_opt ccdbg_build_opt;
-    seqan::ArgumentParser::ParseResult res = parseGraphOptions(ccdbg_build_opt, argc, argv);
+    string source_path;
+    seqan::ArgumentParser::ParseResult res = parseColoredCDBGOptions(ccdbg_build_opt, argc, argv, source_path);
     // catch parse error
     if (res != seqan::ArgumentParser::PARSE_OK){
         if (res == seqan::ArgumentParser::PARSE_HELP)
@@ -44,36 +47,33 @@ int popins2_merge(int argc, char const *argv[]){
     exg.build(ccdbg_build_opt);
     cout << "[PROGRESS] ColorMapping CCDBG..." << endl;
     exg.mapColors(ccdbg_build_opt);
+
     cout << "[PROGRESS] Writing CCDBG..." << endl;
     exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
 
 
-
     // TEST START
 
-    /*
-    ccdbg.init_ids();
-    ccdbg.connected_components(graph_options);
-    */
+    exg.init_ids();
+    exg.connected_components(ccdbg_build_opt);
 
     // WARNING: add a bool whether dfs/bfs (=xfs) variables are on initial state
-    /*
-    for (auto &unitig : cdbg)
-        if (unitig.getData()->getID() == 3)    // test case: unitig ID 3 as source
-            cdbg.dfs(unitig);
-    */
+    for (auto &ucm : exg){
+        DataAccessor<UnitigExtension>* da = ucm.getData();
+        UnitigExtension* ue = da->getData(ucm);
 
-    //cdbg.print_unitig_info();
+        if (ue->getID() == 3)    // test case: unitig ID 3 as source
+            exg.dfs(ucm);
+    }
 
-    /*
-    ccdbg.init_kmer_cov();
-    ccdbg.annotate_kmer_coverage(sample_fastx_names);
-    */
+    exg.init_kmer_cov();
+    exg.annotate_kmer_coverage(getFilesFromDir(source_path));
 
+    // print k-mer coverage
     /*
-    for ( auto &unitig : ccdbg){
-        DataAccessor<UnitigExtension>* da = unitig.getData();
-        UnitigExtension* ue = da->getData(unitig);
+    for (auto &ucm : exg){
+        DataAccessor<UnitigExtension>* da = ucm.getData();
+        UnitigExtension* ue = da->getData(ucm);
 
         cout << "[[" << ue->getID() << "]]";
         prettyprint::print(ue->kmer_coverage);
@@ -81,7 +81,7 @@ int popins2_merge(int argc, char const *argv[]){
     }
     */
 
-    // ccdbg.small_bubble_removal();
+    exg.small_bubble_removal();
 
     // TEST END
 
