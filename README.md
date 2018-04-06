@@ -18,7 +18,7 @@ make
 
 ### Build Documentation (optional):
 
-You can auto-build a html and latex code documentation with doxygen by
+You can auto-build a _html_ and _LaTeX_ code documentation with doxygen by
 ```
 cd doc
 doxygen Doxyfile
@@ -34,12 +34,11 @@ doxygen Doxyfile
 ./popins2 --help
 
 
-
 popins2
 =======
 
 SYNOPSIS
-    popins2 --indir DIR --prefix STRING --unique-kmers INT --non-unique-kmers INT [OPTIONS] 
+    popins2 --file-dir DIR --output-file STRING [OPTIONS] 
 
 DESCRIPTION
     Population-scale detection of novel-sequence insertions using colored de Bruijn Graphs
@@ -49,9 +48,11 @@ OPTIONS
           Display the help message.
     --version
           Display version information.
-    -i, --indir STRING
-          Source directory with FASTQ file(s).
-    -o, --prefix STRING
+    -f, --file-dir STRING
+          Source directory with input FASTX file(s).
+    -F, --tmp-file-dir STRING
+          Source directory with intermediate FASTA file(s) from the popins2 single module.
+    -o, --output-file STRING
           Prefix for the GFA file
     -n, --unique-kmers INTEGER
           Amount of unique kmers. In range [1..inf].
@@ -63,16 +64,15 @@ OPTIONS
           Minimizer-length for the dBG construction. In range [1..62]. Default: 23.
     -t, --threads INTEGER
           Amount of threads for parallel processing. In range [1..inf]. Default: 1.
+    -i, --clip-tips
+          Remove branching ends (tips) of the dBG shorter than k k-mers in length
+    -d, --del-isolated
+          Remove single contigs shorter than k k-mers in length
     -v, --verbose
           Print more output
-    -c, --clip-tips
-          Remove ends of the dBG with length <k
-    -r, --remove-isolated
-          Remove single contigs with length <k
-    -f, --bloom-filter-file STRING
-          Filename for a binary file storing the bloom filter data structure.
 
 VERSION
     Last update: 
-    PopIns2 version: 0.1.0-f25ec89
+    popins2 version: 0.3.0-b9bff3c
     SeqAn version: 2.3.2
+
