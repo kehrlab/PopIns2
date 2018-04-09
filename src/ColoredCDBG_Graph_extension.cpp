@@ -598,7 +598,7 @@ inline bool ExtendedCCDBG::bfs_with_max_dist(const UnitigColorMap<UnitigExtensio
 
 /*!
  * \fn      bool ExtendedCDBG::get_reverse_bfs_paths(const UnitigColorMap<UnitigExtension> &um, UnitigPath &up)
- * \brief   This function returns all the bubble paths from sink to source.
+ * \brief   This function returns all the small bubble paths from sink to source.
  * \return  true if successful
  */
 bool ExtendedCCDBG::get_reverse_bfs_paths(const UnitigColorMap<UnitigExtension> &um, UnitigPath &up){

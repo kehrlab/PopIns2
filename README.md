@@ -41,7 +41,7 @@ SYNOPSIS
     popins2 --file-dir DIR --output-file STRING [OPTIONS] 
 
 DESCRIPTION
-    Population-scale detection of novel-sequence insertions using colored de Bruijn Graphs
+    Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs
 
 OPTIONS
     -h, --help

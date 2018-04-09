@@ -58,7 +58,7 @@ inline seqan::ArgumentParser::ParseResult parseCompactedDBGOptions(CDBG_Build_op
     // ==================
 
     seqan::ArgumentParser parser("popins2");
-    addDescription(parser, "Population-scale detection of novel-sequence insertions using colored de Bruijn Graphs");
+    addDescription(parser, "Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs");
 #if defined VERSION
     setVersion(parser, VERSION);
 #endif
