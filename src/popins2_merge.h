@@ -28,13 +28,15 @@ int popins2_merge(int argc, char const *argv[]){
     // Argument Parser
     // ==============================
     CCDBG_Build_opt ccdbg_build_opt;
-    string source_path;
-    seqan::ArgumentParser::ParseResult res = parseColoredCDBGOptions(ccdbg_build_opt, argc, argv, source_path);
+    CCDBG_Build_opt* p_ccdbg_build_opt = &ccdbg_build_opt;
+    MergeOptions mo(p_ccdbg_build_opt);
+
+    seqan::ArgumentParser::ParseResult res = parseCommandLine(mo, argc, argv);
     // catch parse error
     if (res != seqan::ArgumentParser::PARSE_OK){
         if (res == seqan::ArgumentParser::PARSE_HELP)
             return 0;
-        cerr << "seqan::ArgumentParser::PARSE_ERROR in popins2_merge" << endl;
+        cerr << "seqan::ArgumentParser::PARSE_ERROR in module popins2 merge" << endl;
         return 1;
     }
 
@@ -67,7 +69,7 @@ int popins2_merge(int argc, char const *argv[]){
     }
 
     exg.init_kmer_cov();
-    exg.annotate_kmer_coverage(getFilesFromDir(source_path));
+    exg.annotate_kmer_coverage(getFilesFromDir(mo.source_path));
 
     // print k-mer coverage
     /*

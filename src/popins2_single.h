@@ -26,19 +26,22 @@ int popins2_single(int argc, char const *argv[]){
     // Argument Parser
     // ==============================
     CDBG_Build_opt cdbg_build_opt;
-    seqan::ArgumentParser::ParseResult res = parseCompactedDBGOptions(cdbg_build_opt, argc, argv);
+    CDBG_Build_opt* p_cdbg_build_opt = &cdbg_build_opt;
+    SingleOptions so(p_cdbg_build_opt);
+
+    seqan::ArgumentParser::ParseResult res = parseCommandLine(so, argc, argv);
     // catch parse error
     if (res != seqan::ArgumentParser::PARSE_OK){
         if (res == seqan::ArgumentParser::PARSE_HELP)
             return 0;
-        cerr << "seqan::ArgumentParser::PARSE_ERROR in popins2_single()" << endl;
+        cerr << "seqan::ArgumentParser::PARSE_ERROR in module popins2 single" << endl;
         return 1;
     }
-
 
     // ==============================
     // Run graph functions
     // ==============================
+
     CompactedDBG<> cdbg(cdbg_build_opt.k, cdbg_build_opt.g);
     cout << "[PROGRESS] Building CDBG..." << endl;
     cdbg.build(cdbg_build_opt);

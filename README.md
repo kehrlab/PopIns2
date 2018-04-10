@@ -1,5 +1,5 @@
 # PopIns2
-Population-scale detection of novel-sequence insertions using de Bruijn Graphs
+Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs
 
 ### Requirements:
 
