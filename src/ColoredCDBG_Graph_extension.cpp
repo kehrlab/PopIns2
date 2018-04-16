@@ -87,7 +87,7 @@ void ExtendedCCDBG::print_unitig_info(){
 
 
 /*!
- * \fn      size_t ExtendedCDBG::count_connected_components()
+ * \fn      size_t ExtendedCCDBG::count_connected_components()
  * \brief   This function computes the amount of distict connected components in the graph. The connected_components()
  *          function need to be ran successfully to call count_connected_components(). This function is mainly for
  *          debug and test purposes.
@@ -105,7 +105,7 @@ size_t ExtendedCCDBG::count_connected_components(){
 
 
 /*!
- * \fn      bool ExtendedCDBG::connected_components(const CDBG_Build_opt &graph_options)
+ * \fn      bool ExtendedCCDBG::connected_components(const CDBG_Build_opt &graph_options)
  * \brief   This function computes the connected components for at the current state of the graph.
  * \ref     seqan/include/seqan/misc/union_find.h
  * \return  true if successful
@@ -155,7 +155,7 @@ bool ExtendedCCDBG::connected_components(const CCDBG_Build_opt &graph_options){
 
 
 /*!
- * \fn          float ExtendedCDBG::entropy(const std::string &sequence)
+ * \fn          float ExtendedCCDBG::entropy(const std::string &sequence)
  * \brief       This function computes an entropy for a given string that can be used to filter/mark low complexity
  *              sequences. If all dimers are equaly distributed the entropy is high ("highly chaotic system"), if
  *              all dimers follow a certain pattern the entropy is low ("highly ordered system"). We'd probably like
@@ -196,7 +196,7 @@ float ExtendedCCDBG::entropy(const std::string &sequence){
 
 
 /*!
- * \fn      void ExtendedCDBG::dfs(UnitigColorMap<UnitigExtension> &um)
+ * \fn      void ExtendedCCDBG::dfs(UnitigColorMap<UnitigExtension> &um)
  * \brief   Local depth-first search (DFS) within a connected component, given a certain start node.
  */
 void ExtendedCCDBG::dfs(const UnitigColorMap<UnitigExtension> &um){
@@ -220,7 +220,7 @@ void ExtendedCCDBG::dfs(const UnitigColorMap<UnitigExtension> &um){
 
 
 /*!
- * \fn      void ExtendedCDBG::dfs_visit(UnitigColorMap<UnitigExtension> &um)
+ * \fn      void ExtendedCCDBG::dfs_visit(UnitigColorMap<UnitigExtension> &um)
  * \brief   Depth-first search neighbor traversal and visiting time updates
  */
 void ExtendedCCDBG::dfs_visit(const UnitigColorMap<UnitigExtension> &um){
@@ -272,7 +272,7 @@ void ExtendedCCDBG::dfs_visit(const UnitigColorMap<UnitigExtension> &um){
 
 
 /*!
- * \fn          void ExtendedCDBG::dfs_traceback(vector<unsigned> &vec, const UnitigMap<UnitigExtension> &um_sink)
+ * \fn          void ExtendedCCDBG::dfs_traceback(vector<unsigned> &vec, const UnitigMap<UnitigExtension> &um_sink)
  * \brief       This function walks back on the DFS trace of the nodes, from a given sink to its source.
  * \details     It is important for the dfs_traceback to know in which orientation the unitigs are. This was either
  *              predecessors or ancestors have to be choosen for further path traversal. E.g.:
@@ -323,7 +323,7 @@ void ExtendedCCDBG::dfs_traceback(vector<unsigned> &vec, const UnitigColorMap<Un
 
 
 /*!
- * \fn          bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_names)
+ * \fn          bool ExtendedCCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_names)
  * \brief       Reads the input files again to annotate a coverage per kmer
  * \return      true if successful
  */
@@ -395,7 +395,7 @@ bool ExtendedCCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_na
 
 
 /*!
- * \fn      void ExtendedCDBG::init_kmer_cov()
+ * \fn      void ExtendedCCDBG::init_kmer_cov()
  * \brief   Inits a tally to count the kmer coverage for each unitig.
  */
 void ExtendedCCDBG::init_kmer_cov(){
@@ -411,7 +411,7 @@ void ExtendedCCDBG::init_kmer_cov(){
 
 
 /*!
- * \fn      void ExtendedCDBG::small_bubble_removal()
+ * \fn      void ExtendedCCDBG::small_bubble_removal()
  * \brief   Remove bubbles within a certain max distance (in bases) from the start node.
  */
 void ExtendedCCDBG::small_bubble_removal(){
@@ -446,7 +446,7 @@ void ExtendedCCDBG::small_bubble_removal(){
 
 
 /*!
- * \fn      void ExtendedCDBG::bfs_with_max_dist(const UnitigColorMap<UnitigExtension> &um, PathSet &pathset, const size_t max_dist)
+ * \fn      void ExtendedCCDBG::bfs_with_max_dist(const UnitigColorMap<UnitigExtension> &um, PathSet &pathset, const size_t max_dist)
  * \brief   Run a BFS until the max distance in bases from the startnode (um) is exceeded.
  * \return  true if successful
  */
@@ -597,7 +597,7 @@ inline bool ExtendedCCDBG::bfs_with_max_dist(const UnitigColorMap<UnitigExtensio
 
 
 /*!
- * \fn      bool ExtendedCDBG::get_reverse_bfs_paths(const UnitigColorMap<UnitigExtension> &um, UnitigPath &up)
+ * \fn      bool ExtendedCCDBG::get_reverse_bfs_paths(const UnitigColorMap<UnitigExtension> &um, UnitigPath &up)
  * \brief   This function returns all the small bubble paths from sink to source.
  * \return  true if successful
  */
@@ -679,7 +679,7 @@ bool ExtendedCCDBG::get_reverse_bfs_paths(const UnitigColorMap<UnitigExtension> 
 
 
 /*!
- * \fn      void ExtendedCDBG::clear_path_search_attributes()
+ * \fn      void ExtendedCCDBG::clear_path_search_attributes()
  * \brief   This functions resets all xfs (dfs/bfs) attributes to its default.
  */
 inline void ExtendedCCDBG::clear_path_search_attributes(){

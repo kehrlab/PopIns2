@@ -1,6 +1,6 @@
 /*!
 * \file    src/ColoredCDBG_Graph_extension.h
-* \brief   Library for a colored compacted de Bruijn Graph using data extension.
+* \brief   Library for a colored compacted de Bruijn Graph using unitig extension.
 *
 */
 #ifndef COLORED_CDBG_GRAPH_EXTENSION_
@@ -23,7 +23,7 @@ typedef std::vector<UnitigColorMap<UnitigExtension> > UnitigPath;
 /*!
 * \class        ExtendedCCDBG
 * \headerfile   src/ColoredCDBG_Graph_extension.h
-* \brief        Struct to store a colored compacted DBG plus data extensions.
+* \brief        Struct to store a colored compacted DBG plus unitig extensions.
 */
 struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
@@ -57,19 +57,22 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
         float entropy(const std::string &sequence);
 
-        void dfs(const UnitigColorMap<UnitigExtension> &um);
-        void dfs_visit(const UnitigColorMap<UnitigExtension> &um);
-        bool is_dfs_passed() const {return dfs_passed;}
-        void dfs_traceback(vector<unsigned> &vec, const UnitigColorMap<UnitigExtension> &um_sink);
+        void dfs(const UnitigColorMap<UnitigExtension> &um);                                            /* TODO: delete? Probably never in use. */
+        void dfs_visit(const UnitigColorMap<UnitigExtension> &um);                                      /* TODO: delete? Probably never in use. */
+        bool is_dfs_passed() const {return dfs_passed;}                                                 /* TODO: delete? Probably never in use. */
+        void dfs_traceback(vector<unsigned> &vec, const UnitigColorMap<UnitigExtension> &um_sink);      /* TODO: delete? Probably never in use. */
 
         void init_kmer_cov();
         bool annotate_kmer_coverage(const vector<string> &sample_fastx_names);
 
         void clear_path_search_attributes();
 
-        void small_bubble_removal();    // bubble popping main
-        bool bfs_with_max_dist(const UnitigColorMap<UnitigExtension> &um, PathSet &pathset, const size_t max_dist);       // inline function to detect bubbles smaller than delta_k
-        bool get_reverse_bfs_paths(const UnitigColorMap<UnitigExtension>& um, UnitigPath &up);   // get all paths from sink to source
+        void small_bubble_removal();    // bubble popping main                                          /* TODO: delete? Probably never in use. */
+        bool bfs_with_max_dist(const UnitigColorMap<UnitigExtension> &um,                               /* TODO: delete? Probably never in use. */
+                               PathSet &pathset,
+                               const size_t max_dist);       // inline function to detect bubbles smaller than delta_k
+        bool get_reverse_bfs_paths(const UnitigColorMap<UnitigExtension>& um,                           /* TODO: delete? Probably never in use. */
+                                   UnitigPath &up);   // get all paths from sink to source
 };
 
 

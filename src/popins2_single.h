@@ -7,8 +7,8 @@
 #define POPINS2_SINGLE_H_
 
 
+#include "CompactedDBG_Graph_extension.h"
 #include "argument_parsing.h"           /* seqAn argument parser */
-#include <bifrost/CompactedDBG.hpp>
 
 
 
@@ -42,17 +42,24 @@ int popins2_single(int argc, char const *argv[]){
     // Run graph functions
     // ==============================
 
-    CompactedDBG<> cdbg(cdbg_build_opt.k, cdbg_build_opt.g);
+    ExtendedCDBG xg(cdbg_build_opt.k, cdbg_build_opt.g);
     cout << "[PROGRESS] Building CDBG..." << endl;
-    cdbg.build(cdbg_build_opt);
+    xg.build(cdbg_build_opt);
     cout << "[PROGRESS] Simplifying CDBG..." << endl;
-    cdbg.simplify(cdbg_build_opt.deleteIsolated, cdbg_build_opt.clipTips, cdbg_build_opt.verbose);
-    cout << "[PROGRESS] Writing CDBG..." << endl;
-    cdbg.write(cdbg_build_opt.prefixFilenameOut, cdbg_build_opt.nb_threads, cdbg_build_opt.verbose);
-
+    xg.simplify(cdbg_build_opt.deleteIsolated, cdbg_build_opt.clipTips, cdbg_build_opt.verbose);
     if (cdbg_build_opt.verbose)
-        cout << "[DEBUG] The CDBG has " << cdbg.size() << " unitigs.\n" << endl;
+        cout << "[DEBUG] The CDBG has " << xg.size() << " unitigs.\n" << endl;
 
+
+    // TEST start
+    xg.init_ids();
+
+    xg.small_bubble_removal();
+    // TEST end
+
+
+    cout << "[PROGRESS] Writing CDBG..." << endl;
+    xg.write(cdbg_build_opt.prefixFilenameOut, cdbg_build_opt.nb_threads, cdbg_build_opt.verbose);
 
 
 

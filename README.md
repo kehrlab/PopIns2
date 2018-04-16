@@ -34,7 +34,7 @@ Example call:
 
 Advanced options tip:
 
-For the _single_ module it is recommended to use [KmerStream](https://github.com/pmelsted/KmerStream) in advance if many samples will be processed. Popins2 internally calls KmerStream stream per sample if the (hidden) parameters <code>-n</code> and <code>-N</code> are not set. To speed up <code>popins2 single</code> for many samples, it is beneficial to call KmerStream on the largest sample and pass <code>-n=F0</code> and <code>-N=F0-f1</code> to all _single_ module runs.
+For the _single_ module it is recommended to use [KmerStream](https://github.com/pmelsted/KmerStream) in advance if many samples will be processed. Popins2 internally calls KmerStream per sample if the (hidden) parameters <code>-n</code> and <code>-N</code> are not set. To speed up <code>popins2 single</code> for many samples, it is beneficial to call KmerStream on the largest sample and pass <code>-n=F0</code> and <code>-N=F0-f1</code> to all _single_ module runs.
 
 ### Help:
 
