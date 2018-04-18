@@ -9,7 +9,7 @@ void ExtendedCDBG::init_ids(){
         de->setID(i);
         ++i;
     }
-    init_status = true;
+    id_init_status = true;
 }
 
 
@@ -25,8 +25,11 @@ void ExtendedCDBG::init_ids(){
  * \return  DIRECTION
  */
 inline uint8_t ExtendedCDBG::whereToGo(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src) const{
-     for (auto &predecessor : um.getPredecessors())
-         return predecessor == src ? GO_FORWARD : GO_BACKWARD;
+    uint8_t ret = GO_BACKWARD;
+    for (auto &predecessor : um.getPredecessors())
+         if (predecessor == src) /* TODO if small-loop it will always evaluate to true */
+             ret = GO_FORWARD; 
+    return ret;
 }
 
 
@@ -38,14 +41,13 @@ inline uint8_t ExtendedCDBG::whereToGo(const UnitigMap<DataExtension> &um, const
 bool ExtendedCDBG::BFS_Direction_Init(const UnitigMap<DataExtension> &um, const uint8_t direction){
 
     bool ret = 0;
-    unsigned int dist = 0;
+    unsigned int dist = getK()-1;
 
     // mark current unitig
     DataExtension* de = um.getData();
-    um.strand==1? cout << "[[" << de->getID() << "+" << "]]" << endl : cout << "[[" << de->getID() << "-" << "]]" << endl;
+    de->set_visited();
 
-    if (de->is_not_visited())
-        de->set_visited();
+    um.strand==1? cout << "[[" << de->getID() << "+" << "]]" << endl : cout << "[[" << de->getID() << "-" << "]]" << endl;
 
     if (direction==GO_BACKWARD){
         for (auto &predecessor : um.getPredecessors()){
@@ -57,6 +59,7 @@ bool ExtendedCDBG::BFS_Direction_Init(const UnitigMap<DataExtension> &um, const 
                 *  in new undefined cases.
                 */
                 ret |= BFS_Direction_Recursion(predecessor, um, dist);
+                cout << "\tI jumped back to ID " << de->getID() << endl;
             }
         }
     }
@@ -67,6 +70,7 @@ bool ExtendedCDBG::BFS_Direction_Init(const UnitigMap<DataExtension> &um, const 
                 cout << "\t[  ] I am at " << de->getID() << " and will go forward to " << de_suc->getID() << endl;
                 /* see predecessor for equivalent explanation */
                 ret |= BFS_Direction_Recursion(successor, um, dist);
+                cout << "\tI jumped back to ID " << de->getID() << endl;
             }
         }
     }
@@ -87,10 +91,17 @@ bool ExtendedCDBG::BFS_Direction_Init(const UnitigMap<DataExtension> &um, const 
 bool ExtendedCDBG::BFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist){
 
     bool ret = 0;
-    dist += um.size;
+    dist += um.size-(getK()-1);
 
-    // unitig is of interest, mark as traversed
+    // unitig is of interest
     DataExtension* de = um.getData();
+
+    if (dist>=BFS_MAX_DIST && de->is_not_visited()){
+        cout << "\t[ 1] case exceeds max distance here at ID " << de->getID() << endl;
+        de->set_visited();
+        return ret;
+    }
+
     um.strand==1? cout << "\t[[" << de->getID() << "+" << "]]" << endl : cout << "\t[[" << de->getID() << "-" << "]]" << endl;
 
     if (whereToGo(um, src)==GO_BACKWARD){
@@ -99,11 +110,7 @@ bool ExtendedCDBG::BFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
 
             // NOTE: case order matters atm!
 
-            if (dist>=BFS_MAX_DIST && de_pre->is_not_visited()){
-                cout << "\t[ 1] case exceeds max distance here at ID " << de->getID() << endl;
-                break;
-            }
-            else if (predecessor==src){
+            if (predecessor==src){
                 cout << "\t[ 2] small-loop detected here at ID " << de->getID() << endl;
                 continue;
             }
@@ -111,20 +118,18 @@ bool ExtendedCDBG::BFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
                 cout << "\t[ 3] self-loop detected here at ID " << de->getID() << endl;
                 continue;
             }
-            /* NOTE: What is called backward here, can still be a forward traversal! See whereToGo() documentation. */
-            else if (dist<BFS_MAX_DIST && de_pre->is_not_visited()){
-                cout << "\t[ 4] I am at " << de->getID() << " and will go backward to " << de_pre->getID() << endl;
-                de->set_visited();
-                ret = BFS_Direction_Recursion(predecessor, um, dist);
-                cout << "\tI jumped back back to ID " << de->getID() << endl;
-                continue;
-            }
             else if (de_pre->is_visited()){
-                cout << "\t[ 5] small bubble detected ending at ID " << de_pre->getID() << endl;
-                de->set_visited();
-                // NOTE: DON'T mark sink! In rare cases multiple bubbles might end up in same sink.
+                cout << "\t[ 4] small bubble detected ending at ID " << de_pre->getID() << endl;
                 // TODO: trigger traceack
                 return 0;
+            }
+            /* NOTE: What is called backward here, can still be a forward traversal! See whereToGo() documentation. */
+            else if (de_pre->is_not_visited()){
+                cout << "\t[ 5] I am at " << de->getID() << " and will go backward to " << de_pre->getID() << endl;
+                de->set_visited();
+                ret = BFS_Direction_Recursion(predecessor, um, dist);
+                cout << "\tI jumped back to ID " << de->getID() << endl;
+                continue;
             }
             else{
                 cout << "\t[ X] undefined case detected here at ID " << de->getID() << endl;
@@ -138,11 +143,7 @@ bool ExtendedCDBG::BFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
 
             // NOTE: case order matters atm!
 
-            if (dist>=BFS_MAX_DIST && de_suc->is_not_visited()){
-                cout << "\t[ 6] case exceeds max distance here at ID " << de->getID() << endl;
-                break;
-            }
-            else if (successor==src){
+            if (successor==src){
                 cout << "\t[ 7] small-loop detected here at ID " << de->getID() << endl;
                 continue;
             }
@@ -150,19 +151,17 @@ bool ExtendedCDBG::BFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
                 cout << "\t[ 8] self-loop detected here at ID " << de->getID() << endl;
                 continue;
             }
-            else if (dist<BFS_MAX_DIST && de_suc->is_not_visited()){
-                cout << "\t[ 9] I am at " << de->getID() << " and will go forward to " << de_suc->getID() << endl;
-                de->set_visited();
-                ret = BFS_Direction_Recursion(successor, um, dist);
-                cout << "\tI jumped back back to ID " << de->getID() << endl;
-                continue;
-            }
             else if (de_suc->is_visited()){
-                cout << "\t[10] small bubble detected ending at ID " << de_suc->getID() << endl;
-                de->set_visited();
-                // NOTE: DON'T mark sink! In rare cases multiple bubbles might end up in same sink.
+                cout << "\t[ 9] small bubble detected ending at ID " << de_suc->getID() << endl;
                 // TODO: trigger traceack
                 return 0;
+            }
+            else if (de_suc->is_not_visited()){
+                cout << "\t[10] I am at " << de->getID() << " and will go forward to " << de_suc->getID() << endl;
+                de->set_visited();
+                ret = BFS_Direction_Recursion(successor, um, dist);
+                cout << "\tI jumped back to ID " << de->getID() << endl;
+                continue;
             }
             else{
                 cout << "\t[ X] undefined case detected here at ID " << de->getID() << endl;
