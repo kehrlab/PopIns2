@@ -9,6 +9,7 @@
 #include "CompactedDBG_Data_extension.h"
 
 #include <cstdint>                      /* uint8_t */
+#include <seqan/seq_io.h>
 
 #include "../../prettyprint/prettyprint.h"      // delete for release
 
@@ -40,6 +41,8 @@ struct ExtendedCDBG : public CompactedDBG<DataExtension> {
 
         void init_ids();
 
+        bool annotate_kmer_coverage(const vector<string> &sample_fastx_names);
+
         bool small_bubble_removal();
 
     private:
@@ -55,6 +58,8 @@ struct ExtendedCDBG : public CompactedDBG<DataExtension> {
 
         bool Traceback_Init(const UnitigMap<DataExtension> &src, const UnitigMap<DataExtension> &traceback_src);
         bool Traceback_Visit(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, BubblePath &path, uint8_t &nb_branchingBubblePaths);
+
+        bool delete_bubble_path(const BubblePathSet &bps, const uint8_t nb_branchingBubblePaths);
 
         const static uint8_t GO_FORWARD = 0x0;
         const static uint8_t GO_BACKWARD = 0x1;

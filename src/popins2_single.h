@@ -54,6 +54,12 @@ int popins2_single(int argc, char const *argv[]){
     // TEST start
     xg.init_ids();
 
+    xg.annotate_kmer_coverage(cdbg_build_opt.filename_in);
+    for (auto um : xg){
+        DataExtension* de = um.getData();
+        cout << de->getID() << ": "; prettyprint::print(de->kmer_cov); cout << endl;
+    }
+
     xg.small_bubble_removal();
 
     // TEST end

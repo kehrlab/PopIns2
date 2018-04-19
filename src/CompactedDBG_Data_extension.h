@@ -51,6 +51,10 @@ class DataExtension : public CDBG_Data_t<DataExtension> {
         uint8_t b;  // value of traversal status
 
         unsigned int id;
+
+    public:
+
+        std::vector<uint16_t> kmer_cov;
 };
 
 

@@ -116,7 +116,7 @@ bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
         for (auto &predecessor : um.getPredecessors()){
             DataExtension* de_pre = predecessor.getData();
 
-            // NOTE: case order matters atm!
+            // case order matters here
 
             if (predecessor==src){
                 cout << "\t[ 2] small-loop detected here at ID " << de->getID() << endl;
@@ -131,7 +131,7 @@ bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
                 de->set_visited();
                 return Traceback_Init(um, predecessor);
             }
-            /* NOTE: What is called backward here, can still be a forward traversal! See whereToGo() documentation. */
+            /* What is called backward here, can still be a forward traversal! See whereToGo() documentation. */
             else if (de_pre->is_not_visited()){
                 cout << "\t[ 5] I am at " << de->getID() << " and will go backward to " << de_pre->getID() << endl;
                 de->set_visited();
@@ -149,7 +149,7 @@ bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
         for (auto &successor : um.getSuccessors()){
             DataExtension* de_suc = successor.getData();
 
-            // NOTE: case order matters atm!
+            // case order matters here
 
             if (successor==src){
                 cout << "\t[ 7] small-loop detected here at ID " << de->getID() << endl;
@@ -317,9 +317,85 @@ bool ExtendedCDBG::Traceback_Visit(const UnitigMap<DataExtension> &um, const Uni
 }
 
 
+/*!
+ * \fn          bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_names)
+ * \brief       Reads the input files again to annotate a coverage per kmer
+ * \return      bool; 0 for success
+ */
+bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_names){
+    // TODO: Can potentially be improved with a specialized library + compression
+
+    // Init coverage vector in all unitigs
+    for (auto &um : *this){
+        DataExtension* de = um.getData();
+        size_t v_len = um.size - (this->getK() - 1);
+
+        de->kmer_cov.resize(v_len);
+    }
+
+    // reading one source file at a time
+    std::vector<string>::const_iterator itFile = sample_fastx_names.cbegin();
+    while (itFile != sample_fastx_names.cend()){
+
+        seqan::CharString seqFileName = seqan::toCString(*itFile);
+        seqan::SeqFileIn seqFileIn;
+
+        if (!seqan::open(seqFileIn, seqan::toCString(seqFileName))){
+            // if file could not be found, retry with "./" directory prefix
+            seqan::CharString pref = "./";
+            seqan::append(pref, seqFileName);
+            if (!seqan::open(seqFileIn, seqan::toCString(pref))){
+                std::cerr << "ERROR: Could not open the file.\n";
+                return 1;
+            }
+        }
+
+        seqan::StringSet<seqan::CharString> ids;
+        seqan::StringSet<seqan::DnaString> seqs;
+        try{
+            seqan::readRecords(ids, seqs, seqFileIn);
+            // iterate reads
+            typedef seqan::Iterator<seqan::StringSet<seqan::DnaString> >::Type TStringSetIterator;
+            for (TStringSetIterator seqIter = seqan::begin(seqs); seqIter != seqan::end(seqs); ++seqIter){
+                // iterate kmers
+                size_t endpos = seqan::endPosition(*seqIter) - getK();
+                for (size_t pos = 0; pos <= endpos; ++pos){
+                    seqan::String<char, seqan::CStyle> infix = seqan::infixWithLength(*seqIter, pos, getK());
+                    Kmer kmer(infix);
+                    UnitigMap<DataExtension> um = find(kmer);
+                    DataExtension* de = um.getData();
+
+                    // increment kmer count in unitig
+                    if (um.size != 0)   // if kmer is in graph
+                        if (de->kmer_cov[um.dist] < 0xFFFF)   // if uint16_t saturation isn't reached yet
+                            de->kmer_cov[um.dist] += 1;
+
+                    // NOTE: The function finds all kmers. However, some of the following UnitigMaps have length 0.
+                    //       The only explanation to me is that the corresponding unitigs got filtered out. Since
+                    //       filter() erases unitigs and does NOT leave a mask I cannot tell 100%.
+                    //       There are all coverage vectors filled without any 'zero gaps'. This indicates that
+                    //       the coverage was successfully recovered. The minimum kmer coverage is 2, where forward
+                    //       and RC count both for the same kmer.
+                }
+            }
+        }
+        catch (exception const & e){
+            std::cout << "ERROR: " << e.what() << std::endl;
+            return 1;
+        }
+
+        seqan::close(seqFileIn);
+        itFile++;
+    }
+    return 0;
+}
 
 
+bool ExtendedCDBG::delete_bubble_path(const BubblePathSet &bps, const uint8_t nb_branchingBubblePaths){
 
+    // FIXME: correct nb_branchingBubblePaths by ignoring the traceback sink (former source)
+
+}
 
 
 
