@@ -10,11 +10,15 @@
 
 #include <cstdint>                      /* uint8_t */
 
+#include "../../prettyprint/prettyprint.h"      // delete for release
+
 
 
 // =========================
-// Global functions
+// Global
 // =========================
+typedef std::vector<std::vector<unsigned int> > BubblePathSet;
+typedef std::vector<unsigned int> BubblePath;
 
 
 // =========================
@@ -30,26 +34,32 @@ struct ExtendedCDBG : public CompactedDBG<DataExtension> {
     public:
         // constructor
         ExtendedCDBG(int kmer_length, int minimizer_length) :   CompactedDBG<DataExtension,void> (kmer_length, minimizer_length),
-                                                                BFS_MAX_DIST(kmer_length<<1),
+                                                                DFS_MAX_DIST(kmer_length<<1),
                                                                 id_init_status(false)
                                                                 {}
 
         void init_ids();
 
+        bool small_bubble_removal();
+
+    private:
+
         uint8_t whereToGo(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src) const;
+
+        uint8_t getDegree(const UnitigMap<DataExtension> &um) const;  // return overall degree (in- plus outdegree) of a unitig
 
         void clear_traversal_attributes();
 
-        bool small_bubble_removal();
-        bool BFS_Direction_Init(const UnitigMap<DataExtension> &um, const uint8_t direction);
-        bool BFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist);
+        bool DFS_Direction_Init(const UnitigMap<DataExtension> &um, const uint8_t direction);
+        bool DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist);
 
-    private:
+        bool Traceback_Init(const UnitigMap<DataExtension> &src, const UnitigMap<DataExtension> &traceback_src);
+        bool Traceback_Visit(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, BubblePath &path, uint8_t &nb_branchingBubblePaths);
 
         const static uint8_t GO_FORWARD = 0x0;
         const static uint8_t GO_BACKWARD = 0x1;
 
-        const size_t BFS_MAX_DIST;   // default: two times k-mer length
+        const size_t DFS_MAX_DIST;   // default: two times k-mer length
 
         bool id_init_status;
 

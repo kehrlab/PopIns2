@@ -55,6 +55,7 @@ int popins2_single(int argc, char const *argv[]){
     xg.init_ids();
 
     xg.small_bubble_removal();
+
     // TEST end
 
 
