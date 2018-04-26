@@ -7,84 +7,14 @@
 #define ARGUMENT_PARSING_H_
 
 
-#include <bifrost/ColoredCDBG.hpp>
+#include "util.h"
 
-#include <vector>
-#include <dirent.h>             /* read folder */
+#include <bifrost/ColoredCDBG.hpp>
 #include <seqan/arg_parse.h>
+#include <vector>
 using namespace std;
 
 
-
-// =========================
-// Utility functions
-// =========================
-
-void printTimeStatus(const char * message){
-        // Get the current date and time.
-        char timestamp[80];
-        time_t now = time(0);
-        struct tm tstruct;
-        tstruct = *localtime(&now);
-        strftime(timestamp, sizeof(timestamp), "[popins2 %Y-%m-%d %X] ", &tstruct);
-
-        // Print time and message.
-        std::cerr << timestamp << message << std::endl;
-}
-
-
-void printTimeStatus(std::ostringstream & message){
-        std::string msg = message.str();
-        printTimeStatus(seqan::toCString(msg));
-}
-
-
-/*!
-* \fn       inline vector<string> getFilesFromDir(string &path)
-* \brief    Function returnes a vector of all files in a given folder (path)
-* \remark   Only works for UNIX so far.
-*/
-inline vector<string> getFilesFromDir(string &path){
-    vector<string> sample_fastx_names;      // all file names in --indir with full path
-    DIR *dir;
-    struct dirent *ent;
-    if ((dir = opendir(seqan::toCString(path))) != NULL){
-        // print all the files and directories within directory
-        while ((ent = readdir(dir)) != NULL){
-            std::string current_fastx = ent->d_name;
-            // exclude UNIX directory navigation links
-            if (current_fastx!="." && current_fastx!="..")
-                sample_fastx_names.push_back(path+current_fastx);
-        }
-        closedir(dir);
-    }
-    else {
-        // could not open directory
-        perror ("");
-    }
-
-    return sample_fastx_names;
-}
-
-
-void printHelp(char const * name)
-{
-    std::cerr << "Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs" << std::endl;
-    std::cerr << "================================================================" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "\033[1mSYNOPSIS\033[0m" << std::endl;
-    std::cerr << "    \033[1m" << name << " COMMAND\033[0m [\033[4mOPTIONS\033[0m]" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "\033[1mCOMMAND\033[0m" << std::endl;
-    std::cerr << "    \033[1msingle\033[0m          Build a single sample compacted de Bruijn Graph." << std::endl;
-    std::cerr << "    \033[1mmerge\033[0m           Merge many samples into a colored compacted de Bruijn Graph." << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "\033[1mVERSION\033[0m" << std::endl;
-    std::cerr << "    " << VERSION << ", Date: " << DATE << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "Try `" << name << " COMMAND --help' for more information on each command." << std::endl;
-    std::cerr << std::endl;
-}
 
 
 // =========================
@@ -187,6 +117,26 @@ void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MergeOptions &){
 // =========================
 // Parsing functions
 // =========================
+
+void printHelp(char const * name)
+{
+    std::cerr << "Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs" << std::endl;
+    std::cerr << "================================================================" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "\033[1mSYNOPSIS\033[0m" << std::endl;
+    std::cerr << "    \033[1m" << name << " COMMAND\033[0m [\033[4mOPTIONS\033[0m]" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "\033[1mCOMMAND\033[0m" << std::endl;
+    std::cerr << "    \033[1msingle\033[0m          Build a single sample compacted de Bruijn Graph." << std::endl;
+    std::cerr << "    \033[1mmerge\033[0m           Merge many samples into a colored compacted de Bruijn Graph." << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "\033[1mVERSION\033[0m" << std::endl;
+    std::cerr << "    " << VERSION << ", Date: " << DATE << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "Try `" << name << " COMMAND --help' for more information on each command." << std::endl;
+    std::cerr << std::endl;
+}
+
 
 /*!
 * \fn       void setupParser(seqan::ArgumentParser &parser, SingleOptions &options)

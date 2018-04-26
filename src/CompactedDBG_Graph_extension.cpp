@@ -42,11 +42,11 @@ inline uint8_t ExtendedCDBG::whereToGo(const UnitigMap<DataExtension> &um, const
 
 
 /*!
- * \fn      bool ExtendedCDBG::DFS_Direction_Init(const UnitigMap<DataExtension> &um, const uint8_t direction)
+ * \fn      bool ExtendedCDBG::DFS_Direction_Init(const UnitigMap<DataExtension> &um, const uint8_t direction, const bool verbose)
  * \brief   This function initiates the recursion of the directed DFS.
  * \return  bool; 0 for success
  */
-bool ExtendedCDBG::DFS_Direction_Init(const UnitigMap<DataExtension> &um, const uint8_t direction){
+bool ExtendedCDBG::DFS_Direction_Init(const UnitigMap<DataExtension> &um, const uint8_t direction, const bool verbose){
 
     bool ret = 0;
     unsigned int dist = getK()-1;
@@ -55,19 +55,19 @@ bool ExtendedCDBG::DFS_Direction_Init(const UnitigMap<DataExtension> &um, const 
     DataExtension* de = um.getData();
     de->set_visited();
 
-    um.strand==1? cout << "[[" << de->getID() << "+" << "]]" << endl : cout << "[[" << de->getID() << "-" << "]]" << endl;
+    if (verbose) um.strand==1? cout << "[[" << de->getID() << "+" << "]]" << endl : cout << "[[" << de->getID() << "-" << "]]" << endl;
 
     if (direction==GO_BACKWARD){
         for (auto &predecessor : um.getPredecessors()){
             DataExtension* de_pre = predecessor.getData();
             if (predecessor.size < DFS_MAX_DIST){
-                cout << "\t[  ] I am at " << de->getID() << " and will go backward to " << de_pre->getID() << endl;
+                if (verbose) cout << "\t[  ] I am at " << de->getID() << " and will go backward to " << de_pre->getID() << endl;
                 /*  According to Stack Overflow [https://stackoverflow.com/questions/9021049/operator-for-a-boolean-in-c],
                 *  the rhs of |= is always evaluated. That's wanted here since I don't want to break the recursion
                 *  in new undefined cases.
                 */
-                ret |= DFS_Direction_Recursion(predecessor, um, dist);
-                cout << "\tI jumped back to ID " << de->getID() << endl;
+                ret |= DFS_Direction_Recursion(predecessor, um, dist, verbose);
+                if (verbose) cout << "\tI jumped back to ID " << de->getID() << endl;
             }
         }
     }
@@ -75,10 +75,10 @@ bool ExtendedCDBG::DFS_Direction_Init(const UnitigMap<DataExtension> &um, const 
         for (auto &successor : um.getSuccessors()){
             DataExtension* de_suc = successor.getData();
             if (successor.size < DFS_MAX_DIST){
-                cout << "\t[  ] I am at " << de->getID() << " and will go forward to " << de_suc->getID() << endl;
+                if (verbose) cout << "\t[  ] I am at " << de->getID() << " and will go forward to " << de_suc->getID() << endl;
                 /* see predecessor for equivalent explanation */
-                ret |= DFS_Direction_Recursion(successor, um, dist);
-                cout << "\tI jumped back to ID " << de->getID() << endl;
+                ret |= DFS_Direction_Recursion(successor, um, dist, verbose);
+                if (verbose) cout << "\tI jumped back to ID " << de->getID() << endl;
             }
         }
     }
@@ -92,11 +92,11 @@ bool ExtendedCDBG::DFS_Direction_Init(const UnitigMap<DataExtension> &um, const 
 
 
 /*!
- * \fn      bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist)
+ * \fn      bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist, const bool verbose)
  * \brief   This function defines the recursion of the directed DFS.
  * \return  bool; 0 for success
  */
-bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist){
+bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist, const bool verbose){
 
     bool ret = 0;
     dist += um.size-(getK()-1);
@@ -105,12 +105,12 @@ bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
     DataExtension* de = um.getData();
 
     if (dist>=DFS_MAX_DIST && de->is_not_visited()){
-        cout << "\t[ 1] case exceeds max distance here at ID " << de->getID() << endl;
+        if (verbose) cout << "\t[ 1] case exceeds max distance here at ID " << de->getID() << endl;
         de->set_visited();
         return ret;
     }
 
-    um.strand==1? cout << "\t[[" << de->getID() << "+" << "]]" << endl : cout << "\t[[" << de->getID() << "-" << "]]" << endl;
+    if (verbose) um.strand==1? cout << "\t[[" << de->getID() << "+" << "]]" << endl : cout << "\t[[" << de->getID() << "-" << "]]" << endl;
 
     if (whereToGo(um, src)==GO_BACKWARD){
         for (auto &predecessor : um.getPredecessors()){
@@ -119,28 +119,28 @@ bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
             // case order matters here
 
             if (predecessor==src){
-                cout << "\t[ 2] small-loop detected here at ID " << de->getID() << endl;
+                if (verbose) cout << "\t[ 2] small-loop detected here at ID " << de->getID() << endl;
                 continue;
             }
             else if (predecessor==um){
-                cout << "\t[ 3] self-loop detected here at ID " << de->getID() << endl;
+                if (verbose) cout << "\t[ 3] self-loop detected here at ID " << de->getID() << endl;
                 continue;
             }
             else if (de_pre->is_visited()){
-                cout << "\t[ 4] small bubble detected ending at ID " << de_pre->getID() << endl;
+                if (verbose) cout << "\t[ 4] small bubble detected ending at ID " << de_pre->getID() << endl;
                 de->set_visited();
-                return Traceback_Init(um, predecessor);
+                return Traceback_Init(um, predecessor, verbose);
             }
             /* What is called backward here, can still be a forward traversal! See whereToGo() documentation. */
             else if (de_pre->is_not_visited()){
-                cout << "\t[ 5] I am at " << de->getID() << " and will go backward to " << de_pre->getID() << endl;
+                if (verbose) cout << "\t[ 5] I am at " << de->getID() << " and will go backward to " << de_pre->getID() << endl;
                 de->set_visited();
-                ret = DFS_Direction_Recursion(predecessor, um, dist);
-                cout << "\tI jumped back to ID " << de->getID() << endl;
+                ret = DFS_Direction_Recursion(predecessor, um, dist, verbose);
+                if (verbose) cout << "\tI jumped back to ID " << de->getID() << endl;
                 continue;
             }
             else{
-                cout << "\t[ X] undefined case detected here at ID " << de->getID() << endl;
+                if (verbose) cout << "\t[ X] undefined case detected here at ID " << de->getID() << endl;
                 return 1;
             }
         }
@@ -152,27 +152,27 @@ bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
             // case order matters here
 
             if (successor==src){
-                cout << "\t[ 7] small-loop detected here at ID " << de->getID() << endl;
+                if (verbose) cout << "\t[ 7] small-loop detected here at ID " << de->getID() << endl;
                 continue;
             }
             else if (successor==um){
-                cout << "\t[ 8] self-loop detected here at ID " << de->getID() << endl;
+                if (verbose) cout << "\t[ 8] self-loop detected here at ID " << de->getID() << endl;
                 continue;
             }
             else if (de_suc->is_visited()){
-                cout << "\t[ 9] small bubble detected ending at ID " << de_suc->getID() << endl;
+                if (verbose) cout << "\t[ 9] small bubble detected ending at ID " << de_suc->getID() << endl;
                 de->set_visited();
-                return Traceback_Init(um, successor);
+                return Traceback_Init(um, successor, verbose);
             }
             else if (de_suc->is_not_visited()){
-                cout << "\t[10] I am at " << de->getID() << " and will go forward to " << de_suc->getID() << endl;
+                if (verbose) cout << "\t[10] I am at " << de->getID() << " and will go forward to " << de_suc->getID() << endl;
                 de->set_visited();
-                ret = DFS_Direction_Recursion(successor, um, dist);
-                cout << "\tI jumped back to ID " << de->getID() << endl;
+                ret = DFS_Direction_Recursion(successor, um, dist, verbose);
+                if (verbose) cout << "\tI jumped back to ID " << de->getID() << endl;
                 continue;
             }
             else{
-                cout << "\t[ X] undefined case detected here at ID " << de->getID() << endl;
+                if (verbose) cout << "\t[ X] undefined case detected here at ID " << de->getID() << endl;
                 return 1;
             }
         }
@@ -184,11 +184,11 @@ bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
 
 
 /*!
- * \fn      bool ExtendedCDBG::small_bubble_removal()
+ * \fn      bool ExtendedCDBG::small_bubble_removal(const bool verbose)
  * \brief   This function removes small bubbles (up to length 2k-1) from the graph.
  * \return  bool; 0 for success
  */
-bool ExtendedCDBG::small_bubble_removal(){
+bool ExtendedCDBG::small_bubble_removal(const bool verbose){
     cout << "[PROGRESS] Running CDBG small bubble removal..." << endl;
 
     if (!id_init_status){
@@ -199,13 +199,16 @@ bool ExtendedCDBG::small_bubble_removal(){
     bool ret = 0;
 
     for (auto &um : *this){
-        ret |= DFS_Direction_Init(um, GO_BACKWARD);     // |= keeps evaluating rhs, || don't
+        ret |= DFS_Direction_Init(um, GO_BACKWARD, verbose);     // |= keeps evaluating rhs, || don't
         clear_traversal_attributes();
     }
     for (auto &um : *this){
-        ret |= DFS_Direction_Init(um, GO_FORWARD);
+        ret |= DFS_Direction_Init(um, GO_FORWARD, verbose);
         clear_traversal_attributes();
     }
+
+    remove_remove_candidates(verbose);
+    remove_candidates.clear();
 
     return ret;
 }
@@ -224,13 +227,13 @@ inline void ExtendedCDBG::clear_traversal_attributes(){
 
 
 /*!
- * \fn      bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &current_um, const UnitigMap<DataExtension> &traceback_src)
+ * \fn      bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &current_um, const UnitigMap<DataExtension> &traceback_src, const bool verbose)
  * \brief   This functions initiates a DFS-like traversal to traceback paths in a small bubble found by the directed DFS.
  * \param   traceback_src is the sink of the bubble search
  * \param   src is the unitig from where the bubble property got discovered (direct predecessor of traceback_src).
  * \return  bool; 0 for success
  */
-bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &src, const UnitigMap<DataExtension> &traceback_src){
+bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &src, const UnitigMap<DataExtension> &traceback_src, const bool verbose){
     bool ret = 0;
 
     BubblePathSet bubblePaths;
@@ -266,14 +269,15 @@ bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &src, const Uni
     }
 
     if (ret){
-        cout << "\tWARNING: A loop occurred during traceback. Algorithm might got confused with directionality." << endl;
+        if (verbose) cout << "\tWARNING: A loop occurred during traceback. Algorithm might got confused with directionality." << endl;
         ret = 0;
     }
     else{
-        cout << "\t"; prettyprint::print(bubblePaths);
+        if (verbose) cout << "\t"; if (verbose) prettyprint::print(bubblePaths);
+
+        ret |= mark_remove_candidates(bubblePaths, nb_branchingBubblePaths, verbose);
     }
 
-    // TODO: delete a path according to rules
 
     return ret;
 }
@@ -391,13 +395,108 @@ bool ExtendedCDBG::annotate_kmer_coverage(const vector<string> &sample_fastx_nam
 }
 
 
-bool ExtendedCDBG::delete_bubble_path(const BubblePathSet &bps, const uint8_t nb_branchingBubblePaths){
+inline UnitigMap<DataExtension,void,true> ExtendedCDBG::findUnitigByID(const unsigned int id) const{
+    for (auto &um : *this){
+        const DataExtension* de = um.getData();
 
-    // FIXME: correct nb_branchingBubblePaths by ignoring the traceback sink (former source)
+        if (de->getID() == id)
+            return um;
+    }
 
+    // catch error: return empty UnitigMap
+    return UnitigMap<DataExtension,void,true>();
 }
 
 
+
+/*!
+ * \fn          bool ExtendedCDBG::mark_remove_candidates(const BubblePathSet &bps, const uint8_t nb_branchingBubblePaths, const bool verbose)
+ * \brief       This function actually deletes the weaker bubble path. Weaker in this case is defined by the kmer
+ *              coverage. This function also has to be aware of the branching structure of each path.
+ * \return      bool; 0 for success
+ */
+inline bool ExtendedCDBG::mark_remove_candidates(BubblePathSet &bps, uint8_t nb_branchingBubblePaths, const bool verbose){
+
+    // -----------------
+    // | sanity checks |
+    // -----------------
+    if (bps.size() != 2) return 1;      // only two paths per bubble
+    if (bps[0].empty() || bps[1].empty()){       // it probably means we have an indel in between a repeat. It's not an error, we just don't want to mark anything for deletion
+        if (verbose) cout << "At least one bubble path is empty." << endl;
+        return 0;
+    }
+    if (bps[0].back() != bps[1].back()) return 1;
+    if (bps[0].back() == bps[1].back()){    // if traceback sink (former DFS source) is same per bubble path, trim the paths by their sink and correct nb_branchingBubblePaths
+        unsigned int dfs_src = bps[0].back();
+        bps[0].pop_back();                      // exclude sink
+        bps[1].pop_back();                      // exclude sink
+        for (auto &um : *this){
+            DataExtension* de = um.getData();
+            if (de->getID()==dfs_src){
+                if (getDegree(um) > 2) nb_branchingBubblePaths-=2;      // adjust the amount of branching paths, if the sink was branching
+            }
+        }
+    }
+
+    if (verbose) cout << (unsigned int)nb_branchingBubblePaths << endl;
+
+    // -------------
+    // |  Main     |
+    // -------------
+    if (nb_branchingBubblePaths == 0){
+        const unsigned int id_0 = bps[0][0];     // take first path, since bubble is not branching there can only be one element (unitig) in the path
+        const unsigned int id_1 = bps[1][0];     // take second path, since bubble is not branching there can only be one element (unitig) in the path
+
+        const UnitigMap<DataExtension, void, true> um0 = findUnitigByID(id_0);
+        const UnitigMap<DataExtension, void, true> um1 = findUnitigByID(id_1);
+
+        const DataExtension* de0;
+        const DataExtension* de1;
+
+        if (!um0.isEmpty){de0 = um0.getData();} else{cerr << "ERROR: Unitig was not found!" << endl; return 1;}
+        if (!um1.isEmpty){de1 = um1.getData();} else{cerr << "ERROR: Unitig was not found!" << endl; return 1;}
+
+        const float median0 = median(de0->kmer_cov);
+        const float median1 = median(de1->kmer_cov);
+
+        // mark deletion candidate unitig with the weaker kmer coverage
+        if (median1 >= median0) {
+            if (verbose) cout << "Marking for deletion ID " << id_0 << endl;
+            remove_candidates.insert(id_0);
+        }
+        else{
+            if (verbose) cout << "Marking for deletion ID " << id_1 << endl;
+            remove_candidates.insert(id_1);
+        }
+    }
+
+    // TODO: if branching==1: case1: branching is high cov, case2: non-branching is high cov
+    if (nb_branchingBubblePaths == 1)
+        if (verbose) cout << "Found a bubble with (1) branching path. Edit case here!" << endl;
+
+    // TODO: if branching>=2
+
+    return 0;
+}
+
+
+bool ExtendedCDBG::remove_remove_candidates(const bool verbose){
+
+    if (verbose) prettyprint::print(remove_candidates);
+
+    for (const unsigned int &id : remove_candidates){
+        for (auto &um : *this){
+            DataExtension* de = um.getData();
+            if (de->getID() == id){
+                remove(um, true);
+                if (verbose) cout << "I DELETED ID " << de->getID() << endl;
+                break;
+            }
+        }
+    }
+
+    return 0;
+}
 
 
 

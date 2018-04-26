@@ -7,8 +7,10 @@
 #define COMPACTED_DBG_GRAPH_EXTENSION_
 
 #include "CompactedDBG_Data_extension.h"
+#include "util.h"                       // my utility functions headerfile
 
 #include <cstdint>                      /* uint8_t */
+#include <unordered_set>
 #include <seqan/seq_io.h>
 
 #include "../../prettyprint/prettyprint.h"      // delete for release
@@ -43,7 +45,7 @@ struct ExtendedCDBG : public CompactedDBG<DataExtension> {
 
         bool annotate_kmer_coverage(const vector<string> &sample_fastx_names);
 
-        bool small_bubble_removal();
+        bool small_bubble_removal(const bool verbose = false);
 
     private:
 
@@ -51,15 +53,18 @@ struct ExtendedCDBG : public CompactedDBG<DataExtension> {
 
         uint8_t getDegree(const UnitigMap<DataExtension> &um) const;  // return overall degree (in- plus outdegree) of a unitig
 
+        UnitigMap<DataExtension, void, true> findUnitigByID(const unsigned int id) const;
+
         void clear_traversal_attributes();
 
-        bool DFS_Direction_Init(const UnitigMap<DataExtension> &um, const uint8_t direction);
-        bool DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist);
+        bool DFS_Direction_Init(const UnitigMap<DataExtension> &um, const uint8_t direction, const bool verbose = false);
+        bool DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist, const bool verbose = false);
 
-        bool Traceback_Init(const UnitigMap<DataExtension> &src, const UnitigMap<DataExtension> &traceback_src);
+        bool Traceback_Init(const UnitigMap<DataExtension> &src, const UnitigMap<DataExtension> &traceback_src, const bool verbose = false);
         bool Traceback_Visit(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, BubblePath &path, uint8_t &nb_branchingBubblePaths);
 
-        bool delete_bubble_path(const BubblePathSet &bps, const uint8_t nb_branchingBubblePaths);
+        bool mark_remove_candidates(BubblePathSet &bps, uint8_t nb_branchingBubblePaths, const bool verbose = false);
+        bool remove_remove_candidates(const bool verbose = false);
 
         const static uint8_t GO_FORWARD = 0x0;
         const static uint8_t GO_BACKWARD = 0x1;
@@ -67,6 +72,8 @@ struct ExtendedCDBG : public CompactedDBG<DataExtension> {
         const size_t DFS_MAX_DIST;   // default: two times k-mer length
 
         bool id_init_status;
+
+        std::unordered_set<unsigned int> remove_candidates;    // vector to temporarily store IDs of unitigs that will be deleted later
 
 };
 
