@@ -10,7 +10,7 @@ void DataExtension::join(const UnitigMap<DataExtension>& um_dest, const UnitigMa
 
     DataExtension* de_dest = um_dest.getData();
 
-    de_dest->set_not_seen_visited(); // Set the unitig to "not visited"
+    de_dest->set_not_seen_visited(); // Set the unitig to "not visited" // not needed at removal but at graph build
 
     DataExtension* de_src = um_src.getData();
 
@@ -31,8 +31,8 @@ void DataExtension::sub(DataExtension* data_dest, const UnitigMap<DataExtension>
 
     data_dest->set_not_seen_visited();
 
-    // WARNING: handle is missing for IDs! Not sure yet if needed
-    cout << "IS THIS EVER EXECUTED!?" << endl;
+    // WARNING: handle is missing for IDs! Edit here if needed!
+    //cout << "IS THIS EVER EXECUTED!?" << endl;
 }
 
 

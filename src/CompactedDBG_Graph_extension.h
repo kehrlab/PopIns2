@@ -47,6 +47,8 @@ struct ExtendedCDBG : public CompactedDBG<DataExtension> {
 
         bool small_bubble_removal(const bool verbose = false);
 
+        bool id2csv(const std::string &file_name);
+
     private:
 
         uint8_t whereToGo(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src) const;

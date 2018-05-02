@@ -499,6 +499,35 @@ bool ExtendedCDBG::remove_remove_candidates(const bool verbose){
 }
 
 
+bool ExtendedCDBG::id2csv(const std::string &file_name){
+
+    std::ofstream myfile;
+    myfile.open(file_name+".id.csv");
+    myfile << "iterator,ID\n";
+
+    unsigned int count = 1;
+
+    for (auto &um: *this){
+        DataExtension* de = um.getData();
+        unsigned int id = de->getID();
+
+        myfile << count << "," << id << "\n";
+
+        count++;
+    }
+
+    myfile.close();
+
+    return 0;
+}
+
+
+
+
+
+
+
+
 
 
 

@@ -50,27 +50,28 @@ int popins2_single(int argc, char const *argv[]){
     if (cdbg_build_opt.verbose)
         cout << "[DEBUG] The CDBG has " << xg.size() << " unitigs.\n" << endl;
 
-    // xg.write("pre_"+cdbg_build_opt.prefixFilenameOut, cdbg_build_opt.nb_threads, cdbg_build_opt.outputGFA, cdbg_build_opt.verbose);
+    xg.write("pre_"+cdbg_build_opt.prefixFilenameOut, cdbg_build_opt.nb_threads, cdbg_build_opt.outputGFA, cdbg_build_opt.verbose);
 
     // TEST start
     xg.init_ids();
 
     xg.annotate_kmer_coverage(cdbg_build_opt.filename_in);
 
-    /* // PRINT kmer cov
+    /*
+    // PRINT kmer cov
     for (auto um : xg){
         DataExtension* de = um.getData();
         cout << de->getID() << ": "; prettyprint::print(de->kmer_cov); cout << endl;
     }
     */
 
-    // xg.small_bubble_removal(cdbg_build_opt.verbose); // FIXME: causes segm. fault ATM
+    xg.small_bubble_removal(cdbg_build_opt.verbose);
 
     // TEST end
 
     cout << "[PROGRESS] Writing CDBG..." << endl;
     xg.write(cdbg_build_opt.prefixFilenameOut, cdbg_build_opt.nb_threads, cdbg_build_opt.outputGFA, cdbg_build_opt.verbose);
-
+    xg.id2csv(cdbg_build_opt.prefixFilenameOut);    // TODO: make this an cmd option
 
 
     return 0;
