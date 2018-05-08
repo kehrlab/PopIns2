@@ -59,8 +59,8 @@ void getOptionValues(SingleOptions &options, seqan::ArgumentParser &parser){
 
     // Setup graph object
     if (seqan::isSet(parser, "verbose")) seqan::getOptionValue(options.cdbg_build_opt->verbose, parser, "verbose");
-    if (seqan::isSet(parser, "clip-tips")) seqan::getOptionValue(options.cdbg_build_opt->verbose, parser, "clip-tips");
-    if (seqan::isSet(parser, "del-isolated")) seqan::getOptionValue(options.cdbg_build_opt->verbose, parser, "del-isolated");
+    if (seqan::isSet(parser, "clip-tips")) seqan::getOptionValue(options.cdbg_build_opt->clipTips, parser, "clip-tips");
+    if (seqan::isSet(parser, "del-isolated")) seqan::getOptionValue(options.cdbg_build_opt->deleteIsolated, parser, "del-isolated");
     if (seqan::isSet(parser, "output-file-prefix")) seqan::getOptionValue(options.cdbg_build_opt->prefixFilenameOut, parser, "output-file-prefix");
     if (seqan::isSet(parser, "unique-kmers")) seqan::getOptionValue(options.cdbg_build_opt->nb_unique_kmers, parser, "unique-kmers");
     if (seqan::isSet(parser, "non-unique-kmers")) seqan::getOptionValue(options.cdbg_build_opt->nb_non_unique_kmers, parser, "non-unique-kmers");
