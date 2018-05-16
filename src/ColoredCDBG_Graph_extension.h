@@ -82,4 +82,8 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
 
 
+
+
+
+
 #endif /*COLORED_CDBG_GRAPH_EXTENSION_*/

@@ -46,11 +46,11 @@ int popins2_single(int argc, char const *argv[]){
     cout << "[PROGRESS] Building CDBG..." << endl;
     xg.build(cdbg_build_opt);
     cout << "[PROGRESS] Simplifying CDBG..." << endl;
+    //cout << xg.size() << endl;
     xg.simplify(cdbg_build_opt.deleteIsolated, cdbg_build_opt.clipTips, cdbg_build_opt.verbose);
-    if (cdbg_build_opt.verbose)
-        cout << "[DEBUG] The CDBG has " << xg.size() << " unitigs.\n" << endl;
+    //cout << xg.size() << endl;
 
-    xg.write("pre_"+cdbg_build_opt.prefixFilenameOut, cdbg_build_opt.nb_threads, cdbg_build_opt.outputGFA, cdbg_build_opt.verbose);
+    //xg.write("pre_"+cdbg_build_opt.prefixFilenameOut, cdbg_build_opt.nb_threads, cdbg_build_opt.outputGFA, cdbg_build_opt.verbose);
 
     // TEST start
     xg.init_ids();
@@ -66,12 +66,14 @@ int popins2_single(int argc, char const *argv[]){
     */
 
     xg.small_bubble_removal(cdbg_build_opt.verbose);
+    //cout << xg.size() << endl;
 
     // TEST end
 
     cout << "[PROGRESS] Writing CDBG..." << endl;
     xg.write(cdbg_build_opt.prefixFilenameOut, cdbg_build_opt.nb_threads, cdbg_build_opt.outputGFA, cdbg_build_opt.verbose);
-    xg.id2csv(cdbg_build_opt.prefixFilenameOut);    // TODO: make this an cmd option
+
+    //xg.id2csv("post_"+cdbg_build_opt.prefixFilenameOut);    // TODO: make this an cmd option
 
 
     return 0;

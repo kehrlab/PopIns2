@@ -20,6 +20,7 @@
 #include <cstdint>                      /* uint8_t */
 
 
+
 static const uint8_t bitmask_encoder_successor[256] = {
   0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
   0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000,
@@ -93,6 +94,8 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<Uniti
          */
         std::vector<uint8_t> neighborPairs;
 
+        //std::string rgbCode;
+
     public:
 
         std::vector<unsigned short> kmer_coverage;
@@ -136,7 +139,10 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<Uniti
 // Global functions
 // =========================
 uint8_t setNeighborPairFromBases(const uint8_t predecessor, const uint8_t successor);
+
 std::pair<uint8_t, uint8_t> getBasesFromNeighborPair(const uint8_t neighborPair);
+
+
 
 
 

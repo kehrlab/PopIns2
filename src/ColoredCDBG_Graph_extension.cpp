@@ -9,7 +9,11 @@
 
 
 // default constructor
-ExtendedCCDBG::ExtendedCCDBG(int kmer_length, int minimizer_length) : ColoredCDBG<UnitigExtension> (kmer_length, minimizer_length), init_status(false), isKmerCovInit(false), dfs_time(0), dfs_passed(false) {
+ExtendedCCDBG::ExtendedCCDBG(int kmer_length, int minimizer_length) :   ColoredCDBG<UnitigExtension> (kmer_length, minimizer_length),
+                                                                        init_status(false),
+                                                                        isKmerCovInit(false),
+                                                                        dfs_time(0),
+                                                                        dfs_passed(false) {
     /* 1) IDs are not initiated at construction time (see init_ids())
      * 2) The UnionFind vector will be empty an construction time, will be resized at use.
      * 3) kmer_coverage vector will be empty an construction time, will be resized at use.
@@ -693,12 +697,6 @@ inline void ExtendedCCDBG::clear_path_search_attributes(){
         ue->dfs_finishtime = 0;
     }
 }
-
-
-
-
-
-
 
 
 

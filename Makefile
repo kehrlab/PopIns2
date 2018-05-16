@@ -25,10 +25,10 @@ CXXFLAGS += -fno-stack-protector
 CXXFLAGS += -march=native
 
 # DEBUG build
-#CXXFLAGS += -g -O0 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
+CXXFLAGS += -g -O0 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
 
 # RELEASE build
-CXXFLAGS += -O3 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=0
+#CXXFLAGS += -O3 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=0
 
 all: $(TARGET)
 
@@ -42,5 +42,5 @@ clean:
 	rm -f $(OBJS) $(TARGET)
 
 purge:
-	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors *.fasta
+	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors *.fasta *.id.csv
 
