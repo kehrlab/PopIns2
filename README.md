@@ -16,7 +16,7 @@ mkdir build
 make
 ```
 
-### Build Documentation (optional):
+### Code Documentation (optional):
 
 You can auto-build a _html_ and _LaTeX_ code documentation with doxygen by
 ```
@@ -26,11 +26,19 @@ doxygen Doxyfile
 
 ### Run:
 
-Example call:
+To build and write a compacted de Bruijn Graph all that is mandatory is a source repository of FASTX files and an output prefix:
 ```
-./popins2 single -f /path/to/input/ -o myTestout -t 4 -div
-./popins2 merge -f /path/to/input/ -F /path/to/metadata/ -o myTestout -t 4
+./popins2 single -f /path/to/input/ -o myOutfile
 ```
+However, the typical <code>popins2 single</code> call to prepare for <code>popins2 merge</code> is the 'diva' call, adding several graph option flags:
+```
+./popins2 single -f /path/to/input/ -o myOutfile -diva --threads 4 > single.log
+```
+The <code>-a</code> flag is causing the single module to output a FASTA instead of a GFA file. FASTAs of multiple single calls can then be merged into a colored compacted de Bruijn Graph (cdBG):
+```
+./popins2 merge -f /path/to/fastas/ -o myMergeOutfile --threads 4 --verbose > merge.log
+```
+The resulting cdBG is stored in GFA format and can be visualized by tools like [Bandage](https://github.com/rrwick/Bandage).
 
 Advanced options tip:
 
