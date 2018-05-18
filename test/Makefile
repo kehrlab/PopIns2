@@ -1,3 +1,4 @@
+
 CXX=g++ -std=c++14
 CC=$(CXX)
 
@@ -20,3 +21,6 @@ test_popins2.o: test_popins2.cpp $(HEADERS)
 
 clean:
 	rm -f *.o test_popins2 test_CDBG test_color_print
+
+purge:
+	rm -f *.o test_popins2 test_CDBG test_color_print *.gfa *_colors

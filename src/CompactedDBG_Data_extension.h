@@ -23,7 +23,7 @@ class DataExtension : public CDBG_Data_t<DataExtension> {
 
     public:
 
-        DataExtension() : b(NOT_VISITED_SEEN), id(0) {}
+        DataExtension() : b(NOT_VISITED), id(0) {}
 
         static void join(const UnitigMap<DataExtension>& um_dest, const UnitigMap<DataExtension>& um_src);
         static void sub(DataExtension* data_dest, const UnitigMap<DataExtension>& um_src, bool last_extraction);
@@ -33,20 +33,15 @@ class DataExtension : public CDBG_Data_t<DataExtension> {
         void setID(const unsigned id) {this->id = id;}
 
         inline void set_visited() { b = VISITED; } // Set the boolean to "visited"
-        inline void set_seen() { b = SEEN; } // Set the boolean to "seen"
-        inline void set_not_seen_visited() { b = NOT_VISITED_SEEN; } // Set the boolean to "not seen and not visited"
+        inline void set_not_visited() { b = NOT_VISITED; } // Set the boolean to "not seen and not visited"
 
         inline bool is_visited() const { return (b == VISITED); } // return if the boolean is "visited"
         inline bool is_not_visited() const { return (b != VISITED); } // return if the boolean is "not visited"
 
-        inline bool is_seen() const { return (b == SEEN); } // return if the boolean is "seen"
-        inline bool is_not_seen() const { return (b != SEEN); } // return if the boolean is "not seen"
-
     private:
 
-        const static uint8_t NOT_VISITED_SEEN = 0x0;
+        const static uint8_t NOT_VISITED = 0x0;
         const static uint8_t VISITED = 0x1;
-        const static uint8_t SEEN = 0x2;
 
         uint8_t b;  // value of traversal status
 

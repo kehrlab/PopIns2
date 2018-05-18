@@ -2,9 +2,6 @@
 
 
 
-UnitigExtension::UnitigExtension() : ID(0), entropy(-1), dfs_color('w'), dfs_ancestor(0), dfs_discovertime(0), dfs_finishtime(0) {}
-
-
 void UnitigExtension::join(const UnitigColorMap<UnitigExtension> &um_dest, const UnitigColorMap<UnitigExtension> &um_src){
     // Irrelevant at the moment.
 }

@@ -221,7 +221,7 @@ bool ExtendedCDBG::small_bubble_removal(const bool verbose){
 inline void ExtendedCDBG::clear_traversal_attributes(){
     for (auto &um : *this){
         DataExtension* de = um.getData();
-        de->set_not_seen_visited();
+        de->set_not_visited();
     }
 }
 

@@ -87,10 +87,8 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<Uniti
         float entropy;
 
         /* A neighbourPair (uint8_t) is a 8-bit int storing the predecessor in
-         * the third and fourth last bits (xxxxXX11) and the successor in the last
-         * and second last bits (xxxx11XX), where the two bits encode A, C, G, and T.
-         * The bits of the partner neighbor is always set to 11, so it is consistent
-         * with the bit operations defined for neighbor pairs.
+         * the third and fourth last bits (xxxxXXxx) and the successor in the last
+         * and second last bits (xxxxxxXX), where the two bits encode A, C, G, and T.
          */
         std::vector<uint8_t> neighborPairs;
 
@@ -98,20 +96,10 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<Uniti
 
     public:
 
-        std::vector<unsigned short> kmer_coverage;
-
-        // -----------------
-        // | DFS variables |
-        // -----------------
-        char dfs_color;
-        unsigned dfs_ancestor;
-        size_t dfs_discovertime;
-        size_t dfs_finishtime;
-
         // --------------
         // | Functions  |
         // --------------
-        UnitigExtension();   // hidden inits! (see definition)
+        UnitigExtension() : ID(0), entropy(-1) {}
 
         unsigned getID() const {return ID;}
         void setID(const unsigned id) {ID = id;}
@@ -128,9 +116,7 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<Uniti
                         const bool last_extraction);
         string serialize() const;
 
-        bool isSink() const {return dfs_finishtime-dfs_discovertime == 1 ? true : false;}
-
-        // TODO: addNeighborPair(), if I leave neighborPairs private
+        // TODO: getter /setter for neighborPairs, maybe pull global functions in here
 
 };
 
