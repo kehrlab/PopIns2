@@ -66,7 +66,7 @@ bool ExtendedCDBG::DFS_Direction_Init(const UnitigMap<DataExtension> &um, const 
                 *  the rhs of |= is always evaluated. That's wanted here since I don't want to break the recursion
                 *  in new undefined cases.
                 */
-                ret |= DFS_Direction_Recursion(predecessor, um, dist, verbose);
+                ret |= DFS_Direction_Recursion(predecessor, um, dist, um, verbose);
                 if (verbose) cout << "\tI jumped back to ID " << de->getID() << endl;
             }
         }
@@ -77,7 +77,7 @@ bool ExtendedCDBG::DFS_Direction_Init(const UnitigMap<DataExtension> &um, const 
             if (successor.size < DFS_MAX_DIST){
                 if (verbose) cout << "\t[  ] I am at " << de->getID() << " and will go forward to " << de_suc->getID() << endl;
                 /* see predecessor for equivalent explanation */
-                ret |= DFS_Direction_Recursion(successor, um, dist, verbose);
+                ret |= DFS_Direction_Recursion(successor, um, dist, um, verbose);
                 if (verbose) cout << "\tI jumped back to ID " << de->getID() << endl;
             }
         }
@@ -92,11 +92,21 @@ bool ExtendedCDBG::DFS_Direction_Init(const UnitigMap<DataExtension> &um, const 
 
 
 /*!
- * \fn      bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist, const bool verbose)
+ * \fn      bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist, const UnitigMap<DataExtension> &anchor, const bool verbose)
  * \brief   This function defines the recursion of the directed DFS.
+ * \param   um is the current UnitigMap that will be investigated in the current function call
+ * \param   src is the UnitigMap where the um came from
+ * \param   dist is a variable that keeps track whether the maximum distance is reached yet
+ * \param   anchor (derived from recursion anchor) is the source of the whole DFS. It has to be passed through the
+ *          recursion to identify larger circles, i.e. to recognise (anchor == um).
+ * \param   verbose is a flag to make the function print a lot of debug output.
  * \return  bool; 0 for success
  */
-bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist, const bool verbose){
+bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um,
+                                           const UnitigMap<DataExtension> &src,
+                                           unsigned int dist,
+                                           const UnitigMap<DataExtension> &anchor,
+                                           const bool verbose){
 
     bool ret = 0;
     dist += um.size-(getK()-1);
@@ -126,16 +136,20 @@ bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
                 if (verbose) cout << "\t[ 3] self-loop detected here at ID " << de->getID() << endl;
                 continue;
             }
+            else if (predecessor==anchor){      // not merged with [ 2] because it's a rare case and since C++ does not have native lazy evaluation I don't want to introduce many more comparisons
+                if (verbose) cout << "\t[ 4] large-loop detected here at ID " << de->getID() << endl;
+                continue;
+            }
             else if (de_pre->is_visited()){
-                if (verbose) cout << "\t[ 4] small bubble detected ending at ID " << de_pre->getID() << endl;
+                if (verbose) cout << "\t[ 5] small bubble detected ending at ID " << de_pre->getID() << endl;
                 de->set_visited();
-                return Traceback_Init(um, predecessor, verbose);
+                return Traceback_Init(um, predecessor, anchor, verbose);
             }
             /* What is called backward here, can still be a forward traversal! See whereToGo() documentation. */
             else if (de_pre->is_not_visited()){
-                if (verbose) cout << "\t[ 5] I am at " << de->getID() << " and will go backward to " << de_pre->getID() << endl;
+                if (verbose) cout << "\t[ 6] I am at " << de->getID() << " and will go backward to " << de_pre->getID() << endl;
                 de->set_visited();
-                ret = DFS_Direction_Recursion(predecessor, um, dist, verbose);
+                ret = DFS_Direction_Recursion(predecessor, um, dist, anchor, verbose);
                 if (verbose) cout << "\tI jumped back to ID " << de->getID() << endl;
                 continue;
             }
@@ -159,15 +173,19 @@ bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, c
                 if (verbose) cout << "\t[ 8] self-loop detected here at ID " << de->getID() << endl;
                 continue;
             }
+            else if (successor==anchor){      // not merged with [ 7] because it's a rare case and since C++ does not have native lazy evaluation I don't want to introduce many more comparisons
+                if (verbose) cout << "\t[ 9] large-loop detected here at ID " << de->getID() << endl;
+                continue;
+            }
             else if (de_suc->is_visited()){
-                if (verbose) cout << "\t[ 9] small bubble detected ending at ID " << de_suc->getID() << endl;
+                if (verbose) cout << "\t[10] small bubble detected ending at ID " << de_suc->getID() << endl;
                 de->set_visited();
-                return Traceback_Init(um, successor, verbose);
+                return Traceback_Init(um, successor, anchor, verbose);
             }
             else if (de_suc->is_not_visited()){
-                if (verbose) cout << "\t[10] I am at " << de->getID() << " and will go forward to " << de_suc->getID() << endl;
+                if (verbose) cout << "\t[11] I am at " << de->getID() << " and will go forward to " << de_suc->getID() << endl;
                 de->set_visited();
-                ret = DFS_Direction_Recursion(successor, um, dist, verbose);
+                ret = DFS_Direction_Recursion(successor, um, dist, anchor, verbose);
                 if (verbose) cout << "\tI jumped back to ID " << de->getID() << endl;
                 continue;
             }
@@ -233,7 +251,10 @@ inline void ExtendedCDBG::clear_traversal_attributes(){
  * \param   src is the unitig from where the bubble property got discovered (direct predecessor of traceback_src).
  * \return  bool; 0 for success
  */
-bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &src, const UnitigMap<DataExtension> &traceback_src, const bool verbose){
+bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &src,
+                                  const UnitigMap<DataExtension> &traceback_src,
+                                  const UnitigMap<DataExtension> &anchor,
+                                  const bool verbose){
     bool ret = 0;
 
     BubblePathSet bubblePaths;
@@ -247,7 +268,7 @@ bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &src, const Uni
 
             DataExtension* de_suc = successor.getData();
             if (de_suc->is_visited()){
-                ret |= Traceback_Visit(successor, traceback_src, path, nb_branchingBubblePaths);
+                ret |= Traceback_Visit(successor, traceback_src, anchor, path, nb_branchingBubblePaths);
             }
 
             bubblePaths.push_back(path);
@@ -255,12 +276,11 @@ bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &src, const Uni
         }
     }
     else{
-
         for (auto &predecessor : traceback_src.getPredecessors()){
 
             DataExtension* de_pre = predecessor.getData();
             if (de_pre->is_visited()){
-                ret |= Traceback_Visit(predecessor, traceback_src, path, nb_branchingBubblePaths);
+                ret |= Traceback_Visit(predecessor, traceback_src, anchor, path, nb_branchingBubblePaths);
             }
 
             bubblePaths.push_back(path);
@@ -273,8 +293,7 @@ bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &src, const Uni
         ret = 0;
     }
     else{
-        if (verbose) cout << "\t"; if (verbose) prettyprint::print(bubblePaths);
-
+        //if (verbose) cout << "\t"; if (verbose) prettyprint::print(bubblePaths);
         ret |= mark_remove_candidates(bubblePaths, nb_branchingBubblePaths, verbose);
     }
 
@@ -283,7 +302,11 @@ bool ExtendedCDBG::Traceback_Init(const UnitigMap<DataExtension> &src, const Uni
 }
 
 
-bool ExtendedCDBG::Traceback_Visit(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, BubblePath &path, uint8_t &nb_branchingBubblePaths){
+bool ExtendedCDBG::Traceback_Visit(const UnitigMap<DataExtension> &um,
+                                   const UnitigMap<DataExtension> &src,
+                                   const UnitigMap<DataExtension> &anchor,
+                                   BubblePath &path,
+                                   uint8_t &nb_branchingBubblePaths){
     bool ret = 0;
 
     DataExtension* de = um.getData();
@@ -294,30 +317,28 @@ bool ExtendedCDBG::Traceback_Visit(const UnitigMap<DataExtension> &um, const Uni
 
     if (whereToGo(um, src)==GO_BACKWARD) {
         for (auto &predecessor : um.getPredecessors()){
-
-            if (predecessor==src || predecessor==um)        /* TODO: traceback can't resolve small- or self-loops */
+            if (predecessor==src || predecessor==um || predecessor==anchor)     /* TODO: traceback can't resolve any type of loop (self-, small-, large-)*/
                 return 1;
 
             DataExtension* de_pre = predecessor.getData();
             if (de_pre->is_visited())
-                ret |= Traceback_Visit(predecessor, um, path, nb_branchingBubblePaths);
+                ret |= Traceback_Visit(predecessor, um, anchor, path, nb_branchingBubblePaths);
         }
 
     }
     else{
         for (auto &successor : um.getSuccessors()){
-
-            if (successor==src || successor==um)            /* TODO: traceback can't resolve small- or self-loops */
+            if (successor==src || successor==um || successor==anchor)           /* TODO: traceback can't resolve any type of loop (self-, small-, large-)*/
                 return 1;
 
             DataExtension* de_suc = successor.getData();
             if (de_suc->is_visited())
-                ret |= Traceback_Visit(successor, um, path, nb_branchingBubblePaths);
+                ret |= Traceback_Visit(successor, um, anchor, path, nb_branchingBubblePaths);
         }
 
     }
 
-    return ret;
+    return ret; // 0 for success
 }
 
 

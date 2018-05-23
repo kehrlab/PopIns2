@@ -59,11 +59,24 @@ struct ExtendedCDBG : public CompactedDBG<DataExtension> {
 
         void clear_traversal_attributes();
 
-        bool DFS_Direction_Init(const UnitigMap<DataExtension> &um, const uint8_t direction, const bool verbose = false);
-        bool DFS_Direction_Recursion(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, unsigned int dist, const bool verbose = false);
+        bool DFS_Direction_Init(const UnitigMap<DataExtension> &um,
+                                const uint8_t direction,
+                                const bool verbose = false);
+        bool DFS_Direction_Recursion(const UnitigMap<DataExtension> &um,
+                                     const UnitigMap<DataExtension> &src,
+                                     unsigned int dist,
+                                     const UnitigMap<DataExtension> &anchor,
+                                     const bool verbose = false);
 
-        bool Traceback_Init(const UnitigMap<DataExtension> &src, const UnitigMap<DataExtension> &traceback_src, const bool verbose = false);
-        bool Traceback_Visit(const UnitigMap<DataExtension> &um, const UnitigMap<DataExtension> &src, BubblePath &path, uint8_t &nb_branchingBubblePaths);
+        bool Traceback_Init(const UnitigMap<DataExtension> &src,
+                            const UnitigMap<DataExtension> &traceback_src,
+                            const UnitigMap<DataExtension> &anchor,
+                            const bool verbose = false);
+        bool Traceback_Visit(const UnitigMap<DataExtension> &um,
+                             const UnitigMap<DataExtension> &src,
+                             const UnitigMap<DataExtension> &anchor,
+                             BubblePath &path,
+                             uint8_t &nb_branchingBubblePaths);
 
         bool mark_remove_candidates(BubblePathSet &bps, uint8_t nb_branchingBubblePaths, const bool verbose = false);
         bool remove_remove_candidates(const bool verbose = false);
