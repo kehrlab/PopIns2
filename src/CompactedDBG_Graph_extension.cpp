@@ -36,7 +36,7 @@ inline uint8_t ExtendedCDBG::whereToGo(const UnitigMap<DataExtension> &um, const
     uint8_t ret = GO_BACKWARD;
     for (auto &predecessor : um.getPredecessors())
          if (predecessor == src)    /* TODO: if small-loop it will always evaluate to true */
-             ret = GO_FORWARD; 
+             ret = GO_FORWARD;
     return ret;
 }
 
@@ -207,7 +207,6 @@ bool ExtendedCDBG::DFS_Direction_Recursion(const UnitigMap<DataExtension> &um,
  * \return  bool; 0 for success
  */
 bool ExtendedCDBG::small_bubble_removal(const bool verbose){
-    cout << "[PROGRESS] Running CDBG small bubble removal..." << endl;
 
     if (!id_init_status){
         cerr << "ERROR: IDs are not initiated." << endl;
@@ -541,25 +540,3 @@ bool ExtendedCDBG::id2csv(const std::string &file_name){
 
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

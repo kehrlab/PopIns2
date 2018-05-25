@@ -33,6 +33,11 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
         seqan::UnionFind<unsigned> UF;
 
+        const static uint8_t GO_FORWARD = 0x0;
+        const static uint8_t GO_BACKWARD = 0x1;
+
+        bool DFS_CLEAN = true;
+
     public:
         ExtendedCCDBG(int kmer_length = 31, int minimizer_length = 23);      // hidden inits! (see definition)
 
@@ -45,6 +50,17 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         seqan::UnionFind<unsigned> getUF() const {return UF;}
 
         float entropy(const std::string &sequence);
+
+        bool is_DFS_clean() const {return DFS_CLEAN;}
+        void make_DFS_clean();
+
+        uint8_t whereToGo(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
+
+        bool DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const uint8_t direction, const bool verbose);
+        bool DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
+                       const UnitigColorMap<UnitigExtension> &src,
+                       const UnitigColorMap<UnitigExtension> &anchor,
+                       const bool verbose);
 
 };
 

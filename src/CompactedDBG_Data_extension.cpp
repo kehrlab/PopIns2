@@ -40,4 +40,3 @@ string DataExtension::serialize() const{
     string s = std::to_string(getID());
     return s;
 }
-

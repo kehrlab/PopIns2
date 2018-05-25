@@ -5,43 +5,103 @@
 #include <unordered_map>
 
 #include "../src/ColoredCDBG_Graph_extension.h"
-#include "../src/argument_parsing.h"
+#include "../src/CompactedDBG_Graph_extension.h"
+#include "../src/util.h"
 
+CDBG_Build_opt cdbg_opt;
+SEQAN_DEFINE_TEST(test_cdbg_opt){
 
-
-CCDBG_Build_opt graph_opt;
-SEQAN_DEFINE_TEST(init_bifrost_parameter){
-    // ---------------------------------
-    // | Initiate graph build options  |
-    // ---------------------------------
+    std::string path = "./simulated_data/S0001/";
     std::vector<std::string> infiles;
-    infiles.push_back("./unitigs/simulated_S0001.fasta");
-    graph_opt.filename_seq_in = infiles;
-    graph_opt.prefixFilenameOut = "union_test_out";
-    graph_opt.nb_threads = 4;
+    getFilesFromDir(infiles, path);
+
+    cdbg_opt.filename_in = infiles;
+    cdbg_opt.prefixFilenameOut = "SingleS0001";
+    cdbg_opt.nb_threads = 4;
+    cdbg_opt.outputGFA = true;
+    cdbg_opt.deleteIsolated = false;
+    cdbg_opt.clipTips = true;
 }
 
-ExtendedCCDBG xg(graph_opt.k, graph_opt.g);
-SEQAN_DEFINE_TEST(test_bifrost_graphfunctions){
-    // -----------------------
-    // | Test Bifrost methods  |
-    // -----------------------
-    xg.build(graph_opt);
-    SEQAN_ASSERT_EQ(xg.size(), 309u);
-    xg.mapColors(graph_opt);
-    SEQAN_ASSERT_EQ(xg.write(graph_opt.prefixFilenameOut, graph_opt.nb_threads, graph_opt.verbose), true);
+ExtendedCDBG cdbg(cdbg_opt.k, cdbg_opt.g);
+SEQAN_DEFINE_TEST(test_cdbg_build){
+
+    SEQAN_ASSERT_EQ(
+        cdbg.build(cdbg_opt),
+        true
+    );
+
+    cdbg.simplify(cdbg_opt.deleteIsolated,
+                  cdbg_opt.clipTips,
+                  cdbg_opt.verbose);
 }
 
-SEQAN_DEFINE_TEST(test_init_ids){
-    xg.init_ids();
-    SEQAN_ASSERT_EQ(xg.is_init(), true);
+SEQAN_DEFINE_TEST(test_cdbg_functions){
+
+    cdbg.init_ids();
+    SEQAN_ASSERT_EQ(
+        cdbg.annotate_kmer_coverage(cdbg_opt.filename_in),
+        0
+    );
+
+    cdbg.small_bubble_removal();
+    SEQAN_ASSERT_EQ(
+        cdbg.write(cdbg_opt.prefixFilenameOut, cdbg_opt.nb_threads, cdbg_opt.outputGFA, cdbg_opt.verbose),
+        true
+    );
 }
 
-SEQAN_DEFINE_TEST(test_connectedcomponents){
-    bool cc_build = xg.connected_components(graph_opt);
-    SEQAN_ASSERT_EQ(cc_build, true);
-    size_t nb_cc = xg.count_connected_components();
-    SEQAN_ASSERT_EQ(nb_cc, 139u);
+CCDBG_Build_opt ccdbg_opt;
+SEQAN_DEFINE_TEST(test_ccdbg_opt){
+
+    std::string path = "./merge_data/";
+    std::vector<std::string> infiles;
+    getFilesFromDir(infiles, path);
+
+    ccdbg_opt.filename_seq_in = infiles;
+    ccdbg_opt.prefixFilenameOut = "merge";
+    ccdbg_opt.nb_threads = 4;
+    ccdbg_opt.outputGFA = false;
+}
+
+ExtendedCCDBG ccdbg(ccdbg_opt.k, ccdbg_opt.g);
+SEQAN_DEFINE_TEST(test_ccdbg_build){
+
+    SEQAN_ASSERT_EQ(
+        ccdbg.build(ccdbg_opt),
+        true
+    );
+
+    SEQAN_ASSERT_EQ(
+        ccdbg.mapColors(ccdbg_opt),
+        true
+    );
+
+    SEQAN_ASSERT_EQ(
+        ccdbg.write(ccdbg_opt.prefixFilenameOut, ccdbg_opt.nb_threads, ccdbg_opt.verbose),
+        true
+    );
+}
+
+SEQAN_DEFINE_TEST(test_ccdbg_functions){
+
+    ccdbg.init_ids();
+    SEQAN_ASSERT_EQ(
+        ccdbg.is_id_init(),
+        true
+    );
+
+    bool cc_build = ccdbg.connected_components(ccdbg_opt);
+    SEQAN_ASSERT_EQ(
+        cc_build,
+        true
+    );
+
+    size_t nb_cc = ccdbg.count_connected_components();
+    SEQAN_ASSERT_EQ(
+        nb_cc,
+        238u
+    );
 }
 
 // NOTE: TEST was designed for other testfile. DO NOT RUN!
@@ -99,12 +159,13 @@ SEQAN_DEFINE_TEST(test_neighbors_and_bit_operations){
 
 SEQAN_BEGIN_TESTSUITE(test_popins2){
 
-	// call tests here
-    SEQAN_CALL_TEST(init_bifrost_parameter);
-    SEQAN_CALL_TEST(test_bifrost_graphfunctions);
-    SEQAN_CALL_TEST(test_init_ids);
-    SEQAN_CALL_TEST(test_connectedcomponents);
-    //SEQAN_CALL_TEST(test_neighbors_and_bit_operations);
+    SEQAN_CALL_TEST(test_cdbg_opt);
+    SEQAN_CALL_TEST(test_cdbg_build);
+    SEQAN_CALL_TEST(test_cdbg_functions);
+
+    SEQAN_CALL_TEST(test_ccdbg_opt);
+    SEQAN_CALL_TEST(test_ccdbg_build);
+    SEQAN_CALL_TEST(test_ccdbg_functions);
 
 }
 SEQAN_END_TESTSUITE

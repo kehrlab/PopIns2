@@ -54,8 +54,18 @@ int popins2_merge(int argc, char const *argv[]){
 
     // TEST START
 
-    //exg.init_ids();
+    exg.init_ids();
     //exg.connected_components(ccdbg_build_opt);
+
+    size_t c = 0;
+    for (auto &unitig : exg){
+        exg.DFS_Init(unitig, 0x0, ccdbg_build_opt.verbose);
+        exg.make_DFS_clean();
+        exg.DFS_Init(unitig, 0x1, ccdbg_build_opt.verbose);
+        exg.make_DFS_clean();
+        c++;
+    }
+    cout << "The graph has size " << exg.size() << " while I iterated " << c << " times." << endl;
 
     // TEST END
 

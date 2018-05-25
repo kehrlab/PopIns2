@@ -36,5 +36,5 @@ uint8_t setNeighborPairFromBases(const uint8_t predecessor, const uint8_t succes
  * \return  the predecessor and successor separated (wrapped in a std::pair)
  */
 pair<uint8_t, uint8_t> getBasesFromNeighborPair(const uint8_t neighborPair){
-    return make_pair<uint8_t, uint8_t>(neighborPair | (0b00000011), neighborPair | (0b00001100));
+    return make_pair<uint8_t, uint8_t>(neighborPair | (0x03), neighborPair | (0x0C));
 }

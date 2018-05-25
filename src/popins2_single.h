@@ -67,7 +67,7 @@ int popins2_single(int argc, char const *argv[]){
 
     // xg.write("pre_"+cdbg_build_opt.prefixFilenameOut, cdbg_build_opt.nb_threads, cdbg_build_opt.outputGFA, cdbg_build_opt.verbose);
 
-
+    cout << "[PROGRESS] Running CDBG small bubble removal..." << endl;
     xg.small_bubble_removal(cdbg_build_opt.verbose);
     //cout << xg.size() << endl;
 

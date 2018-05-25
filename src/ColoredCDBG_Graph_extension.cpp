@@ -154,6 +154,189 @@ float ExtendedCCDBG::entropy(const std::string &sequence){
 }
 
 
+void ExtendedCCDBG::make_DFS_clean(){
+    for (auto &ucm : *this){
+        DataAccessor<UnitigExtension>* da = ucm.getData();
+        UnitigExtension* ue = da->getData(ucm);
+
+        ue->set_undiscovered();
+    }
+    DFS_CLEAN = true;
+}
+
+
+
+/*!
+ * \fn      inline uint8_t ExtendedCCDBG::whereToGo(const UnitigColorMap< UnitigExtension >& um, const UnitigColorMap< UnitigExtension >& src) const
+ * \brief   This function tests the predecessors P of a unitig u. If the searched unitig src is in P, then
+ *          whereToGo() returns GO_FORWARD, denoting the traversal has to continue in the successors of u. If src is
+ *          not in P, then whereToGo() returns GO_BACKWARD, denoting the traversal has to continue in the predecessors
+ *          of u.
+ * \details NOTE: This function is a lowest-level indication where to go, independent of the unitig's orientation. If
+ *          the orientation of a unitig is rev-comp, then the result might be GO_BACKWARD while we still consider it
+ *          a forward motion with respect to the traversal.
+ * \return  DIRECTION
+ */
+inline uint8_t ExtendedCCDBG::whereToGo(const UnitigColorMap< UnitigExtension >& um, const UnitigColorMap< UnitigExtension >& src) const{
+    uint8_t ret = GO_BACKWARD;
+    for (auto &predecessor : um.getPredecessors())
+         if (predecessor == src)    /* NOTE: If traversal is within a small-loop, it will always evaluate to true. Therefore loop cases have to be catched during traversal.*/
+             ret = GO_FORWARD;
+    return ret;
+}
+
+
+/*!
+ * \fn      bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const uint8_t direction, const bool verbose)
+ * \brief   This function initiates the recursion of the directed DFS.
+ * \return  bool; 0 for success
+ */
+bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const uint8_t direction, const bool verbose){
+
+    bool ret = 0;
+
+    // get data of current unitig
+    DataAccessor<UnitigExtension>* da = ucm.getData();
+    UnitigExtension* ue = da->getData(ucm);
+
+    BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
+    ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
+
+    if (!bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors()){      /* handle singletons */
+        // TODO: output sequence of unitig
+        ue->set_visited();
+        DFS_CLEAN = false;
+    }
+    else if(bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors()){    /* handle internal nodes */
+        // NOTE: just do nothing in this case (internal node)
+    }
+    else{
+        ue->set_seen();
+        DFS_CLEAN = false;
+
+        if (direction==GO_BACKWARD){
+
+            for (auto &predecessor : bw_neighbors){
+
+                DataAccessor<UnitigExtension>* da_pre = predecessor.getData();
+                UnitigExtension* ue_pre = da_pre->getData(predecessor);
+
+                if (ue_pre->is_undiscovered()){
+
+                    if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
+
+                    ret |= DFS_Visit(predecessor, ucm, ucm, verbose);
+
+                    if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+                }
+            }
+        }
+        else if (direction==GO_FORWARD){
+
+            for (auto &successor : fw_neighbors){
+
+                DataAccessor<UnitigExtension>* da_suc = successor.getData();
+                UnitigExtension* ue_suc = da_suc->getData(successor);
+
+                if (ue_suc->is_undiscovered()){
+
+                    if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
+
+                    ret |= DFS_Visit(successor, ucm, ucm, verbose);
+
+                    if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+                }
+            }
+        }
+        else{
+            cerr << "ERROR: " << (direction) << " is not a valid direction" << endl;
+            return 1;
+        }
+    }
+
+    return ret;
+}
+
+
+/*!
+ * \fn      bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap< UnitigExtension >& ucm, const UnitigColorMap< UnitigExtension >& src, const UnitigColorMap< UnitigExtension >& anchor, const bool verbose)
+ * \brief   This function executes the recursion of the directed DFS.
+ * \return  bool; 0 for success
+ */
+bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
+                              const UnitigColorMap<UnitigExtension>& src,
+                              const UnitigColorMap<UnitigExtension>& anchor,
+                              const bool verbose){
+
+    bool ret = 0;
+
+    // mark current unitig
+    DataAccessor<UnitigExtension>* da = ucm.getData();
+    UnitigExtension* ue = da->getData(ucm);
+    ue->set_seen();
+
+    if (whereToGo(ucm, src)==GO_BACKWARD){
+
+        BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
+
+        for (auto &predecessor : bw_neighbors){
+
+            DataAccessor<UnitigExtension>* da_pre = predecessor.getData();
+            UnitigExtension* ue_pre = da_pre->getData(predecessor);
+
+            if (ue_pre->is_undiscovered()){
+
+                if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
+
+                ret = DFS_Visit(predecessor, ucm, anchor, verbose);
+
+                if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+            }
+        }
+
+        ue->set_visited();
+    }
+
+    else{
+
+        ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
+
+        for (auto &successor : fw_neighbors){
+
+            DataAccessor<UnitigExtension>* da_suc = successor.getData();
+            UnitigExtension* ue_suc = da_suc->getData(successor);
+
+            if (ue_suc->is_undiscovered()){
+
+                if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
+
+                ret = DFS_Visit(successor, ucm, anchor, verbose);
+
+                if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+            }
+        }
+
+        ue->set_visited();
+    }
+
+    return ret;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
