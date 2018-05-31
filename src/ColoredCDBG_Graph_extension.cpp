@@ -154,16 +154,26 @@ float ExtendedCCDBG::entropy(const std::string &sequence){
 }
 
 
-void ExtendedCCDBG::make_DFS_clean(){
+void ExtendedCCDBG::DFS_cleaner(){
     for (auto &ucm : *this){
         DataAccessor<UnitigExtension>* da = ucm.getData();
         UnitigExtension* ue = da->getData(ucm);
 
         ue->set_undiscovered();
     }
-    DFS_CLEAN = true;
 }
 
+
+void ExtendedCCDBG::DFS_cleaner_seen_only(){
+    for (auto &ucm : *this){
+        DataAccessor<UnitigExtension>* da = ucm.getData();
+        UnitigExtension* ue = da->getData(ucm);
+
+        // reset only internal nodes
+        if (ue->is_seen())
+            ue->set_undiscovered();
+    }
+}
 
 
 /*!
@@ -205,14 +215,14 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
     if (!bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors()){      /* handle singletons */
         // TODO: output sequence of unitig
         ue->set_visited();
-        DFS_CLEAN = false;
     }
     else if(bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors()){    /* handle internal nodes */
         // NOTE: just do nothing in this case (internal node)
     }
     else{
-        ue->set_seen();
-        DFS_CLEAN = false;
+
+        ue->set_visited();
+        if (verbose) cout << "I am setting " << ue->getID() << " to visited." << endl;
 
         if (direction==GO_BACKWARD){
 
@@ -224,6 +234,8 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
                 if (ue_pre->is_undiscovered()){
 
                     if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
+
+                    //(true == endsHaveSameColors(ucm, predecessor)) ? cout << "SAME colors" << endl : cout << " NOT same colors" << endl;    // TODO delete debug print
 
                     ret |= DFS_Visit(predecessor, ucm, ucm, verbose);
 
@@ -242,6 +254,8 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
 
                     if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
 
+                    //(true == endsHaveSameColors(ucm, successor)) ? cout << "SAME colors" << endl : cout << " NOT same colors" << endl;  // TODO delete debug print
+
                     ret |= DFS_Visit(successor, ucm, ucm, verbose);
 
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
@@ -252,6 +266,8 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
             cerr << "ERROR: " << (direction) << " is not a valid direction" << endl;
             return 1;
         }
+
+        if (verbose) cout << "I am done with " << ue->getID() << endl;
     }
 
     return ret;
@@ -270,14 +286,28 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
 
     bool ret = 0;
 
-    // mark current unitig
+    // get data of current unitig
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);
-    ue->set_seen();
 
     if (whereToGo(ucm, src)==GO_BACKWARD){
 
         BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
+
+        // if sink node
+        if (!bw_neighbors.hasPredecessors() && !ue->is_visited()){
+            if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
+
+            DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
+            UnitigExtension* ue_anchor = da_anchor->getData(anchor);
+
+            if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
+            // TODO trigger traceback and return to recursion level above
+            return ret;
+        }
+
+        ue->set_seen();
+        if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
 
         for (auto &predecessor : bw_neighbors){
 
@@ -293,13 +323,26 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
                 if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
             }
         }
-
-        ue->set_visited();
     }
 
     else{
 
         ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
+
+        // if sink node
+        if (!fw_neighbors.hasSuccessors() && !ue->is_visited()){
+            if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
+
+            DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
+            UnitigExtension* ue_anchor = da_anchor->getData(anchor);
+
+            if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
+            // TODO trigger traceback and return to recursion level above
+            return ret;
+        }
+
+        ue->set_seen();
+        if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
 
         for (auto &successor : fw_neighbors){
 
@@ -315,11 +358,54 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
                 if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
             }
         }
-
-        ue->set_visited();
     }
 
     return ret;
+}
+
+
+bool ExtendedCCDBG::endsHaveSameColors(const UnitigColorMap<UnitigExtension> &observed, const UnitigColorMap<UnitigExtension> &neighbor) const{
+
+    // reverse the return value of whereToGo since this function tells you the opposite direction of where "neighbor" was found as neighbor of observed
+    uint8_t direction = (whereToGo(observed, neighbor) == GO_FORWARD) ? GO_BACKWARD : GO_FORWARD;
+
+    size_t nb_colors = this->getNbColors();
+
+    bool same = true;
+
+    if (direction == GO_FORWARD){
+
+        // get kmers
+        const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(observed.size - static_cast<size_t>(this->getK()));
+        const const_UnitigColorMap<UnitigExtension> mapping_neighbor = neighbor.getKmerMapping(0);
+
+        // get compressed UnitigColor objects
+        const UnitigColors* uc_observed_tail = mapping_observed.getData()->getUnitigColors(mapping_observed);
+        const UnitigColors* uc_neighbor_head = mapping_neighbor.getData()->getUnitigColors(mapping_neighbor);
+
+        for (size_t color_id = 0; color_id != nb_colors; ++color_id){
+            same = uc_observed_tail->contains(mapping_observed, color_id) == uc_neighbor_head->contains(mapping_neighbor, color_id);
+            if (!same) break;
+        }
+    }
+
+    else{
+
+        // get kmers
+        const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(0);
+        const const_UnitigColorMap<UnitigExtension> mapping_neighbor = neighbor.getKmerMapping(neighbor.size - static_cast<size_t>(this->getK()));
+
+        // get compressed UnitigColor objects
+        const UnitigColors* uc_observed_head = mapping_observed.getData()->getUnitigColors(mapping_observed);
+        const UnitigColors* uc_neighbor_tail = mapping_neighbor.getData()->getUnitigColors(mapping_neighbor);
+
+        for (size_t color_id = 0; color_id != nb_colors; ++color_id){
+            same = uc_observed_head->contains(mapping_observed, color_id) == uc_neighbor_tail->contains(mapping_neighbor, color_id);
+            if (!same) break;
+        }
+    }
+
+    return same;
 }
 
 

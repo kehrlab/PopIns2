@@ -27,17 +27,6 @@ typedef std::vector<UnitigColorMap<UnitigExtension> > UnitigPath;
 */
 struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
-    private:
-
-        bool id_init_status;
-
-        seqan::UnionFind<unsigned> UF;
-
-        const static uint8_t GO_FORWARD = 0x0;
-        const static uint8_t GO_BACKWARD = 0x1;
-
-        bool DFS_CLEAN = true;
-
     public:
         ExtendedCCDBG(int kmer_length = 31, int minimizer_length = 23);      // hidden inits! (see definition)
 
@@ -49,18 +38,29 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         size_t count_connected_components();
         seqan::UnionFind<unsigned> getUF() const {return UF;}
 
-        float entropy(const std::string &sequence);
+        void DFS_cleaner();
+        void DFS_cleaner_seen_only();
+        bool DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const uint8_t direction, const bool verbose);
 
-        bool is_DFS_clean() const {return DFS_CLEAN;}
-        void make_DFS_clean();
+    private:
+
+        bool id_init_status;
+
+        seqan::UnionFind<unsigned> UF;
+
+        const static uint8_t GO_FORWARD = 0x0;
+        const static uint8_t GO_BACKWARD = 0x1;
+
+        float entropy(const std::string &sequence);
 
         uint8_t whereToGo(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
 
-        bool DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const uint8_t direction, const bool verbose);
         bool DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                        const UnitigColorMap<UnitigExtension> &src,
                        const UnitigColorMap<UnitigExtension> &anchor,
                        const bool verbose);
+
+        bool endsHaveSameColors(const UnitigColorMap<UnitigExtension> &ucm, const UnitigColorMap<UnitigExtension> &neighbor) const;
 
 };
 
