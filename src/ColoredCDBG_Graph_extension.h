@@ -40,7 +40,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
-        bool DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const uint8_t direction, const bool verbose);
+        bool DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
 
     private:
 

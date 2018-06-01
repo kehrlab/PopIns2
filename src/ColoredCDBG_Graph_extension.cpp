@@ -197,11 +197,11 @@ inline uint8_t ExtendedCCDBG::whereToGo(const UnitigColorMap< UnitigExtension >&
 
 
 /*!
- * \fn      bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const uint8_t direction, const bool verbose)
+ * \fn      bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const bool verbose)
  * \brief   This function initiates the recursion of the directed DFS.
  * \return  bool; 0 for success
  */
-bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const uint8_t direction, const bool verbose){
+bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const bool verbose){
 
     bool ret = 0;
 
@@ -220,6 +220,7 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
         // NOTE: just do nothing in this case (internal node)
     }
     else{
+        const uint8_t direction = !bw_neighbors.hasPredecessors() ? GO_FORWARD : GO_BACKWARD;
 
         ue->set_visited();
         if (verbose) cout << "I am setting " << ue->getID() << " to visited." << endl;

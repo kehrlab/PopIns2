@@ -57,16 +57,10 @@ int popins2_merge(int argc, char const *argv[]){
     exg.init_ids();
     //exg.connected_components(ccdbg_build_opt);
 
-    size_t c = 0;
     for (auto &unitig : exg){
-        exg.DFS_Init(unitig, 0x0, ccdbg_build_opt.verbose);
+        exg.DFS_Init(unitig, ccdbg_build_opt.verbose);
         exg.DFS_cleaner_seen_only();
-        exg.DFS_Init(unitig, 0x1, ccdbg_build_opt.verbose);     // FIXME: get rid of direction parameter for DFS_init and decide direction by non-empty neighbor object
-        exg.DFS_cleaner_seen_only();
-        c++;
     }
-    cout << "The graph has size " << exg.size() << " while I iterated " << c << " times." << endl;
-
     // TEST END
 
 
