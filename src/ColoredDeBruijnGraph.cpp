@@ -1,4 +1,4 @@
-#include "ColoredCDBG_Graph_extension.h"
+#include "ColoredDeBruijnGraph.h"
 
 #include <unordered_set>
 #include <unordered_map>
@@ -296,13 +296,14 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
         BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
 
         // if sink node
-        if (!bw_neighbors.hasPredecessors() && !ue->is_visited()){
+        if (!bw_neighbors.hasPredecessors() && !ue->is_visited()){      // TODO: 2nd condition necessary here?
             if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
 
             DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
             UnitigExtension* ue_anchor = da_anchor->getData(anchor);
 
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
+            // TODO set sink as visited
             // TODO trigger traceback and return to recursion level above
             return ret;
         }
@@ -331,13 +332,14 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
         ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
         // if sink node
-        if (!fw_neighbors.hasSuccessors() && !ue->is_visited()){
+        if (!fw_neighbors.hasSuccessors() && !ue->is_visited()){    // TODO: 2nd condition necessary here?
             if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
 
             DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
             UnitigExtension* ue_anchor = da_anchor->getData(anchor);
 
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
+            // TODO set sink as visited
             // TODO trigger traceback and return to recursion level above
             return ret;
         }

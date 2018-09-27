@@ -2,7 +2,6 @@
 #include <ctime>
 
 #include "argument_parsing.h"           /* seqAn argument parser */
-#include "popins2_single.h"
 #include "popins2_merge.h"
 
 using namespace std;
@@ -25,8 +24,8 @@ int main(int argc, char const *argv[]){
     }
 
     const char * command = argv[1];
-    if (strcmp(command,"single") == 0) ret = popins2_single(argc, argv);
-    else if (strcmp(command,"merge") == 0) ret = popins2_merge(argc, argv);
+    if (strcmp(command,"merge") == 0) ret = popins2_merge(argc, argv);
+  //else if (strcmp(command,"single") == 0) ret = popins2_single(argc, argv);
     else if (strcmp(command, "--help") == 0 || strcmp(command, "-h") == 0){
         printHelp(prog_name);
         return 1;

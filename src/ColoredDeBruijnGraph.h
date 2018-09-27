@@ -3,14 +3,14 @@
 * \brief   Library for a colored compacted de Bruijn Graph using unitig extension.
 *
 */
-#ifndef COLORED_CDBG_GRAPH_EXTENSION_
-#define COLORED_CDBG_GRAPH_EXTENSION_
+#ifndef COLORED_DE_BRUIJN_GRAPH_
+#define COLORED_DE_BRUIJN_GRAPH_
 
 
 #include <seqan/seq_io.h>
 #include <seqan/misc/union_find.h>
 
-#include "ColoredCDBG_Data_extension.h"
+#include "UnitigExtension.h"
 
 typedef std::vector<std::vector<UnitigColorMap<UnitigExtension> > > PathSet;
 typedef std::vector<UnitigColorMap<UnitigExtension> > UnitigPath;
@@ -75,4 +75,4 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
 
 
-#endif /*COLORED_CDBG_GRAPH_EXTENSION_*/
+#endif /*COLORED_DE_BRUIJN_GRAPH_*/

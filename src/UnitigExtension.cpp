@@ -1,22 +1,35 @@
-#include "ColoredCDBG_Data_extension.h"
+#include "UnitigExtension.h"
 
 
-
-void UnitigExtension::join(const UnitigColorMap<UnitigExtension> &um_dest, const UnitigColorMap<UnitigExtension> &um_src){
-    // Irrelevant at the moment.
+/*
+inline void UnitigExtension::clear(const UnitigColorMap<UnitigExtension> &um_dest){
+    // defaults are fine
 }
 
 
-void UnitigExtension::sub(UnitigExtension* data_dest, const UnitigColors &uc_dest, const UnitigMapBase &um_dest, const UnitigColorMap<UnitigExtension> &um_src, const bool last_extraction){
-    // Irrelevant at the moment.
+inline void UnitigExtension::concat(const UnitigColorMap< UnitigExtension >& um_dest,
+                                    const UnitigColorMap< UnitigExtension >& um_src){
+    // defaults are fine
 }
 
 
-string UnitigExtension::serialize() const{
-    string s = std::to_string(getID());
-    return s;
+inline void UnitigExtension::merge(const UnitigColorMap< UnitigExtension >& um_dest,
+                                   const const_UnitigColorMap< UnitigExtension >& um_src){
+    // defaults are fine
 }
 
+
+inline void UnitigExtension::extract(const UnitigColors* uc_dest,
+                                     const UnitigColorMap< UnitigExtension >& um_src,
+                                     const bool last_extraction){
+    // defaults are fine
+}
+
+
+inline string UnitigExtension::serialize(const const_UnitigColorMap< UnitigExtension >& um_src) const{
+    return std::to_string(getID());
+}
+*/
 
 /*!
  * \fn      uint8_t setNeighborPairFromBases(const uint8_t predecessor, const uint8_t successor)

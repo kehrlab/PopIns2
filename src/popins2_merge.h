@@ -8,7 +8,7 @@
 
 
 #include "argument_parsing.h"           /* seqAn argument parser */
-#include "ColoredCDBG_Graph_extension.h"
+#include "ColoredDeBruijnGraph.h"
 
 
 
@@ -44,9 +44,10 @@ int popins2_merge(int argc, char const *argv[]){
     // ==============================
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
     cout << "[PROGRESS] Building CCDBG..." << endl;
-    exg.build(ccdbg_build_opt);
+    exg.buildGraph(ccdbg_build_opt);
     cout << "[PROGRESS] ColorMapping CCDBG..." << endl;
-    exg.mapColors(ccdbg_build_opt);
+    exg.buildColors(ccdbg_build_opt);
+
 
     cout << "[PROGRESS] Writing CCDBG..." << endl;
     exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
