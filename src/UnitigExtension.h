@@ -3,8 +3,8 @@
 * \brief   Library for extending the functionality of the colored compacted DBG by implementing the data wrapper CCDBG_Data_t
 *
 */
-#ifndef COLORED_CDBG_DATA_EXTENSION_
-#define COLORED_CDBG_DATA_EXTENSION_
+#ifndef UNITIG_EXTENSION_
+#define UNITIG_EXTENSION_
 
 
 
@@ -79,7 +79,7 @@ static const char bitmask_decoder[16] = {
 * \details      The struct has to inherit from the CCDBG_Data_t struct and implement at least all its static functions.
 * \ref          https://github.com/pmelsted/bfgraph/blob/master/src/ColoredCDBG.hpp
 */
-struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<UnitigExtension> {
+struct UnitigExtension : public CCDBG_Data_t<UnitigExtension> {
 
     private:
         unsigned ID;
@@ -90,11 +90,12 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<Uniti
          * the third and fourth last bits (xxxxXXxx) and the successor in the last
          * and second last bits (xxxxxxXX), where the two bits encode A, C, G, and T.
          */
-        std::vector<uint8_t> neighborPairs;
+        //std::vector<uint8_t> neighborPairs;
 
         const static uint8_t UNDISCOVERED = 0x0;
         const static uint8_t SEEN = 0x1;
         const static uint8_t VISITED = 0x2;
+
         uint8_t DFS_STATUS;
 
     public:
@@ -110,15 +111,6 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<Uniti
         float getEntropy() const {return entropy;}
         void setEntropy(const float e) {entropy = e;}
 
-        static void join(const UnitigColorMap<UnitigExtension>& um_dest,
-                         const UnitigColorMap<UnitigExtension>& um_src);
-        static void sub(UnitigExtension* data_dest,
-                        const UnitigColors &uc_dest,
-                        const UnitigMapBase &um_dest,
-                        const UnitigColorMap<UnitigExtension> &um_src,
-                        const bool last_extraction);
-        string serialize() const;
-
         // TODO: getter /setter for neighborPairs, maybe pull global functions in here
 
         inline void set_undiscovered() { DFS_STATUS = UNDISCOVERED; }
@@ -129,6 +121,24 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension>, CDBG_Data_t<Uniti
         inline bool is_seen() const { return (DFS_STATUS == SEEN); }
         inline bool is_visited() const { return (DFS_STATUS == VISITED); }
 
+        // -----------------------------------
+        // | Implemented Abstract Functions  |
+        // -----------------------------------
+        /*
+        void clear(const UnitigColorMap<UnitigExtension> &um_dest);
+
+        void concat(const UnitigColorMap<UnitigExtension> &um_dest,
+                    const UnitigColorMap<UnitigExtension> &um_src);
+
+        void merge(const UnitigColorMap<UnitigExtension> &um_dest,
+                   const const_UnitigColorMap<UnitigExtension> &um_src);
+
+        void extract(const UnitigColors *uc_dest,
+                     const UnitigColorMap<UnitigExtension> &um_src,
+                     const bool last_extraction);
+
+        string serialize(const const_UnitigColorMap<UnitigExtension> &um_src) const;
+        */
 };
 
 
@@ -143,4 +153,4 @@ std::pair<uint8_t, uint8_t> getBasesFromNeighborPair(const uint8_t neighborPair)
 
 
 
-#endif /*COLORED_CDBG_DATA_EXTENSION_*/
+#endif /*UNITIG_EXTENSION_*/

@@ -10,3 +10,4 @@ test/*
 !test/test_popins2.cpp
 myTestout*
 tmp/*
+backup/
