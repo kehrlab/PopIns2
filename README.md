@@ -3,8 +3,8 @@ Population-scale detection of non-reference sequence insertions using colored de
 
 ### Requirements:
 
-- GCC (vers. 5.5.0)
-- [SeqAn](https://www.seqan.de/) (vers. 2.3.2)
+- GCC (vers. 4.9.2, 5.5.0)
+- [SeqAn](https://www.seqan.de/) (vers. 2.3.2, 2.4.0)
 - [Bifrost](https://github.com/pmelsted/bfgraph) (vers. 0.2-d479e63)
 
 ### Build:
