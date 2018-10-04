@@ -45,16 +45,19 @@ int popins2_merge(int argc, char const *argv[]){
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
     cout << "[PROGRESS] Building CCDBG..." << endl;
     exg.buildGraph(ccdbg_build_opt);
+
+    cout << "[PROGRESS] Simplifying CCDBG..." << endl;
+    exg.simplify(ccdbg_build_opt.deleteIsolated, ccdbg_build_opt.clipTips, ccdbg_build_opt.verbose);
+
     cout << "[PROGRESS] ColorMapping CCDBG..." << endl;
     exg.buildColors(ccdbg_build_opt);
-
 
     cout << "[PROGRESS] Writing CCDBG..." << endl;
     exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
 
 
     // TEST START
-
+    /*
     exg.init_ids();
     //exg.connected_components(ccdbg_build_opt);
 
@@ -62,6 +65,7 @@ int popins2_merge(int argc, char const *argv[]){
         exg.DFS_Init(unitig, ccdbg_build_opt.verbose);
         exg.DFS_cleaner_seen_only();
     }
+    */
     // TEST END
 
 
