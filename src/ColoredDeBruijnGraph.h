@@ -61,6 +61,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                        const bool verbose);
 
         bool endsHaveSameColors(const UnitigColorMap<UnitigExtension> &ucm, const UnitigColorMap<UnitigExtension> &neighbor) const;
+        bool endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed, const UnitigColorMap<UnitigExtension> &neighbor) const;
 
 };
 

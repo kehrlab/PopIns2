@@ -10,7 +10,7 @@ CXXFLAGS+=-g -O0 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
 
 all: test_popins2
 
-test_popins2:test_popins2.o ../build/ColoredCDBG_Graph_extension.o ../build/ColoredCDBG_Data_extension.o ../build/CompactedDBG_Graph_extension.o ../build/CompactedDBG_Data_extension.o
+test_popins2:test_popins2.o ../build/ColoredDeBruijnGraph.o ../build/UnitigExtension.o
 test_popins2.o: test_popins2.cpp $(HEADERS)
 
 clean:
