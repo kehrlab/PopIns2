@@ -40,6 +40,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
+
         bool DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
 
     private:
@@ -54,10 +55,10 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         float entropy(const std::string &sequence);
 
         uint8_t whereToGo(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
+        uint8_t whereFrom(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
 
         bool DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
-                       const UnitigColorMap<UnitigExtension> &src,
-                       const UnitigColorMap<UnitigExtension> &anchor,
+                       const uint8_t src_direction,
                        const bool verbose);
 
         bool endsHaveSameColors(const UnitigColorMap<UnitigExtension> &ucm, const UnitigColorMap<UnitigExtension> &neighbor) const;

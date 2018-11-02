@@ -159,7 +159,8 @@ inline void ExtendedCCDBG::DFS_cleaner(){
         DataAccessor<UnitigExtension>* da = ucm.getData();
         UnitigExtension* ue = da->getData(ucm);
 
-        ue->set_undiscovered();
+        ue->set_undiscovered_fw();
+        ue->set_undiscovered_bw();
     }
 }
 
@@ -170,8 +171,10 @@ inline void ExtendedCCDBG::DFS_cleaner_seen_only(){
         UnitigExtension* ue = da->getData(ucm);
 
         // reset only internal nodes
-        if (ue->is_seen())
-            ue->set_undiscovered();
+        if (ue->is_seen_fw())
+            ue->set_undiscovered_fw();
+        if (ue->is_seen_bw())
+            ue->set_undiscovered_bw();
     }
 }
 
@@ -197,6 +200,20 @@ inline uint8_t ExtendedCCDBG::whereToGo(const UnitigColorMap< UnitigExtension >&
 
 
 /*!
+ * \fn      inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >& um, const UnitigColorMap< UnitigExtension >& src) const
+ * \brief   Reverses the direction of whereToGo(). If the answer is "GO_BACKWARD", then 
+ *          this function indicates where to to to actually reach the source (src).
+ *          src  ----------
+ *          um          --------->
+ * \details This function can be used to detemine a successors (SUC) orientation with respect to the current unitig (CU) if src=CU and um=SUC.
+ * \return  DIRECTION
+ */
+inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >& um, const UnitigColorMap< UnitigExtension >& src) const{
+    return (whereToGo(um, src) == GO_FORWARD) ? GO_BACKWARD : GO_FORWARD;
+}
+
+
+/*!
  * \fn      bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const bool verbose)
  * \brief   This function initiates the recursion of the directed DFS.
  * \return  bool; 0 for success
@@ -213,43 +230,86 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
     ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
     if (!bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors()){      /* handle singletons */
-        ue->set_visited();
-        // TODO: output sequence of unitig
+        // no DFS states to set here
+        // TODO: write sequence of unitig; set minimum sample coverage?
     }
     else if(bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors()){    /* handle internal nodes */
         // NOTE: just do nothing in this case (internal node)
     }
     else{
         const uint8_t direction = !bw_neighbors.hasPredecessors() ? GO_FORWARD : GO_BACKWARD;
-        ue->set_seen();
-        if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
 
         if (direction==GO_BACKWARD){
+            ue->set_seen_bw();
+            if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
             for (auto &predecessor : bw_neighbors){
                 DataAccessor<UnitigExtension>* da_pre = predecessor.getData();
                 UnitigExtension* ue_pre = da_pre->getData(predecessor);
-                if (ue_pre->is_undiscovered()){
-                    if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
-                    ret |= DFS_Visit(predecessor, ucm, ucm, verbose);
-                    if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+                if (whereFrom(predecessor, ucm)==GO_BACKWARD){
+                    /*  Case 1:
+                    *           -------> SRC
+                    *   PRE <-------
+                    */ 
+                    if (ue_pre->is_undiscovered_fw()){
+                        ue_pre->set_seen_fw();
+                        if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
+                        ret |= DFS_Visit(predecessor, GO_BACKWARD, verbose);
+                        if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+                    }
+                }
+                else{   // whereFrom(predecessor, ucm)==GO_FORWARD
+                    /*  Case 2:
+                    *           -------> SRC
+                    *   PRE ------->
+                    */ 
+                    if (ue_pre->is_undiscovered_bw()){
+                        ue_pre->set_seen_bw();
+                        if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
+                        ret |= DFS_Visit(predecessor, GO_FORWARD, verbose);
+                        if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+                    }
                 }
             }
         }
 
-        else{
+        else{   // direction==GO_FORWARD
+            ue->set_seen_fw();
+            if (verbose) cout << "I am setting " << ue->getID() << " to seen (fw)." << endl;
             for (auto &successor : fw_neighbors){
                 DataAccessor<UnitigExtension>* da_suc = successor.getData();
                 UnitigExtension* ue_suc = da_suc->getData(successor);
-                if (ue_suc->is_undiscovered()){
-                    if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
-                    ret |= DFS_Visit(successor, ucm, ucm, verbose);
-                    if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+                if (whereFrom(successor, ucm)==GO_BACKWARD){
+                    /*  Case 3:
+                    *   SRC ------->
+                    *           -------> SUC
+                    */ 
+                    if (ue_suc->is_undiscovered_fw()){
+                        ue_suc->set_seen_fw();
+                        if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
+                        ret |= DFS_Visit(successor, GO_BACKWARD, verbose);
+                        if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+                    }
+                }
+                else{   // whereFrom(successor, ucm)==GO_FORWARD
+                    /*  Case 4:
+                    *   SRC ------->
+                    *           <------- SUC
+                    */ 
+                    if (ue_suc->is_undiscovered_bw()){
+                        ue_suc->set_seen_bw();
+                        if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
+                        ret |= DFS_Visit(successor, GO_FORWARD, verbose);
+                        if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+                    }
                 }
             }
         }
 
-        ue->set_visited();
-        if (verbose) cout << "I am setting " << ue->getID() << " to visited." << endl;
+        ue->set_visited_fw();
+        ue->set_visited_bw();
+        if (verbose) cout << "I am setting " << ue->getID() << " to visited (both)." << endl;
         if (verbose) cout << "I am done with " << ue->getID() << endl;
     }
 
@@ -258,13 +318,15 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
 
 
 /*!
- * \fn      bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap< UnitigExtension >& ucm, const UnitigColorMap< UnitigExtension >& src, const UnitigColorMap< UnitigExtension >& anchor, const bool verbose)
+ * \fn      bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap< UnitigExtension >& ucm, const UnitigColorMap< UnitigExtension >& src, const uint8_t src_direction, const bool verbose)
  * \brief   This function executes the recursion of the directed DFS.
+ * \param   ucm is the current node during traversal
+ * \param   src_direction is the direction you'd need to go if you wanted to go back from ucm to src. Therefore, for further traversal
+ *          you need to follow the opposite direction.
  * \return  bool; 0 for success
  */
 bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
-                              const UnitigColorMap<UnitigExtension>& src,
-                              const UnitigColorMap<UnitigExtension>& anchor,
+                              const uint8_t src_direction,
                               const bool verbose){
     bool ret = 0;
 
@@ -272,62 +334,106 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);
 
-    if (whereToGo(ucm, src)==GO_BACKWARD){
+    uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // FIXME: I guess this could be avoided if I'd pass traversal direction directly in DFS_visit
+    if (traversal_direction==GO_BACKWARD){
         BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
 
         // if sink node
-        if (!bw_neighbors.hasPredecessors() && !ue->is_visited()){
+        if (!bw_neighbors.hasPredecessors() && !ue->is_visited_bw()){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
-            DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
-            UnitigExtension* ue_anchor = da_anchor->getData(anchor);
-            ue->set_seen();
-            if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
-            if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
+            //DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
+            //UnitigExtension* ue_anchor = da_anchor->getData(anchor);
+            ue->set_seen_bw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
+            ue->set_seen_fw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
+            if (verbose) cout << "I am setting " << ue->getID() << " to seen (both)." << endl;
+            //if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
             // TODO traceback()
             return ret;
         }
 
-        ue->set_seen();
-        if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
+        ue->set_seen_bw();
+        if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
 
         // if traverse further
         for (auto &predecessor : bw_neighbors){
             DataAccessor<UnitigExtension>* da_pre = predecessor.getData();
             UnitigExtension* ue_pre = da_pre->getData(predecessor);
-            if (ue_pre->is_undiscovered()){
-                if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
-                ret = DFS_Visit(predecessor, ucm, anchor, verbose);
-                if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+            if (whereFrom(predecessor, ucm)==GO_BACKWARD){
+                /*  Case 1:
+                *           -------> SRC
+                *   PRE <-------
+                */ 
+                if (ue_pre->is_undiscovered_fw()){
+                    ue_pre->set_seen_fw();
+                    if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
+                    ret = DFS_Visit(predecessor, GO_BACKWARD, verbose);
+                    if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+                }
+            }
+            else{   
+                // whereFrom(successor, ucm)==GO_FORWARD
+                /*  Case 2:
+                *           -------> SRC
+                *   PRE ------->
+                */ 
+                if (ue_pre->is_undiscovered_bw()){
+                    ue_pre->set_seen_bw();
+                    if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
+                    ret |= DFS_Visit(predecessor, GO_FORWARD, verbose);
+                    if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+                }
             }
         }
     }
 
-    else{
+    else{   // traversal_direction==GO_FORWARD
         ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
         // if sink node
-        if (!fw_neighbors.hasSuccessors() && !ue->is_visited()){
+        if (!fw_neighbors.hasSuccessors() && !ue->is_visited_fw()){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
-            DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
-            UnitigExtension* ue_anchor = da_anchor->getData(anchor);
-            ue->set_seen();
+            //DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
+            //UnitigExtension* ue_anchor = da_anchor->getData(anchor);
+            ue->set_seen_bw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
+            ue->set_seen_fw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
             if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
-            if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
+            //if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
             // TODO traceback()
             return ret;
         }
 
-        ue->set_seen();
+        ue->set_seen_fw();
         if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
 
         // if traverse further
         for (auto &successor : fw_neighbors){
             DataAccessor<UnitigExtension>* da_suc = successor.getData();
             UnitigExtension* ue_suc = da_suc->getData(successor);
-            if (ue_suc->is_undiscovered()){
-                if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
-                ret = DFS_Visit(successor, ucm, anchor, verbose);
-                if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+            
+            if (whereFrom(successor, ucm)==GO_BACKWARD){
+                /*  Case 3:
+                *   SRC ------->
+                *           -------> SUC
+                */ 
+                if (ue_suc->is_undiscovered_fw()){
+                    ue_suc->set_seen_fw();
+                    if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
+                    ret |= DFS_Visit(successor, GO_BACKWARD, verbose);
+                    if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+                }
+            }
+            else{   // whereFrom(successor, ucm)==GO_FORWARD
+                /*  Case 4:
+                *   SRC ------->
+                *           <------- SUC
+                */ 
+                if (ue_suc->is_undiscovered_bw()){
+                    ue_suc->set_seen_bw();
+                    if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
+                    ret |= DFS_Visit(successor, GO_FORWARD, verbose);
+                    if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+                }
             }
         }
     }
@@ -337,12 +443,8 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
 
 
 inline bool ExtendedCCDBG::endsHaveSameColors(const UnitigColorMap<UnitigExtension> &observed, const UnitigColorMap<UnitigExtension> &neighbor) const{
-
-    // reverse the return value of whereToGo since this function tells you the opposite direction of where "neighbor" was found as neighbor of observed
-    uint8_t direction = (whereToGo(observed, neighbor) == GO_FORWARD) ? GO_BACKWARD : GO_FORWARD;
-
+    uint8_t direction = whereFrom(observed, neighbor);
     size_t nb_colors = this->getNbColors();
-
     bool same = true;
 
     if (direction == GO_FORWARD){
@@ -388,12 +490,8 @@ inline bool ExtendedCCDBG::endsHaveSameColors(const UnitigColorMap<UnitigExtensi
 
 
 inline bool ExtendedCCDBG::endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed, const UnitigColorMap<UnitigExtension> &neighbor) const{
-
-    // reverse the return value of whereToGo since this function tells you the opposite direction of where "neighbor" was found as neighbor of observed
-    uint8_t direction = (whereToGo(observed, neighbor) == GO_FORWARD) ? GO_BACKWARD : GO_FORWARD;
-
+    uint8_t direction = whereFrom(observed, neighbor);
     size_t nb_colors = this->getNbColors();
-
     bool same = false;
 
     if (direction == GO_FORWARD){

@@ -96,14 +96,15 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension> {
         const static uint8_t SEEN = 0x1;
         const static uint8_t VISITED = 0x2;
 
-        uint8_t DFS_STATUS;
+        uint8_t DFS_STATUS_FW;
+        uint8_t DFS_STATUS_BW;
 
     public:
 
         // --------------
         // | Functions  |
         // --------------
-        UnitigExtension() : ID(0), entropy(-1), DFS_STATUS(UNDISCOVERED) {}
+        UnitigExtension() : ID(0), entropy(-1), DFS_STATUS_FW(UNDISCOVERED), DFS_STATUS_BW(UNDISCOVERED) {}
 
         unsigned getID() const {return ID;}
         void setID(const unsigned id) {ID = id;}
@@ -113,13 +114,21 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension> {
 
         // TODO: getter /setter for neighborPairs, maybe pull global functions in here
 
-        inline void set_undiscovered() { DFS_STATUS = UNDISCOVERED; }
-        inline void set_seen() { DFS_STATUS = SEEN; }
-        inline void set_visited() { DFS_STATUS = VISITED; }
+        inline void set_undiscovered_fw() { DFS_STATUS_FW = UNDISCOVERED; }
+        inline void set_seen_fw() { DFS_STATUS_FW = SEEN; }
+        inline void set_visited_fw() { DFS_STATUS_FW = VISITED; }
 
-        inline bool is_undiscovered() const { return (DFS_STATUS == UNDISCOVERED); }
-        inline bool is_seen() const { return (DFS_STATUS == SEEN); }
-        inline bool is_visited() const { return (DFS_STATUS == VISITED); }
+        inline bool is_undiscovered_fw() const { return (DFS_STATUS_FW == UNDISCOVERED); }
+        inline bool is_seen_fw() const { return (DFS_STATUS_FW == SEEN); }
+        inline bool is_visited_fw() const { return (DFS_STATUS_FW == VISITED); }
+
+        inline void set_undiscovered_bw() { DFS_STATUS_BW = UNDISCOVERED; }
+        inline void set_seen_bw() { DFS_STATUS_BW = SEEN; }
+        inline void set_visited_bw() { DFS_STATUS_BW = VISITED; }
+
+        inline bool is_undiscovered_bw() const { return (DFS_STATUS_BW == UNDISCOVERED); }
+        inline bool is_seen_bw() const { return (DFS_STATUS_BW == SEEN); }
+        inline bool is_visited_bw() const { return (DFS_STATUS_BW == VISITED); }
 
         // -----------------------------------
         // | Implemented Abstract Functions  |
