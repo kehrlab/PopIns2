@@ -252,7 +252,7 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
                     *   PRE <-------
                     */ 
                     if (ue_pre->is_undiscovered_fw()){
-                        ue_pre->set_seen_fw();
+                        //ue_pre->set_seen_fw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
                         ret |= DFS_Visit(predecessor, GO_BACKWARD, verbose);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
@@ -264,7 +264,7 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
                     *   PRE ------->
                     */ 
                     if (ue_pre->is_undiscovered_bw()){
-                        ue_pre->set_seen_bw();
+                        //ue_pre->set_seen_bw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
                         ret |= DFS_Visit(predecessor, GO_FORWARD, verbose);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
@@ -286,7 +286,7 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
                     *           -------> SUC
                     */ 
                     if (ue_suc->is_undiscovered_fw()){
-                        ue_suc->set_seen_fw();
+                        //ue_suc->set_seen_fw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
                         ret |= DFS_Visit(successor, GO_BACKWARD, verbose);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
@@ -298,7 +298,7 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
                     *           <------- SUC
                     */ 
                     if (ue_suc->is_undiscovered_bw()){
-                        ue_suc->set_seen_bw();
+                        //ue_suc->set_seen_bw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
                         ret |= DFS_Visit(successor, GO_FORWARD, verbose);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
@@ -335,7 +335,11 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
     UnitigExtension* ue = da->getData(ucm);
 
     uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // FIXME: I guess this could be avoided if I'd pass traversal direction directly in DFS_visit
+
     if (traversal_direction==GO_BACKWARD){
+        if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
+        ue->set_seen_bw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
+
         BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
 
         // if sink node
@@ -343,16 +347,10 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
             if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
             //DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
             //UnitigExtension* ue_anchor = da_anchor->getData(anchor);
-            ue->set_seen_bw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
-            ue->set_seen_fw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
-            if (verbose) cout << "I am setting " << ue->getID() << " to seen (both)." << endl;
             //if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
             // TODO traceback()
             return ret;
         }
-
-        ue->set_seen_bw();
-        if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
 
         // if traverse further
         for (auto &predecessor : bw_neighbors){
@@ -365,20 +363,19 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
                 *   PRE <-------
                 */ 
                 if (ue_pre->is_undiscovered_fw()){
-                    ue_pre->set_seen_fw();
+                    //ue_pre->set_seen_fw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
                     ret = DFS_Visit(predecessor, GO_BACKWARD, verbose);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
                 }
             }
-            else{   
-                // whereFrom(successor, ucm)==GO_FORWARD
+            else{   // whereFrom(predecessor, ucm)==GO_FORWARD
                 /*  Case 2:
                 *           -------> SRC
                 *   PRE ------->
-                */ 
+                */
                 if (ue_pre->is_undiscovered_bw()){
-                    ue_pre->set_seen_bw();
+                    //ue_pre->set_seen_bw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
                     ret |= DFS_Visit(predecessor, GO_FORWARD, verbose);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
@@ -388,6 +385,9 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
     }
 
     else{   // traversal_direction==GO_FORWARD
+        if (verbose) cout << "I am setting " << ue->getID() << " to seen (fw)." << endl;
+        ue->set_seen_fw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
+
         ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
         // if sink node
@@ -395,29 +395,23 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
             if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
             //DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
             //UnitigExtension* ue_anchor = da_anchor->getData(anchor);
-            ue->set_seen_bw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
-            ue->set_seen_fw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
-            if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
             //if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
             // TODO traceback()
             return ret;
         }
 
-        ue->set_seen_fw();
-        if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
-
         // if traverse further
         for (auto &successor : fw_neighbors){
             DataAccessor<UnitigExtension>* da_suc = successor.getData();
             UnitigExtension* ue_suc = da_suc->getData(successor);
-            
+
             if (whereFrom(successor, ucm)==GO_BACKWARD){
                 /*  Case 3:
                 *   SRC ------->
                 *           -------> SUC
-                */ 
+                */
                 if (ue_suc->is_undiscovered_fw()){
-                    ue_suc->set_seen_fw();
+                    //ue_suc->set_seen_fw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
                     ret |= DFS_Visit(successor, GO_BACKWARD, verbose);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
@@ -427,9 +421,9 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
                 /*  Case 4:
                 *   SRC ------->
                 *           <------- SUC
-                */ 
+                */
                 if (ue_suc->is_undiscovered_bw()){
-                    ue_suc->set_seen_bw();
+                    //ue_suc->set_seen_bw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
                     ret |= DFS_Visit(successor, GO_FORWARD, verbose);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
