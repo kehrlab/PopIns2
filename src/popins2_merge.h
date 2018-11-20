@@ -44,6 +44,12 @@ int popins2_merge(int argc, char const *argv[]){
     // ==============================
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
     cout << "[PROGRESS] Building CCDBG..." << endl;
+    
+    // DEBUG:
+    for (auto file : ccdbg_build_opt.filename_seq_in){
+        cout << file << endl;
+    }
+    
     exg.buildGraph(ccdbg_build_opt);
 
     cout << "[PROGRESS] Simplifying CCDBG..." << endl;
@@ -57,15 +63,18 @@ int popins2_merge(int argc, char const *argv[]){
 
 
     // TEST START
-    /*
     exg.init_ids();
-    //exg.connected_components(ccdbg_build_opt);
+    if (!exg.is_id_init())
+        return -1;
 
     for (auto &unitig : exg){
-        exg.DFS_Init(unitig, ccdbg_build_opt.verbose);
+        const PathSet ps = exg.DFS_Init(unitig, true);
         exg.DFS_cleaner_seen_only();
+        prettyprint::print(ps);
+
+        //exg.paths2sequences(paths);
+        
     }
-    */
     // TEST END
 
 
