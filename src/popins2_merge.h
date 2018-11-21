@@ -67,13 +67,15 @@ int popins2_merge(int argc, char const *argv[]){
     if (!exg.is_id_init())
         return -1;
 
+    Traceback tb;
     for (auto &unitig : exg){
-        const PathSet ps = exg.DFS_Init(unitig, true);
+        const bool trigger = exg.DFS_Init(unitig, true, tb);
         exg.DFS_cleaner_seen_only();
-        prettyprint::print(ps);
-
-        //exg.paths2sequences(paths);
-        
+        if (trigger){
+            tb.printIds();
+            tb.printSeqs();
+        }
+        tb.clear();
     }
     // TEST END
 

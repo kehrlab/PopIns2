@@ -7,6 +7,34 @@
 
 
 
+void Traceback::printIds() const{
+    std::cout << "[";
+    for (auto it : this->ids){    
+        std::cout << "[";
+        for (auto itt : it){
+            // output format
+            std::cout << itt << ", ";
+        }
+        std::cout << "]";
+    }
+    std::cout << "]" << std::endl;
+}
+
+
+void Traceback::printSeqs() const{
+    std::cout << "[";
+    for (auto it : this->seqs){    
+        std::cout << "[";
+        for (auto itt : it){
+            // output format
+            std::cout << itt << ", ";
+        }
+        std::cout << "]";
+    }
+    std::cout << "]" << std::endl;
+}
+
+
 // default constructor
 ExtendedCCDBG::ExtendedCCDBG(int kmer_length, int minimizer_length) :   ColoredCDBG<UnitigExtension> (kmer_length, minimizer_length),
                                                                         id_init_status(false) {
@@ -215,30 +243,37 @@ inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >&
 /*!
  * \fn      bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const bool verbose)
  * \brief   This function initiates the recursion of the directed DFS.
- * \return  bool; 0 for success
+ * \return  bool; true means trigger actions after DFS
  */
-PathSet ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const bool verbose){
+bool ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose, Traceback &tb){
 
-    PathSet ret;
+    bool ret = false;
 
     // get data of current unitig
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);
+    if (verbose) cout << "I am starting at " << ue->getID() << "." << endl;
 
     BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
     ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
     if (!bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors()){      /* handle singletons */
         // no DFS states to set here
-        // TODO: write sequence of unitig; set minimum sample coverage?
+
         // Traceback:
-        Path currentpath;
-        currentpath.push_back(ue->getID());
-        ret.push_back(currentpath);
-        return ret;
+        Path currentpath;                                                                                               // TODO: Only in DEBUG mode
+        currentpath.push_back(ue->getID());                                                                             // TODO: Only in DEBUG mode
+        tb.ids.push_back(currentpath);                                                                                  // TODO: Only in DEBUG mode
+
+        std::vector<std::string> l_seqs;
+        l_seqs.push_back(ucm.referenceUnitigToString());
+        tb.seqs.push_back(l_seqs);
+
+        return true;
     }
     else if(bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors()){    /* handle internal nodes */
         // NOTE: just do nothing in this case (internal node)
+        return ret;
     }
     else{
         const uint8_t direction = !bw_neighbors.hasPredecessors() ? GO_FORWARD : GO_BACKWARD;
@@ -258,18 +293,22 @@ PathSet ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, co
                     if (ue_pre->is_undiscovered_fw()){
                         //ue_pre->set_seen_fw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
-                        PathSet recursive_returned_pathset = DFS_Visit(predecessor, GO_BACKWARD, verbose);
+                        bool recursively_returned_value = DFS_Visit(predecessor, GO_BACKWARD, verbose, tb);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
                         // Traceback recursion
-                        if (!recursive_returned_pathset.empty()){
-                            for (Path &p : recursive_returned_pathset){
-                                p.push_back(ue->getID());
-                                ret.push_back(p);
+                        // NOTE: conditions to add internal node to traversal:
+                        //       paths have to be existent already && only add branching internal node once (at first sight) during traceback && only add internal node if recursion returned true
+                        if (!tb.seqs.empty() && ret==false && recursively_returned_value==true){
+                            for (unsigned i=0; i < tb.seqs.size(); ++i){
+                                tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                tb.ids.at(i).push_back(ue->getID());                                                    // TODO: Only in DEBUG mode
+                                ret = true;
                             }
                         }
                         else{
-                            // NOTE: I cannot think of a case where this can happen. Investigate here.
-                            cout << "Warning: empty vector was returned from traceback. [1 empty traceback]" << endl;
+                            // NOTE: e.g. if start node is part of a bubble
+                            if (verbose) cout << "Empty vector was returned from traceback. [case 1 empty traceback]" << endl;
                         }
                     }
                 }
@@ -281,18 +320,22 @@ PathSet ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, co
                     if (ue_pre->is_undiscovered_bw()){
                         //ue_pre->set_seen_bw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
-                        PathSet recursive_returned_pathset = DFS_Visit(predecessor, GO_FORWARD, verbose);
+                        bool recursively_returned_value = DFS_Visit(predecessor, GO_FORWARD, verbose, tb);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
                         // Traceback recursion
-                        if (!recursive_returned_pathset.empty()){
-                            for (Path &p : recursive_returned_pathset){
-                                p.push_back(ue->getID());
-                                ret.push_back(p);
+                        // NOTE: conditions to add internal node to traversal:
+                        //       paths have to be existent already && only add branching internal node once (at first sight) during traceback && only add internal node if recursion returned true
+                        if (!tb.seqs.empty() && ret==false && recursively_returned_value==true){
+                            for (unsigned i=0; i < tb.seqs.size(); ++i){
+                                tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                tb.ids.at(i).push_back(ue->getID());                                                    // TODO: Only in DEBUG mode
+                                ret = true;
                             }
                         }
                         else{
-                            // NOTE: I cannot think of a case where this can happen. Investigate here.
-                            cout << "Warning: empty vector was returned from traceback. [2 empty traceback]" << endl;
+                            // NOTE: e.g. if start node is part of a bubble
+                            if (verbose) cout << "Empty vector was returned from traceback. [case 2 empty traceback]" << endl;
                         }
                     }
                 }
@@ -314,18 +357,22 @@ PathSet ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, co
                     if (ue_suc->is_undiscovered_fw()){
                         //ue_suc->set_seen_fw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
-                        PathSet recursive_returned_pathset = DFS_Visit(successor, GO_BACKWARD, verbose);
+                        bool recursively_returned_value = DFS_Visit(successor, GO_BACKWARD, verbose, tb);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
                         // Traceback recursion
-                        if (!recursive_returned_pathset.empty()){
-                            for (Path &p : recursive_returned_pathset){
-                                p.push_back(ue->getID());
-                                ret.push_back(p);
+                        // NOTE: conditions to add internal node to traversal:
+                        //       paths have to be existent already && only add branching internal node once (at first sight) during traceback && only add internal node if recursion returned true
+                        if (!tb.seqs.empty() && ret==false && recursively_returned_value==true){
+                            for (unsigned i=0; i < tb.seqs.size(); ++i){
+                                tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                tb.ids.at(i).push_back(ue->getID());                                                    // TODO: Only in DEBUG mode
+                                ret = true;
                             }
                         }
                         else{
-                            // NOTE: I cannot think of a case where this can happen. Investigate here.
-                            cout << "Warning: empty vector was returned from traceback. [3 empty traceback]" << endl;
+                            // NOTE: e.g. if start node is part of a bubble
+                            if (verbose) cout << "Empty vector was returned from traceback. [case 3 empty traceback]" << endl;
                         }
                     }
                 }
@@ -337,18 +384,22 @@ PathSet ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, co
                     if (ue_suc->is_undiscovered_bw()){
                         //ue_suc->set_seen_bw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
-                        PathSet recursive_returned_pathset = DFS_Visit(successor, GO_FORWARD, verbose);
+                        bool recursively_returned_value = DFS_Visit(successor, GO_FORWARD, verbose, tb);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
                         // Traceback recursion
-                        if (!recursive_returned_pathset.empty()){
-                            for (Path &p : recursive_returned_pathset){
-                                p.push_back(ue->getID());
-                                ret.push_back(p);
+                        // NOTE: conditions to add internal node to traversal:
+                        //       paths have to be existent already && only add branching internal node once (at first sight) during traceback && only add internal node if recursion returned true
+                        if (!tb.seqs.empty() && ret==false && recursively_returned_value==true){
+                            for (unsigned i=0; i < tb.seqs.size(); ++i){
+                                tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                tb.ids.at(i).push_back(ue->getID());                                                    // TODO: Only in DEBUG mode
+                                ret = true;
                             }
                         }
                         else{
-                            // NOTE: I cannot think of a case where this can happen. Investigate here.
-                            cout << "Warning: empty vector was returned from traceback. [4 empty traceback]" << endl;
+                            // NOTE: e.g. if start node is part of a bubble
+                            if (verbose) cout << "Empty vector was returned from traceback. [case 4 empty traceback]" << endl;
                         }
                     }
                 }
@@ -373,16 +424,17 @@ PathSet ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, co
  *          you need to follow the opposite direction.
  * \return  bool; 0 for success
  */
-PathSet ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
+bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                               const uint8_t src_direction,
-                              const bool verbose){
-    PathSet ret;
+                              const bool verbose,
+                              Traceback &tb){
+    bool ret = false;
 
     // get data of current unitig
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);
 
-    uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // FIXME: I guess this could be avoided if I'd pass traversal direction directly in DFS_visit
+    uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // NOTE: I guess this could be avoided if I'd pass traversal direction directly in DFS_visit
 
     if (traversal_direction==GO_BACKWARD){
         if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
@@ -394,11 +446,17 @@ PathSet ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
         if (!bw_neighbors.hasPredecessors() && !ue->is_visited_bw()){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
+
             // Traceback:
-            Path currentpath;
-            currentpath.push_back(ue->getID());
-            ret.push_back(currentpath);
-            return ret;
+            Path currentpath;                                                                                           // TODO: Only in DEBUG mode
+            currentpath.push_back(ue->getID());                                                                         // TODO: Only in DEBUG mode
+            tb.ids.push_back(currentpath);                                                                              // TODO: Only in DEBUG mode
+
+            std::vector<std::string> l_seqs;
+            l_seqs.push_back(ucm.referenceUnitigToString());
+            tb.seqs.push_back(l_seqs);
+
+            return true;
         }
 
         // if traverse further
@@ -414,13 +472,17 @@ PathSet ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
                 if (ue_pre->is_undiscovered_fw()){
                     //ue_pre->set_seen_fw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
-                    PathSet recursive_returned_pathset = DFS_Visit(predecessor, GO_BACKWARD, verbose);
+                    bool recursively_returned_value = DFS_Visit(predecessor, GO_BACKWARD, verbose, tb);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
                     // Traceback recursion
-                    if (!recursive_returned_pathset.empty()){
-                        for (Path &p : recursive_returned_pathset){
-                            p.push_back(ue->getID());
-                            ret.push_back(p);
+                    // NOTE: conditions to add internal node to traversal:
+                    //       paths have to be existent already && only add branching internal node once (at first sight) during traceback && only add internal node if recursion returned true
+                    if (!tb.seqs.empty() && ret==false && recursively_returned_value==true){
+                        for (unsigned i=0; i < tb.seqs.size(); ++i){
+                            tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            ret = true;
                         }
                     }
                 }
@@ -433,13 +495,17 @@ PathSet ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
                 if (ue_pre->is_undiscovered_bw()){
                     //ue_pre->set_seen_bw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
-                    PathSet recursive_returned_pathset = DFS_Visit(predecessor, GO_FORWARD, verbose);
+                    bool recursively_returned_value = DFS_Visit(predecessor, GO_FORWARD, verbose, tb);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
                     // Traceback recursion
-                    if (!recursive_returned_pathset.empty()){
-                        for (Path &p : recursive_returned_pathset){
-                            p.push_back(ue->getID());
-                            ret.push_back(p);
+                    // NOTE: conditions to add internal node to traversal:
+                    //       paths have to be existent already && only add branching internal node once (at first sight) during traceback && only add internal node if recursion returned true
+                    if (!tb.seqs.empty() && ret==false && recursively_returned_value==true){
+                        for (unsigned i=0; i < tb.seqs.size(); ++i){
+                            tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            ret = true;
                         }
                     }
                 }
@@ -457,11 +523,17 @@ PathSet ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
         if (!fw_neighbors.hasSuccessors() && !ue->is_visited_fw()){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
+
             // Traceback:
-            Path currentpath;
-            currentpath.push_back(ue->getID());
-            ret.push_back(currentpath);
-            return ret;
+            Path currentpath;                                                                                           // TODO: Only in DEBUG mode
+            currentpath.push_back(ue->getID());                                                                         // TODO: Only in DEBUG mode
+            tb.ids.push_back(currentpath);                                                                              // TODO: Only in DEBUG mode
+
+            std::vector<std::string> l_seqs;
+            l_seqs.push_back(ucm.referenceUnitigToString());
+            tb.seqs.push_back(l_seqs);
+
+            return true;
         }
 
         // if traverse further
@@ -477,13 +549,17 @@ PathSet ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
                 if (ue_suc->is_undiscovered_fw()){
                     //ue_suc->set_seen_fw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
-                    PathSet recursive_returned_pathset = DFS_Visit(successor, GO_BACKWARD, verbose);
+                    bool recursively_returned_value = DFS_Visit(successor, GO_BACKWARD, verbose, tb);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
                     // Traceback recursion
-                    if (!recursive_returned_pathset.empty()){
-                        for (Path &p : recursive_returned_pathset){
-                            p.push_back(ue->getID());
-                            ret.push_back(p);
+                    // NOTE: conditions to add internal node to traversal:
+                    //       paths have to be existent already && only add branching internal node once (at first sight) during traceback && only add internal node if recursion returned true
+                    if (!tb.seqs.empty() && ret==false && recursively_returned_value==true){
+                        for (unsigned i=0; i < tb.seqs.size(); ++i){
+                            tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            ret = true;
                         }
                     }
                 }
@@ -496,13 +572,17 @@ PathSet ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
                 if (ue_suc->is_undiscovered_bw()){
                     //ue_suc->set_seen_bw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
-                    PathSet recursive_returned_pathset = DFS_Visit(successor, GO_FORWARD, verbose);
+                    bool recursively_returned_value = DFS_Visit(successor, GO_FORWARD, verbose, tb);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
                     // Traceback recursion
-                    if (!recursive_returned_pathset.empty()){
-                        for (Path &p : recursive_returned_pathset){
-                            p.push_back(ue->getID());
-                            ret.push_back(p);
+                    // NOTE: conditions to add internal node to traversal:
+                    //       paths have to be existent already && only add branching internal node once (at first sight) during traceback && only add internal node if recursion returned true
+                    if (!tb.seqs.empty() && ret==false && recursively_returned_value==true){
+                        for (unsigned i=0; i < tb.seqs.size(); ++i){
+                            tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            ret = true;
                         }
                     }
                 }
