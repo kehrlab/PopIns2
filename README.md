@@ -3,9 +3,10 @@ Population-scale detection of non-reference sequence insertions using colored de
 
 ### Requirements:
 
-- GCC (vers. 4.9.2, 5.5.0)
-- [SeqAn](https://www.seqan.de/) (vers. 2.3.2, 2.4.0)
-- [Bifrost](https://github.com/pmelsted/bfgraph) (vers. 0.2-d479e63)
+- 64 bits POSIX-compliant operating system
+- C++14 capable compiler (g++ vers. 5.5.0)
+- [SeqAn](https://www.seqan.de/) (vers. 2.3.2)
+- [Bifrost](https://github.com/pmelsted/bfgraph) (vers. 0.2-699bdcf)
 
 ### Build:
 
@@ -16,34 +17,12 @@ mkdir build
 make
 ```
 
-### Code Documentation (optional):
-
-You can auto-build a _html_ and _LaTeX_ code documentation with doxygen by
-```
-cd doc
-doxygen Doxyfile
-```
-
 ### Run:
 
-To build and write a colored compacted de Bruijn Graph you have to specify a source repository of (possibly gzipped) FAST[A/Q] files and an output prefix:
+To build and write a colored compacted de Bruijn Graph you have to specify a source repository of (possibly gzipped) FAST[A/Q] files and an output prefix, e.g.:
 ```
-./popins2 merge -s /path/to/input/ -o outPrefix
+./popins2 merge -s /path/to/input/ -o outPrefix -div
 ```
-
-(OLD, NEED FIX, TODO)
-
-However, the typical <code>popins2 single</code> call to prepare for <code>popins2 merge</code> is the 'diva' call, adding several graph option flags:
-```
-./popins2 single -f /path/to/input/ -o myOutfile -diva --threads 4 > single.log
-```
-
-(TO DO)
-
-Advanced options tip:
-
-[KmerStream](https://github.com/pmelsted/KmerStream)
-To speed up <code>popins2 single</code> for many samples, it is beneficial to call KmerStream on the largest sample and pass <code>-n=F0</code> and <code>-N=F0-f1</code> to all _single_ module runs.
 
 ### Help:
 
