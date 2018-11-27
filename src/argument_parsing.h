@@ -54,7 +54,7 @@ void getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
     if (seqan::isSet(parser, "input-seq-files")) {
         string indir;
         seqan::getOptionValue(indir, parser, "input-seq-files");
-        options.ccdbg_build_opt->filename_seq_in = getFilesFromDir(indir);
+        getFastx(options.ccdbg_build_opt->filename_seq_in, indir);
     }
     if (seqan::isSet(parser, "clip-tips")) seqan::getOptionValue(options.ccdbg_build_opt->clipTips, parser, "clip-tips");
     if (seqan::isSet(parser, "del-isolated")) seqan::getOptionValue(options.ccdbg_build_opt->deleteIsolated, parser, "del-isolated");

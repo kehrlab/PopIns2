@@ -7,6 +7,42 @@
 
 
 
+void Traceback::printIds() const{
+    std::cout << "[";
+    for (auto it : this->ids){    
+        std::cout << "[";
+        for (auto itt : it){
+            // output format
+            std::cout << itt << ", ";
+        }
+        std::cout << "]";
+    }
+    std::cout << "]" << std::endl;
+}
+
+
+void Traceback::printSeqs() const{
+    std::cout << "[";
+    for (auto it : this->seqs){    
+        std::cout << "[";
+        for (auto itt : it){
+            // output format
+            std::cout << itt << ", ";
+        }
+        std::cout << "]";
+    }
+    std::cout << "]" << std::endl;
+}
+
+
+inline void Traceback::merge(const Traceback &t){
+    assert(t.seqs.size()==t.ids.size());
+    for (unsigned i=0; i < t.seqs.size(); ++i){
+        this->ids.push_back(t.ids.at(i));
+        this->seqs.push_back(t.seqs.at(i));
+    }
+}
+
 
 // default constructor
 ExtendedCCDBG::ExtendedCCDBG(int kmer_length, int minimizer_length) :   ColoredCDBG<UnitigExtension> (kmer_length, minimizer_length),
@@ -165,7 +201,7 @@ inline void ExtendedCCDBG::DFS_cleaner(){
 }
 
 
-inline void ExtendedCCDBG::DFS_cleaner_seen_only(){
+void ExtendedCCDBG::DFS_cleaner_seen_only(){
     for (auto &ucm : *this){
         DataAccessor<UnitigExtension>* da = ucm.getData();
         UnitigExtension* ue = da->getData(ucm);
@@ -214,27 +250,41 @@ inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >&
 
 
 /*!
- * \fn      bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const bool verbose)
+ * \fn      Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const bool verbose)
  * \brief   This function initiates the recursion of the directed DFS.
- * \return  bool; 0 for success
+ * \return  Traceback object
  */
-bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const bool verbose){
+Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose){
 
-    bool ret = 0;
+    Traceback tb;
 
     // get data of current unitig
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);
+    if (verbose) cout << "I am starting at " << ue->getID() << "." << endl;
 
     BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
     ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
     if (!bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors()){      /* handle singletons */
         // no DFS states to set here
-        // TODO: write sequence of unitig; set minimum sample coverage?
+
+        // Traceback:
+        Path currentpath;                                                                                               // TODO: Only in DEBUG mode
+        currentpath.push_back(ue->getID());                                                                             // TODO: Only in DEBUG mode
+        tb.ids.push_back(currentpath);                                                                                  // TODO: Only in DEBUG mode
+
+        std::vector<std::string> l_seqs;
+        l_seqs.push_back(ucm.referenceUnitigToString());
+        tb.seqs.push_back(l_seqs);
+
+        tb.recursive_return_status = true;
+        return tb;
     }
     else if(bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors()){    /* handle internal nodes */
         // NOTE: just do nothing in this case (internal node)
+        if (verbose) cout << "Returning from internal node." << endl;
+        return tb;
     }
     else{
         const uint8_t direction = !bw_neighbors.hasPredecessors() ? GO_FORWARD : GO_BACKWARD;
@@ -250,24 +300,44 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
                     /*  Case 1:
                     *           -------> SRC
                     *   PRE <-------
-                    */ 
+                    */
                     if (ue_pre->is_undiscovered_fw()){
-                        ue_pre->set_seen_fw();
+                        //ue_pre->set_seen_fw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
-                        ret |= DFS_Visit(predecessor, GO_BACKWARD, verbose);
+                        Traceback returned_tb = DFS_Visit(predecessor, GO_BACKWARD, verbose);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+                        // Traceback recursion
+                        if (returned_tb.recursive_return_status){
+                            for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
+                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            }
+                            tb.recursive_return_status = true;
+                            tb.merge(returned_tb);
+                        }
                     }
                 }
                 else{   // whereFrom(predecessor, ucm)==GO_FORWARD
                     /*  Case 2:
                     *           -------> SRC
                     *   PRE ------->
-                    */ 
+                    */
                     if (ue_pre->is_undiscovered_bw()){
-                        ue_pre->set_seen_bw();
+                        //ue_pre->set_seen_bw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
-                        ret |= DFS_Visit(predecessor, GO_FORWARD, verbose);
+                        Traceback returned_tb = DFS_Visit(predecessor, GO_FORWARD, verbose);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+                        // Traceback recursion
+                        if (returned_tb.recursive_return_status){
+                            for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
+                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            }
+                            tb.recursive_return_status = true;
+                            tb.merge(returned_tb);
+                        }
                     }
                 }
             }
@@ -284,24 +354,44 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
                     /*  Case 3:
                     *   SRC ------->
                     *           -------> SUC
-                    */ 
+                    */
                     if (ue_suc->is_undiscovered_fw()){
-                        ue_suc->set_seen_fw();
+                        //ue_suc->set_seen_fw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
-                        ret |= DFS_Visit(successor, GO_BACKWARD, verbose);
+                        Traceback returned_tb = DFS_Visit(successor, GO_BACKWARD, verbose);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+                        // Traceback recursion
+                        if (returned_tb.recursive_return_status){
+                            for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
+                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            }
+                            tb.recursive_return_status = true;
+                            tb.merge(returned_tb);
+                        }
                     }
                 }
                 else{   // whereFrom(successor, ucm)==GO_FORWARD
                     /*  Case 4:
                     *   SRC ------->
                     *           <------- SUC
-                    */ 
+                    */
                     if (ue_suc->is_undiscovered_bw()){
-                        ue_suc->set_seen_bw();
+                        //ue_suc->set_seen_bw();
                         if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
-                        ret |= DFS_Visit(successor, GO_FORWARD, verbose);
+                        Traceback returned_tb = DFS_Visit(successor, GO_FORWARD, verbose);
                         if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+                        // Traceback recursion
+                        if (returned_tb.recursive_return_status){
+                            for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
+                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            }
+                            tb.recursive_return_status = true;
+                            tb.merge(returned_tb);
+                        }
                     }
                 }
             }
@@ -313,46 +403,54 @@ bool ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const
         if (verbose) cout << "I am done with " << ue->getID() << endl;
     }
 
-    return ret;
+    return tb;
 }
 
 
 /*!
- * \fn      bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap< UnitigExtension >& ucm, const UnitigColorMap< UnitigExtension >& src, const uint8_t src_direction, const bool verbose)
+ * \fn      Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
+ *                                             const uint8_t src_direction,
+ *                                             const bool verbose)
  * \brief   This function executes the recursion of the directed DFS.
  * \param   ucm is the current node during traversal
  * \param   src_direction is the direction you'd need to go if you wanted to go back from ucm to src. Therefore, for further traversal
  *          you need to follow the opposite direction.
- * \return  bool; 0 for success
+ * \return  Traceback object
  */
-bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
-                              const uint8_t src_direction,
-                              const bool verbose){
-    bool ret = 0;
+Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
+                                   const uint8_t src_direction,
+                                   const bool verbose){
+    Traceback tb;
 
     // get data of current unitig
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);
 
-    uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // FIXME: I guess this could be avoided if I'd pass traversal direction directly in DFS_visit
+    uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // NOTE: I guess this could be avoided if I'd pass traversal direction directly in DFS_visit
+
     if (traversal_direction==GO_BACKWARD){
+        if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
+        ue->set_seen_bw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
+
         BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
 
         // if sink node
         if (!bw_neighbors.hasPredecessors() && !ue->is_visited_bw()){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
-            //DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
-            //UnitigExtension* ue_anchor = da_anchor->getData(anchor);
-            ue->set_seen_bw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
-            ue->set_seen_fw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
-            if (verbose) cout << "I am setting " << ue->getID() << " to seen (both)." << endl;
-            //if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
-            // TODO traceback()
-            return ret;
-        }
+            if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
-        ue->set_seen_bw();
-        if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
+            // Traceback:
+            Path currentpath;                                                                                           // TODO: Only in DEBUG mode
+            currentpath.push_back(ue->getID());                                                                         // TODO: Only in DEBUG mode
+            tb.ids.push_back(currentpath);                                                                              // TODO: Only in DEBUG mode
+
+            std::vector<std::string> l_seqs;
+            l_seqs.push_back(ucm.referenceUnitigToString());
+            tb.seqs.push_back(l_seqs);
+
+            tb.recursive_return_status = true;
+            return tb;
+        }
 
         // if traverse further
         for (auto &predecessor : bw_neighbors){
@@ -363,82 +461,126 @@ bool ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension>& ucm,
                 /*  Case 1:
                 *           -------> SRC
                 *   PRE <-------
-                */ 
+                */
                 if (ue_pre->is_undiscovered_fw()){
-                    ue_pre->set_seen_fw();
+                    //ue_pre->set_seen_fw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
-                    ret = DFS_Visit(predecessor, GO_BACKWARD, verbose);
+                    Traceback returned_tb = DFS_Visit(predecessor, GO_BACKWARD, verbose);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+                    // Traceback recursion
+                    if (returned_tb.recursive_return_status){
+                        for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
+                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                        }
+                        tb.recursive_return_status = true;
+                        tb.merge(returned_tb);
+                    }
                 }
             }
-            else{   
-                // whereFrom(successor, ucm)==GO_FORWARD
+            else{   // whereFrom(predecessor, ucm)==GO_FORWARD
                 /*  Case 2:
                 *           -------> SRC
                 *   PRE ------->
-                */ 
+                */
                 if (ue_pre->is_undiscovered_bw()){
-                    ue_pre->set_seen_bw();
+                    //ue_pre->set_seen_bw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go backward to " << ue_pre->getID() << endl;
-                    ret |= DFS_Visit(predecessor, GO_FORWARD, verbose);
+                    Traceback returned_tb = DFS_Visit(predecessor, GO_FORWARD, verbose);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+                    // Traceback recursion
+                    if (returned_tb.recursive_return_status){
+                        for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
+                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                        }
+                        tb.recursive_return_status = true;
+                        tb.merge(returned_tb);
+                    }
                 }
             }
         }
     }
 
     else{   // traversal_direction==GO_FORWARD
+        if (verbose) cout << "I am setting " << ue->getID() << " to seen (fw)." << endl;
+        ue->set_seen_fw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
+
         ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
         // if sink node
         if (!fw_neighbors.hasSuccessors() && !ue->is_visited_fw()){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
-            //DataAccessor<UnitigExtension>* da_anchor = anchor.getData();
-            //UnitigExtension* ue_anchor = da_anchor->getData(anchor);
-            ue->set_seen_bw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
-            ue->set_seen_fw();  // FIXME: I think a sink shouldn't be marked in case two paths end in same sink
-            if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
-            //if (verbose) cout << "I will trigger traceback from " << ue->getID() << " to " << ue_anchor->getID() << endl;
-            // TODO traceback()
-            return ret;
-        }
+            if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
-        ue->set_seen_fw();
-        if (verbose) cout << "I am setting " << ue->getID() << " to seen." << endl;
+            // Traceback:
+            Path currentpath;                                                                                           // TODO: Only in DEBUG mode
+            currentpath.push_back(ue->getID());                                                                         // TODO: Only in DEBUG mode
+            tb.ids.push_back(currentpath);                                                                              // TODO: Only in DEBUG mode
+
+            std::vector<std::string> l_seqs;
+            l_seqs.push_back(ucm.referenceUnitigToString());
+            tb.seqs.push_back(l_seqs);
+
+            tb.recursive_return_status = true;
+            return tb;
+        }
 
         // if traverse further
         for (auto &successor : fw_neighbors){
             DataAccessor<UnitigExtension>* da_suc = successor.getData();
             UnitigExtension* ue_suc = da_suc->getData(successor);
-            
+
             if (whereFrom(successor, ucm)==GO_BACKWARD){
                 /*  Case 3:
                 *   SRC ------->
                 *           -------> SUC
-                */ 
+                */
                 if (ue_suc->is_undiscovered_fw()){
-                    ue_suc->set_seen_fw();
+                    //ue_suc->set_seen_fw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
-                    ret |= DFS_Visit(successor, GO_BACKWARD, verbose);
+                    Traceback returned_tb = DFS_Visit(successor, GO_BACKWARD, verbose);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+                    // Traceback recursion
+                    if (returned_tb.recursive_return_status){
+                        for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
+                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                        }
+                        tb.recursive_return_status = true;
+                        tb.merge(returned_tb);
+                    }
                 }
             }
             else{   // whereFrom(successor, ucm)==GO_FORWARD
                 /*  Case 4:
                 *   SRC ------->
                 *           <------- SUC
-                */ 
+                */
                 if (ue_suc->is_undiscovered_bw()){
-                    ue_suc->set_seen_bw();
+                    //ue_suc->set_seen_bw();
                     if (verbose) cout << "I am at " << ue->getID() << " and will go forward to " << ue_suc->getID() << endl;
-                    ret |= DFS_Visit(successor, GO_FORWARD, verbose);
+                    Traceback returned_tb = DFS_Visit(successor, GO_FORWARD, verbose);
                     if (verbose) cout << "I jumped back to ID " << ue->getID() << endl;
+
+                    // Traceback recursion
+                    if (returned_tb.recursive_return_status){
+                        for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
+                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                        }
+                        tb.recursive_return_status = true;
+                        tb.merge(returned_tb);
+                    }
                 }
             }
         }
     }
 
-    return ret;
+    return tb;
 }
 
 
@@ -535,13 +677,6 @@ inline bool ExtendedCCDBG::endsHaveCommonColor(const UnitigColorMap<UnitigExtens
     return same;
 
 }
-
-
-
-
-
-
-
 
 
 

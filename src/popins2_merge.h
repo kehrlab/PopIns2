@@ -43,29 +43,42 @@ int popins2_merge(int argc, char const *argv[]){
     // Run graph functions
     // ==============================
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
-    cout << "[PROGRESS] Building CCDBG..." << endl;
+    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Building CCDBG..." << endl;
+    
+    // DEBUG:
+    if (ccdbg_build_opt.verbose) {
+        for (auto file : ccdbg_build_opt.filename_seq_in){
+            cout << file << endl;
+        }
+    }
+    
     exg.buildGraph(ccdbg_build_opt);
 
-    cout << "[PROGRESS] Simplifying CCDBG..." << endl;
+    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Simplifying CCDBG..." << endl;
     exg.simplify(ccdbg_build_opt.deleteIsolated, ccdbg_build_opt.clipTips, ccdbg_build_opt.verbose);
 
-    cout << "[PROGRESS] ColorMapping CCDBG..." << endl;
+    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] ColorMapping CCDBG..." << endl;
     exg.buildColors(ccdbg_build_opt);
 
-    cout << "[PROGRESS] Writing CCDBG..." << endl;
+    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Writing CCDBG..." << endl;
     exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
 
 
     // TEST START
-    /*
     exg.init_ids();
-    //exg.connected_components(ccdbg_build_opt);
+    if (!exg.is_id_init())
+        return -1;
 
+    Traceback tb;
     for (auto &unitig : exg){
-        exg.DFS_Init(unitig, ccdbg_build_opt.verbose);
+        tb = exg.DFS_Init(unitig, ccdbg_build_opt.verbose);
+        if (tb.recursive_return_status){
+            tb.printIds();
+            tb.printSeqs();
+            // TODO: concat sequences in Traceback instance
+        }
         exg.DFS_cleaner_seen_only();
     }
-    */
     // TEST END
 
 

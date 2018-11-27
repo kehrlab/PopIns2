@@ -12,17 +12,40 @@
 
 #include "UnitigExtension.h"
 
-typedef std::vector<std::vector<UnitigColorMap<UnitigExtension> > > PathSet;
-typedef std::vector<UnitigColorMap<UnitigExtension> > UnitigPath;
+// DEBUG
+#include "../../prettyprint/prettyprint.h"
+
+typedef std::vector<std::vector<unsigned> > PathSet;
+typedef std::vector<unsigned> Path;
 
 
 
 // =========================
-// Struct
+// Structs
 // =========================
+
+/*!
+* \class        Traceback
+* \headerfile   src/ColoredDeBruijnGraph.h
+* \brief        Struct to manage the metadata for the DFS traceback.
+*/
+class Traceback{
+public:
+    void merge(const Traceback &t);
+
+    void printIds() const;
+    void printSeqs() const;
+
+    bool recursive_return_status = false;
+
+    PathSet ids;
+    std::vector<std::vector<std::string> > seqs;
+};
+
+
 /*!
 * \class        ExtendedCCDBG
-* \headerfile   src/ColoredCDBG_Graph_extension.h
+* \headerfile   src/ColoredDeBruijnGraph.h
 * \brief        Struct to store a colored compacted DBG plus unitig extensions.
 */
 struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
@@ -39,9 +62,10 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         seqan::UnionFind<unsigned> getUF() const {return UF;}
 
         void DFS_cleaner();
+
         void DFS_cleaner_seen_only();
 
-        bool DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
+        Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
 
     private:
 
@@ -57,12 +81,11 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         uint8_t whereToGo(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
         uint8_t whereFrom(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
 
-        bool DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
-                       const uint8_t src_direction,
-                       const bool verbose);
+        Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm, const uint8_t src_direction, const bool verbose);
 
         bool endsHaveSameColors(const UnitigColorMap<UnitigExtension> &ucm, const UnitigColorMap<UnitigExtension> &neighbor) const;
         bool endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed, const UnitigColorMap<UnitigExtension> &neighbor) const;
+
 
 };
 
