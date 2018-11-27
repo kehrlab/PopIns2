@@ -50,7 +50,7 @@ SEQAN_DEFINE_TEST(test_ccdbg_build){
     */
 }
 
-SEQAN_DEFINE_TEST(test_ccdbg_functions){
+SEQAN_DEFINE_TEST(test_ccdbg_connected_components){
 
     ccdbg.init_ids();
     SEQAN_ASSERT_EQ(
@@ -126,7 +126,7 @@ SEQAN_BEGIN_TESTSUITE(test_popins2){
 
     SEQAN_CALL_TEST(test_ccdbg_opt);
     SEQAN_CALL_TEST(test_ccdbg_build);
-    SEQAN_CALL_TEST(test_ccdbg_functions);
+    SEQAN_CALL_TEST(test_ccdbg_connected_components);
 
 }
 SEQAN_END_TESTSUITE
