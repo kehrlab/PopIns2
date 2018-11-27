@@ -69,13 +69,13 @@ int popins2_merge(int argc, char const *argv[]){
 
     Traceback tb;
     for (auto &unitig : exg){
-        const bool trigger = exg.DFS_Init(unitig, true, tb);
-        exg.DFS_cleaner_seen_only();
-        if (trigger){
+        tb = exg.DFS_Init(unitig, ccdbg_build_opt.verbose);
+        if (tb.recursive_return_status){
             tb.printIds();
             tb.printSeqs();
+            // TODO: concat sequences in Traceback instance
         }
-        tb.clear();
+        exg.DFS_cleaner_seen_only();
     }
     // TEST END
 

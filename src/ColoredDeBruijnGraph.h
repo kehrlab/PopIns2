@@ -31,10 +31,12 @@ typedef std::vector<unsigned> Path;
 */
 class Traceback{
 public:
-    void clear(){ids.clear(); seqs.clear();}
+    // void clear(){ids.clear(); seqs.clear();}
 
     void printIds() const;
     void printSeqs() const;
+
+    bool recursive_return_status = false;
 
     PathSet ids;
     std::vector<std::vector<std::string> > seqs;
@@ -63,7 +65,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
         void DFS_cleaner_seen_only();
 
-        bool DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose, Traceback &tb);
+        Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
 
     private:
 
@@ -79,7 +81,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         uint8_t whereToGo(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
         uint8_t whereFrom(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
 
-        bool DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm, const uint8_t src_direction, const bool verbose, Traceback &tb);
+        Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm, const uint8_t src_direction, const bool verbose);
 
         bool endsHaveSameColors(const UnitigColorMap<UnitigExtension> &ucm, const UnitigColorMap<UnitigExtension> &neighbor) const;
         bool endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed, const UnitigColorMap<UnitigExtension> &neighbor) const;
