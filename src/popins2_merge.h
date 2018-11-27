@@ -43,22 +43,24 @@ int popins2_merge(int argc, char const *argv[]){
     // Run graph functions
     // ==============================
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
-    cout << "[PROGRESS] Building CCDBG..." << endl;
+    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Building CCDBG..." << endl;
     
     // DEBUG:
-    for (auto file : ccdbg_build_opt.filename_seq_in){
-        cout << file << endl;
+    if (ccdbg_build_opt.verbose) {
+        for (auto file : ccdbg_build_opt.filename_seq_in){
+            cout << file << endl;
+        }
     }
     
     exg.buildGraph(ccdbg_build_opt);
 
-    cout << "[PROGRESS] Simplifying CCDBG..." << endl;
+    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Simplifying CCDBG..." << endl;
     exg.simplify(ccdbg_build_opt.deleteIsolated, ccdbg_build_opt.clipTips, ccdbg_build_opt.verbose);
 
-    cout << "[PROGRESS] ColorMapping CCDBG..." << endl;
+    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] ColorMapping CCDBG..." << endl;
     exg.buildColors(ccdbg_build_opt);
 
-    cout << "[PROGRESS] Writing CCDBG..." << endl;
+    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Writing CCDBG..." << endl;
     exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
 
 

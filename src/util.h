@@ -12,7 +12,7 @@
 #include <vector>
 #include <algorithm>            // std::sort
 #include <dirent.h>             // read folder
-
+#include <cerrno>
 
 
 template <typename TType>
@@ -107,6 +107,57 @@ inline void getFilesFromDir(std::vector<std::string> &v, std::string &path){
     }
 }
 
+
+/*!
+* \fn       void getFastx(std::vector<std::string> &v, std::string &path)
+* \brief    Function fills a referenced vector with all FASTX (*.f[ast]?a|q[.gz]?) files in a given path.
+* \remark   Only works for UNIX/POSIX so far.
+* \return   bool; false if no fastx file was found
+*/
+inline bool getFastx(std::vector<std::string> &v, std::string &path){
+    bool ret = false;
+    DIR *dir;
+    struct dirent *ent;
+    if ((dir = opendir(seqan::toCString(path))) != NULL){
+        while ((ent = readdir(dir)) != NULL){
+            std::string current_fastx = ent->d_name;
+
+            if      (current_fastx=="." || current_fastx=="..")             continue;
+            else if (current_fastx.substr(current_fastx.length()-1) == "/") continue;    // NOTE: edit here for recursive directory search
+            else{
+                // taken and adapted from: https://github.com/pmelsted/bifrost/blob/master/src/File_Parser.hpp
+                const size_t last_point = current_fastx.find_last_of(".");
+                std::string s_ext = current_fastx.substr(last_point + 1);
+
+                if ((s_ext == "gz")){
+                    s_ext = current_fastx.substr(current_fastx.find_last_of(".", last_point - 1) + 1);
+                    if ((s_ext == "fasta.gz") || (s_ext == "fa.gz") || (s_ext == "fastq.gz") || (s_ext == "fq.gz")){
+                        v.push_back(path+current_fastx);
+                        ret = true;
+                    }
+                    else {
+                        std::cerr << "getFastx(): Compressed input file is not in FASTX (*.fasta.gz, *.fa.gz, *.fastq.gz, *.fq.gz) format." << std::endl;
+                        std::cerr << "Skipping " << current_fastx << std::endl;
+                    }
+                }
+                else if ((s_ext == "fasta") || (s_ext == "fa") || (s_ext == "fastq") || (s_ext == "fq")){
+                    v.push_back(path+current_fastx);
+                    ret = true;
+                }
+                else{
+                    std::cerr << "getFastx(): Input file is not in FASTX (*.f[ast]?a|q[.gz]?) format." << std::endl;
+                    std::cerr << "Skipping " << current_fastx << std::endl;
+                }
+            }
+        }
+        closedir(dir);
+    }
+    else if (errno == ENOENT){
+        // could not open directory
+        std::perror ("No such file or directory.");
+    }
+    return ret;
+}
 
 
 
