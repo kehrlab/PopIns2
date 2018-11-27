@@ -11,7 +11,7 @@
 CCDBG_Build_opt ccdbg_opt;
 SEQAN_DEFINE_TEST(test_ccdbg_opt){
 
-    std::string path = "./simulated_data/S0001/";
+    std::string path = "./simulated/S0001/";
     std::vector<std::string> infiles;
     getFilesFromDir(infiles, path);
 
@@ -20,7 +20,7 @@ SEQAN_DEFINE_TEST(test_ccdbg_opt){
     ccdbg_opt.clipTips = true;
     ccdbg_opt.prefixFilenameOut = "unit_test";
     ccdbg_opt.nb_threads = 4;
-    ccdbg_opt.outputGFA = false;
+    ccdbg_opt.outputGFA = true;
     ccdbg_opt.verbose = false;
 }
 
