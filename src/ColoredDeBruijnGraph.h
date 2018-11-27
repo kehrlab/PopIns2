@@ -31,7 +31,7 @@ typedef std::vector<unsigned> Path;
 */
 class Traceback{
 public:
-    // void clear(){ids.clear(); seqs.clear();}
+    void merge(const Traceback &t);
 
     void printIds() const;
     void printSeqs() const;

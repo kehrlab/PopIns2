@@ -35,6 +35,15 @@ void Traceback::printSeqs() const{
 }
 
 
+inline void Traceback::merge(const Traceback &t){
+    assert(t.seqs.size()==t.ids.size());
+    for (unsigned i=0; i < t.seqs.size(); ++i){
+        this->ids.push_back(t.ids.at(i));
+        this->seqs.push_back(t.seqs.at(i));
+    }
+}
+
+
 // default constructor
 ExtendedCCDBG::ExtendedCCDBG(int kmer_length, int minimizer_length) :   ColoredCDBG<UnitigExtension> (kmer_length, minimizer_length),
                                                                         id_init_status(false) {
@@ -302,12 +311,10 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                         if (returned_tb.recursive_return_status){
                             for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
                                 returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
-                                tb.seqs.push_back(returned_tb.seqs[i]);
-
                                 returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
-                                tb.ids.push_back(returned_tb.ids[i]);                                                                // TODO: Only in DEBUG mode
                             }
                             tb.recursive_return_status = true;
+                            tb.merge(returned_tb);
                         }
                     }
                 }
@@ -326,12 +333,10 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                         if (returned_tb.recursive_return_status){
                             for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
                                 returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
-                                tb.seqs.push_back(returned_tb.seqs[i]);
-
                                 returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
-                                tb.ids.push_back(returned_tb.ids[i]);                                                                // TODO: Only in DEBUG mode
                             }
                             tb.recursive_return_status = true;
+                            tb.merge(returned_tb);
                         }
                     }
                 }
@@ -360,12 +365,10 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                         if (returned_tb.recursive_return_status){
                             for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
                                 returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
-                                tb.seqs.push_back(returned_tb.seqs[i]);
-
                                 returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
-                                tb.ids.push_back(returned_tb.ids[i]);                                                                // TODO: Only in DEBUG mode
                             }
                             tb.recursive_return_status = true;
+                            tb.merge(returned_tb);
                         }
                     }
                 }
@@ -384,12 +387,10 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                         if (returned_tb.recursive_return_status){
                             for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
                                 returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
-                                tb.seqs.push_back(returned_tb.seqs[i]);
-
                                 returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
-                                tb.ids.push_back(returned_tb.ids[i]);                                                                // TODO: Only in DEBUG mode
                             }
                             tb.recursive_return_status = true;
+                            tb.merge(returned_tb);
                         }
                     }
                 }
@@ -471,12 +472,10 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                     if (returned_tb.recursive_return_status){
                         for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
                             returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
-                            tb.seqs.push_back(returned_tb.seqs[i]);
-
                             returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
-                            tb.ids.push_back(returned_tb.ids[i]);                                                                // TODO: Only in DEBUG mode
                         }
                         tb.recursive_return_status = true;
+                        tb.merge(returned_tb);
                     }
                 }
             }
@@ -495,12 +494,10 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                     if (returned_tb.recursive_return_status){
                         for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
                             returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
-                            tb.seqs.push_back(returned_tb.seqs[i]);
-
                             returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
-                            tb.ids.push_back(returned_tb.ids[i]);                                                                // TODO: Only in DEBUG mode
                         }
                         tb.recursive_return_status = true;
+                        tb.merge(returned_tb);
                     }
                 }
             }
@@ -551,12 +548,10 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                     if (returned_tb.recursive_return_status){
                         for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
                             returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
-                            tb.seqs.push_back(returned_tb.seqs[i]);
-
                             returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
-                            tb.ids.push_back(returned_tb.ids[i]);                                                                // TODO: Only in DEBUG mode
                         }
                         tb.recursive_return_status = true;
+                        tb.merge(returned_tb);
                     }
                 }
             }
@@ -575,12 +570,10 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                     if (returned_tb.recursive_return_status){
                         for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
                             returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
-                            tb.seqs.push_back(returned_tb.seqs[i]);
-
                             returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
-                            tb.ids.push_back(returned_tb.ids[i]);                                                                // TODO: Only in DEBUG mode
                         }
                         tb.recursive_return_status = true;
+                        tb.merge(returned_tb);
                     }
                 }
             }
