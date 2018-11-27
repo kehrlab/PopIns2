@@ -4,8 +4,7 @@ popins2
 .kdev4/*
 PopIns2.kdev4
 .vscode/*
-doc/html/*
-doc/latex/*
+doc/*
 test/*
 !test/Makefile
 !test/test_popins2.cpp
