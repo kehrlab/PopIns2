@@ -11,3 +11,4 @@ test/*
 myTestout*
 tmp/*
 backup/
+src/.kdev_include_paths
