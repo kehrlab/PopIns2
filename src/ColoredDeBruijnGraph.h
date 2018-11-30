@@ -12,12 +12,16 @@
 
 #include "UnitigExtension.h"
 
-// DEBUG
+// TODO exclude prettyprint
 #include "../../prettyprint/prettyprint.h"
 
+// TODO only in degub code
 typedef std::vector<std::vector<unsigned> > PathSet;
 typedef std::vector<unsigned> Path;
+// TODO end
 
+typedef std::vector<std::vector<std::string> >VVSequences;
+typedef std::vector<std::string> VSequences;
 
 
 // =========================
@@ -30,16 +34,37 @@ typedef std::vector<unsigned> Path;
 * \brief        Struct to manage the metadata for the DFS traceback.
 */
 class Traceback{
-public:
-    void merge(const Traceback &t);
 
-    void printIds() const;
-    void printSeqs() const;
+    VVSequences pathseqs;
+
+public:
+    using const_iterator = VVSequences::const_iterator;
+    using iterator = VVSequences::iterator;
 
     bool recursive_return_status = false;
 
+    // TODO: only in DEBUG code
     PathSet ids;
+    std::vector<std::vector<bool> > oris;
     std::vector<std::vector<std::string> > seqs;
+
+    void printIds() const;
+    void printOris() const;
+    void printSeqs() const;
+    void printPathSeqs() const;
+    // TODO END
+
+    void merge(const Traceback &t);
+
+    void cutconcat(string &s, const VSequences &path, const size_t k) const;
+
+    bool write(ofstream &ofs, const size_t k, size_t &counter) const;
+
+    void push_back(const VSequences &ps) {pathseqs.push_back(ps);}
+    const_iterator cbegin() const { return pathseqs.cbegin(); }
+    const_iterator cend() const { return pathseqs.cend(); }
+    iterator begin() { return pathseqs.begin(); }
+    iterator end() { return pathseqs.end(); }
 };
 
 
