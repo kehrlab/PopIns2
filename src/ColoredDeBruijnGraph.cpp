@@ -64,7 +64,7 @@ void Traceback::printPathSeqs() const{
 }
 
 
-inline void Traceback::merge(const Traceback &t){
+inline void Traceback::join(const Traceback &t){
     assert(t.seqs.size()==t.ids.size());
     // TODO only debug code
     for (unsigned i=0; i < t.seqs.size(); ++i){
@@ -178,7 +178,7 @@ bool ExtendedCCDBG::connected_components(const CCDBG_Build_opt &graph_options){
     resize(UF, (*this).size()+1);   // however, UF needs to be +1 bigger than the graph size. Probably due to start index 1 of IDs
     //std::cout << "UF size " << seqan::length(UF._values) << std::endl;    //[DEBUG]
 
-    // run UF merges
+    // run UF joining
     if (graph_options.verbose) std::cout << "[VERBOSE] Running UNION-FIND" << std::endl;
     for (auto &unitig : *this){
         // TODO: progress indicator here
@@ -392,7 +392,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                             tb.recursive_return_status = true;
-                            tb.merge(returned_tb);
+                            tb.join(returned_tb);
                         }
                     }
                 }
@@ -417,7 +417,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                             tb.recursive_return_status = true;
-                            tb.merge(returned_tb);
+                            tb.join(returned_tb);
                         }
                     }
                 }
@@ -452,7 +452,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                             tb.recursive_return_status = true;
-                            tb.merge(returned_tb);
+                            tb.join(returned_tb);
                         }
                     }
                 }
@@ -477,7 +477,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                             tb.recursive_return_status = true;
-                            tb.merge(returned_tb);
+                            tb.join(returned_tb);
                         }
                     }
                 }
@@ -573,7 +573,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                         tb.recursive_return_status = true;
-                        tb.merge(returned_tb);
+                        tb.join(returned_tb);
                     }
                 }
             }
@@ -598,7 +598,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                         tb.recursive_return_status = true;
-                        tb.merge(returned_tb);
+                        tb.join(returned_tb);
                     }
                 }
             }
@@ -663,7 +663,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                         tb.recursive_return_status = true;
-                        tb.merge(returned_tb);
+                        tb.join(returned_tb);
                     }
                 }
             }
@@ -688,7 +688,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                         tb.recursive_return_status = true;
-                        tb.merge(returned_tb);
+                        tb.join(returned_tb);
                     }
                 }
             }

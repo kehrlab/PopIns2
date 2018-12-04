@@ -54,7 +54,7 @@ public:
     void printPathSeqs() const;
     // TODO END
 
-    void merge(const Traceback &t);
+    void join(const Traceback &t);
 
     void cutconcat(string &s, const VSequences &path, const size_t k) const;
 
