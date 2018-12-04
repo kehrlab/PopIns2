@@ -86,11 +86,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         size_t count_connected_components();
         seqan::UnionFind<unsigned> getUF() const {return UF;}
 
-        void DFS_cleaner();
-
-        void DFS_cleaner_seen_only();
-
-        Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
+        bool merge(const CCDBG_Build_opt &opt);
 
     private:
 
@@ -107,6 +103,10 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         uint8_t whereFrom(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
 
         Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm, const uint8_t src_direction, const bool verbose);
+        Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
+
+        void DFS_cleaner();
+        void DFS_cleaner_seen_only();
 
         bool endsHaveSameColors(const UnitigColorMap<UnitigExtension> &ucm, const UnitigColorMap<UnitigExtension> &neighbor) const;
         bool endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed, const UnitigColorMap<UnitigExtension> &neighbor) const;

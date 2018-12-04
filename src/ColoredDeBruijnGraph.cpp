@@ -268,7 +268,7 @@ inline void ExtendedCCDBG::DFS_cleaner(){
 }
 
 
-void ExtendedCCDBG::DFS_cleaner_seen_only(){
+inline void ExtendedCCDBG::DFS_cleaner_seen_only(){
     for (auto &ucm : *this){
         DataAccessor<UnitigExtension>* da = ucm.getData();
         UnitigExtension* ue = da->getData(ucm);
@@ -794,8 +794,46 @@ inline bool ExtendedCCDBG::endsHaveCommonColor(const UnitigColorMap<UnitigExtens
 }
 
 
+/*!
+ * \fn      bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt)
+ * \return  bool; true if successful
+ */
+bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
+    /* sanity check */
+    if (!this->is_id_init())
+        return false;
+    
+    Traceback tb;
 
+    size_t sv_counter = 0;
+    std::string sv_filename = "contigs.fa";
+    
+    ofstream ofs(sv_filename, std::ofstream::out);
+    if (ofs.is_open())
+        cout << "[DEBUG] Opened contig file." << endl;  // TODO: debug build only
 
+    if (!ofs.is_open()){
+        cerr << "Error: Couldn't open ofstream for contig file." << endl;
+        return false;
+    }
+
+    for (auto &unitig : *this){
+        tb = DFS_Init(unitig, opt.verbose);
+        if (tb.recursive_return_status){
+            tb.printIds();      // TODO Debug only
+            tb.printOris();     // TODO Debug only
+            tb.printSeqs();     // TODO Debug only
+
+            if (!tb.write(ofs, opt.k, sv_counter))
+                return false;
+        }
+        DFS_cleaner_seen_only();
+    }
+    cout << "[DEBUG] Wrote contigs." << endl; // TODO: DEBUG only
+    ofs.close();
+
+    return true;
+}
 
 
 

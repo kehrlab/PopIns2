@@ -44,14 +44,13 @@ int popins2_merge(int argc, char const *argv[]){
     // ==============================
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
     if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Building CCDBG..." << endl;
-
     // TODO DEBUG only
     if (ccdbg_build_opt.verbose) {
         for (auto file : ccdbg_build_opt.filename_seq_in){
             cout << file << endl;
         }
     }
-
+    // until here
     exg.buildGraph(ccdbg_build_opt);
 
     if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Simplifying CCDBG..." << endl;
@@ -65,35 +64,9 @@ int popins2_merge(int argc, char const *argv[]){
 
 
     // TEST START
-
     exg.init_ids();
-    if (!exg.is_id_init())
-        return -1;
 
-    Traceback tb;
-
-    size_t sv_counter = 0;
-    std::string sv_filename = "contigs.fa";
-    ofstream ofs(sv_filename, std::ofstream::out | std::ofstream::trunc);
-
-    if (ofs.is_open())
-        cout << "[DEBUG] Opened contig file." << endl;
-
-    for (auto &unitig : exg){
-        tb = exg.DFS_Init(unitig, ccdbg_build_opt.verbose);
-        if (tb.recursive_return_status){
-            tb.printIds();      // TODO Debug only
-            tb.printOris();     // TODO Debug only
-            tb.printSeqs();     // TODO Debug only
-
-            if (!tb.write(ofs, ccdbg_build_opt.k, sv_counter))
-                return 1;
-        }
-        exg.DFS_cleaner_seen_only();
-    }
-    cout << "[DEBUG] Wrote contigs." << endl; // TODO: DEBUG only
-    ofs.close();
-
+    exg.merge(ccdbg_build_opt);
     // TEST END
 
 

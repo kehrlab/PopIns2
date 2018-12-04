@@ -122,8 +122,8 @@ inline bool getFastx(std::vector<std::string> &v, std::string &path){
         while ((ent = readdir(dir)) != NULL){
             std::string current_fastx = ent->d_name;
 
-            if      (current_fastx=="." || current_fastx=="..")             continue;
-            else if (current_fastx.substr(current_fastx.length()-1) == "/") continue;    // NOTE: edit here for recursive directory search
+            if      (current_fastx=="." || current_fastx==".." || current_fastx=="contigs.fa")  continue;
+            else if (current_fastx.substr(current_fastx.length()-1) == "/")                     continue;    // NOTE: edit here for recursive directory search
             else{
                 // taken and adapted from: https://github.com/pmelsted/bifrost/blob/master/src/File_Parser.hpp
                 const size_t last_point = current_fastx.find_last_of(".");
@@ -159,6 +159,15 @@ inline bool getFastx(std::vector<std::string> &v, std::string &path){
     return ret;
 }
 
+
+inline bool file_exist (const std::string &name){
+    if (FILE *file = fopen(name.c_str(), "r")) {
+        fclose(file);
+        return true;
+    } else {
+        return false;
+    }   
+}
 
 
 #endif /*POPINS2_UTIL_H_*/
