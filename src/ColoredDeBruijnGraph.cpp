@@ -80,11 +80,12 @@ inline void Traceback::join(const Traceback &t){
 
 
 inline void Traceback::cutconcat(string &s, const VSequences &path, const size_t k) const{
-    for (auto it = path.cbegin(); it != path.cend(); ++it){
-        if (it == path.cbegin())
-            s+=(*it);
+    // since the traceback stored the sequences from sink to source, the concatination has to run backwards over the vector
+    for (auto rit = path.crbegin(); rit != path.crend(); ++rit){
+        if (rit == path.crbegin())
+            s+=(*rit);
         else
-            s+=it->substr(k-1);
+            s+=rit->substr(k-1);
     }
 }
 
@@ -95,6 +96,7 @@ inline void Traceback::cutconcat(string &s, const VSequences &path, const size_t
  */
 bool Traceback::write(ofstream &ofs, const size_t k, size_t &counter) const{
     if (ofs.is_open()){
+        // loop through all traceback paths found in one node
         for (auto it=cbegin(); it!=cend(); ++it){
             std::string seq;
             cutconcat(seq, *it, k);
