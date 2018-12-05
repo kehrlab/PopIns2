@@ -114,7 +114,7 @@ inline void getFilesFromDir(std::vector<std::string> &v, std::string &path){
 * \remark   Only works for UNIX/POSIX so far.
 * \return   bool; false if no fastx file was found
 */
-inline bool getFastx(std::vector<std::string> &v, std::string &path){
+inline bool getFastx(std::vector<std::string> &v, std::string &path, const bool verbose = false){
     bool ret = false;
     DIR *dir;
     struct dirent *ent;
@@ -136,8 +136,10 @@ inline bool getFastx(std::vector<std::string> &v, std::string &path){
                         ret = true;
                     }
                     else {
-                        std::cerr << "getFastx(): Compressed input file is not in FASTX (*.fasta.gz, *.fa.gz, *.fastq.gz, *.fq.gz) format." << std::endl;
-                        std::cerr << "Skipping " << current_fastx << std::endl;
+                        if (verbose){
+                            std::cerr << "getFastx(): Compressed input file is not in FASTX (*.fasta.gz, *.fa.gz, *.fastq.gz, *.fq.gz) format." << std::endl;
+                            std::cerr << "Skipping " << current_fastx << std::endl;
+                        }
                     }
                 }
                 else if ((s_ext == "fasta") || (s_ext == "fa") || (s_ext == "fastq") || (s_ext == "fq")){
@@ -145,8 +147,10 @@ inline bool getFastx(std::vector<std::string> &v, std::string &path){
                     ret = true;
                 }
                 else{
-                    std::cerr << "getFastx(): Input file is not in FASTX (*.f[ast]?a|q[.gz]?) format." << std::endl;
-                    std::cerr << "Skipping " << current_fastx << std::endl;
+                    if (verbose){
+                        std::cerr << "getFastx(): Input file is not in FASTX (*.f[ast]?a|q[.gz]?) format." << std::endl;
+                        std::cerr << "Skipping " << current_fastx << std::endl;
+                    }
                 }
             }
         }

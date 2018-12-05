@@ -12,13 +12,13 @@
 
 #include "UnitigExtension.h"
 
-// TODO exclude prettyprint
+// TODO exclude prettyprint for release
 #include "../../prettyprint/prettyprint.h"
 
-// TODO only in degub code
+#ifdef DEBUG
 typedef std::vector<std::vector<unsigned> > PathSet;
 typedef std::vector<unsigned> Path;
-// TODO end
+#endif // DEBUG
 
 typedef std::vector<std::vector<std::string> >VVSequences;
 typedef std::vector<std::string> VSequences;
@@ -43,7 +43,7 @@ public:
 
     bool recursive_return_status = false;
 
-    // TODO: only in DEBUG code
+#ifdef DEBUG
     PathSet ids;
     std::vector<std::vector<bool> > oris;
     std::vector<std::vector<std::string> > seqs;
@@ -52,7 +52,7 @@ public:
     void printOris() const;
     void printSeqs() const;
     void printPathSeqs() const;
-    // TODO END
+#endif // DEBUG
 
     void join(const Traceback &t);
 

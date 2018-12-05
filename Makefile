@@ -16,16 +16,15 @@ LDLIBS = -lbifrost -pthread -lz -lrt -rdynamic
 
 # Date and version number from git
 DATE := on $(shell git log --pretty=format:"%cd" --date=iso | cut -f 1,2 -d " " | head -n 1)
-VERSION := 0.4.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
+VERSION := 0.5.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
 CXXFLAGS += -DDATE=\""$(DATE)"\" -DVERSION=\""$(VERSION)"\"
 
 # Enable warnings
 CXXFLAGS += -W -Wall -Wno-long-long -pedantic -Wno-variadic-macros -Wno-unused-result
-CXXFLAGS += -fno-stack-protector
 CXXFLAGS += -march=native
 
 # DEBUG build
-#CXXFLAGS += -g -O0 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
+#CXXFLAGS += -g -O0 -DDEBUG -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
 
 # RELEASE build
 CXXFLAGS += -O3 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=0
@@ -42,5 +41,5 @@ clean:
 	rm -f $(OBJS) $(TARGET)
 
 purge:
-	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors *.fasta *.id.csv
+	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors contigs.fa
 

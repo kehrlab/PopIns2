@@ -7,6 +7,7 @@
 #include <fstream>
 
 
+#ifdef DEBUG
 
 void Traceback::printIds() const{
     std::cout << "[";
@@ -63,16 +64,18 @@ void Traceback::printPathSeqs() const{
     std::cout << "]" << std::endl;
 }
 
+#endif // DEBUG
+
 
 inline void Traceback::join(const Traceback &t){
     assert(t.seqs.size()==t.ids.size());
-    // TODO only debug code
+#ifdef DEBUG
     for (unsigned i=0; i < t.seqs.size(); ++i){
         this->ids.push_back(t.ids.at(i));
         this->oris.push_back(t.oris.at(i));
         this->seqs.push_back(t.seqs.at(i));
     }
-    // TODO end
+#endif // DEBUG
 
     for (auto it = t.cbegin(); it != t.cend(); ++it)
         this->push_back(*it);
@@ -136,7 +139,7 @@ void ExtendedCCDBG::init_ids(){
 
 void ExtendedCCDBG::print_ids(){
     if (is_id_init() == true){
-        std::cout << "[DEBUG] ";
+        std::cout << "[PRINT] ";
         for (auto &unitig : *this){
             DataAccessor<UnitigExtension>* da = unitig.getData();
             UnitigExtension* ue = da->getData(unitig);
@@ -178,7 +181,10 @@ bool ExtendedCCDBG::connected_components(const CCDBG_Build_opt &graph_options){
     // initiate UF structure
     if (graph_options.verbose) std::cout << "[VERBOSE] Initiating UNION-FIND" << std::endl;
     resize(UF, (*this).size()+1);   // however, UF needs to be +1 bigger than the graph size. Probably due to start index 1 of IDs
-    //std::cout << "UF size " << seqan::length(UF._values) << std::endl;    //[DEBUG]
+
+#ifdef DEBUG
+    std::cout << "UF size " << seqan::length(UF._values) << std::endl;
+#endif // DEBUG
 
     // run UF joining
     if (graph_options.verbose) std::cout << "[VERBOSE] Running UNION-FIND" << std::endl;
@@ -339,17 +345,19 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
         // no DFS states to set here
 
         // Traceback:
-        Path currentpath;                                                                                               // TODO: Only in DEBUG mode
-        currentpath.push_back(ue->getID());                                                                             // TODO: Only in DEBUG mode
-        tb.ids.push_back(currentpath);                                                                                  // TODO: Only in DEBUG mode
+#ifdef DEBUG
+        Path currentpath;
+        currentpath.push_back(ue->getID());
+        tb.ids.push_back(currentpath); 
 
-        std::vector<bool> l_oris;                                                                                       // TODO: Only in DEBUG mode
-        l_oris.push_back(ucm.strand);                                                                                   // TODO: Only in DEBUG mode
-        tb.oris.push_back(l_oris);                                                                                      // TODO: Only in DEBUG mode
+        std::vector<bool> l_oris;
+        l_oris.push_back(ucm.strand);
+        tb.oris.push_back(l_oris);
 
-        std::vector<std::string> l_seqs;                                                                                // TODO: Only in DEBUG mode
-        l_seqs.push_back(ucm.referenceUnitigToString());                                                                // TODO: Only in DEBUG mode
-        tb.seqs.push_back(l_seqs);                                                                                      // TODO: Only in DEBUG mode
+        std::vector<std::string> l_seqs;
+        l_seqs.push_back(ucm.referenceUnitigToString());
+        tb.seqs.push_back(l_seqs);
+#endif // DEBUG
 
         VSequences vseqs;
         ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -386,11 +394,13 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
 
                         // Traceback recursion
                         if (returned_tb.recursive_return_status){
+#ifdef DEBUG
                             for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
-                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());                                     // TODO: Only in DEBUG mode
-                                returned_tb.oris.at(i).push_back(ucm.strand);                                                        // TODO: Only in DEBUG mode
-                                returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                returned_tb.oris.at(i).push_back(ucm.strand);
+                                returned_tb.ids.at(i).push_back(ue->getID());
                             }
+#endif // DEBUG
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                             tb.recursive_return_status = true;
@@ -411,11 +421,13 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
 
                         // Traceback recursion
                         if (returned_tb.recursive_return_status){
+#ifdef DEBUG
                             for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
-                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());                                     // TODO: Only in DEBUG mode
-                                returned_tb.oris.at(i).push_back(ucm.strand);                                                        // TODO: Only in DEBUG mode
-                                returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                returned_tb.oris.at(i).push_back(ucm.strand);
+                                returned_tb.ids.at(i).push_back(ue->getID());
                             }
+#endif // DEBUG
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                             tb.recursive_return_status = true;
@@ -446,11 +458,13 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
 
                         // Traceback recursion
                         if (returned_tb.recursive_return_status){
+#ifdef DEBUG
                             for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
-                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());                                     // TODO: Only in DEBUG mode
-                                returned_tb.oris.at(i).push_back(ucm.strand);                                                        // TODO: Only in DEBUG mode
-                                returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                returned_tb.oris.at(i).push_back(ucm.strand);
+                                returned_tb.ids.at(i).push_back(ue->getID());
                             }
+#endif // DEBUG
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                             tb.recursive_return_status = true;
@@ -471,11 +485,13 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
 
                         // Traceback recursion
                         if (returned_tb.recursive_return_status){
+#ifdef DEBUG
                             for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
-                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());                                     // TODO: Only in DEBUG mode
-                                returned_tb.oris.at(i).push_back(ucm.strand);                                                        // TODO: Only in DEBUG mode
-                                returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                                returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                                returned_tb.oris.at(i).push_back(ucm.strand);
+                                returned_tb.ids.at(i).push_back(ue->getID());
                             }
+#endif // DEBUG
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                             tb.recursive_return_status = true;
@@ -529,17 +545,19 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
             // Traceback:
-            Path currentpath;                                                                                           // TODO: Only in DEBUG mode
-            currentpath.push_back(ue->getID());                                                                         // TODO: Only in DEBUG mode
-            tb.ids.push_back(currentpath);                                                                              // TODO: Only in DEBUG mode
+#ifdef DEBUG
+            Path currentpath;
+            currentpath.push_back(ue->getID());
+            tb.ids.push_back(currentpath);
 
-            std::vector<bool> l_oris;                                                                                   // TODO: Only in DEBUG mode
-            l_oris.push_back(ucm.strand);                                                                               // TODO: Only in DEBUG mode
-            tb.oris.push_back(l_oris);                                                                                  // TODO: Only in DEBUG mode
+            std::vector<bool> l_oris;
+            l_oris.push_back(ucm.strand);
+            tb.oris.push_back(l_oris);
 
             std::vector<std::string> l_seqs;
             l_seqs.push_back(ucm.referenceUnitigToString());
             tb.seqs.push_back(l_seqs);
+#endif // DEBUG
 
             VSequences vseqs;
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -567,11 +585,13 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 
                     // Traceback recursion
                     if (returned_tb.recursive_return_status){
+#ifdef DEBUG
                         for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
-                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());                                     // TODO: Only in DEBUG mode
-                            returned_tb.oris.at(i).push_back(ucm.strand);                                                        // TODO: Only in DEBUG mode
-                            returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            returned_tb.oris.at(i).push_back(ucm.strand);
+                            returned_tb.ids.at(i).push_back(ue->getID());
                         }
+#endif // DEBUG
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                         tb.recursive_return_status = true;
@@ -592,11 +612,13 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 
                     // Traceback recursion
                     if (returned_tb.recursive_return_status){
+#ifdef DEBUG
                         for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
-                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());                                     // TODO: Only in DEBUG mode
-                            returned_tb.oris.at(i).push_back(ucm.strand);                                                        // TODO: Only in DEBUG mode
-                            returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            returned_tb.oris.at(i).push_back(ucm.strand);
+                            returned_tb.ids.at(i).push_back(ue->getID());
                         }
+#endif // DEBUG
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                         tb.recursive_return_status = true;
@@ -619,17 +641,19 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
             // Traceback:
-            Path currentpath;                                                                                           // TODO: Only in DEBUG mode
-            currentpath.push_back(ue->getID());                                                                         // TODO: Only in DEBUG mode
-            tb.ids.push_back(currentpath);                                                                              // TODO: Only in DEBUG mode
+#ifdef DEBUG
+            Path currentpath;
+            currentpath.push_back(ue->getID());
+            tb.ids.push_back(currentpath);
 
-            std::vector<bool> l_oris;                                                                                   // TODO: Only in DEBUG mode
-            l_oris.push_back(ucm.strand);                                                                               // TODO: Only in DEBUG mode
-            tb.oris.push_back(l_oris);                                                                                  // TODO: Only in DEBUG mode
+            std::vector<bool> l_oris;
+            l_oris.push_back(ucm.strand);
+            tb.oris.push_back(l_oris);
 
             std::vector<std::string> l_seqs;
             l_seqs.push_back(ucm.referenceUnitigToString());
             tb.seqs.push_back(l_seqs);
+#endif // DEBUG
 
             VSequences vseqs;
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -657,11 +681,13 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 
                     // Traceback recursion
                     if (returned_tb.recursive_return_status){
+#ifdef DEBUG
                         for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
-                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());                                     // TODO: Only in DEBUG mode
-                            returned_tb.oris.at(i).push_back(ucm.strand);                                                        // TODO: Only in DEBUG mode
-                            returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            returned_tb.oris.at(i).push_back(ucm.strand);
+                            returned_tb.ids.at(i).push_back(ue->getID());
                         }
+#endif // DEBUG
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                         tb.recursive_return_status = true;
@@ -682,11 +708,13 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 
                     // Traceback recursion
                     if (returned_tb.recursive_return_status){
+#ifdef DEBUG
                         for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
-                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());                                     // TODO: Only in DEBUG mode
-                            returned_tb.oris.at(i).push_back(ucm.strand);                                                        // TODO: Only in DEBUG mode
-                            returned_tb.ids.at(i).push_back(ue->getID());                                                        // TODO: Only in DEBUG mode
+                            returned_tb.seqs.at(i).push_back(ucm.referenceUnitigToString());
+                            returned_tb.oris.at(i).push_back(ucm.strand);
+                            returned_tb.ids.at(i).push_back(ue->getID());
                         }
+#endif // DEBUG
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                         tb.recursive_return_status = true;
@@ -811,8 +839,6 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
     std::string sv_filename = "contigs.fa";
     
     ofstream ofs(sv_filename, std::ofstream::out);
-    if (ofs.is_open())
-        cout << "[DEBUG] Opened contig file." << endl;  // TODO: debug build only
 
     if (!ofs.is_open()){
         cerr << "Error: Couldn't open ofstream for contig file." << endl;
@@ -822,16 +848,18 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
     for (auto &unitig : *this){
         tb = DFS_Init(unitig, opt.verbose);
         if (tb.recursive_return_status){
-            tb.printIds();      // TODO Debug only
-            tb.printOris();     // TODO Debug only
-            tb.printSeqs();     // TODO Debug only
+#ifdef DEBUG
+            tb.printIds();
+            tb.printOris();
+            tb.printSeqs();
+#endif // DEBUG
 
             if (!tb.write(ofs, opt.k, sv_counter))
                 return false;
         }
         DFS_cleaner_seen_only();
     }
-    cout << "[DEBUG] Wrote contigs." << endl; // TODO: DEBUG only
+
     ofs.close();
 
     return true;

@@ -40,34 +40,52 @@ int popins2_merge(int argc, char const *argv[]){
 
 
     // ==============================
-    // Run graph functions
+    // Bifrost graph functions
     // ==============================
+    std::ostringstream msg;
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
-    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Building CCDBG..." << endl;
-    // TODO DEBUG only
+
+#ifdef DEBUG
     if (ccdbg_build_opt.verbose) {
         for (auto file : ccdbg_build_opt.filename_seq_in){
             cout << file << endl;
         }
     }
-    // until here
+#endif // DEBUG
+
+    msg.str("");
+    msg << "Building CCDBG";
+    printTimeStatus(msg);
     exg.buildGraph(ccdbg_build_opt);
 
-    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Simplifying CCDBG..." << endl;
+    msg.str("");
+    msg << "Simplifying CCDBG";
+    printTimeStatus(msg);
     exg.simplify(ccdbg_build_opt.deleteIsolated, ccdbg_build_opt.clipTips, ccdbg_build_opt.verbose);
 
-    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] ColorMapping CCDBG..." << endl;
+    msg.str("");
+    msg << "ColorMapping CCDBG";
+    printTimeStatus(msg);
     exg.buildColors(ccdbg_build_opt);
 
-    if (ccdbg_build_opt.verbose) cout << "[PROGRESS] Writing CCDBG..." << endl;
+    msg.str("");
+    msg << "Writing CCDBG";
+    printTimeStatus(msg);
     exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
 
 
-    // TEST START
+    // ==============================
+    // Merge specific functions
+    // ==============================
+    msg.str("");
+    msg << "Assigning unitig IDs";
+    printTimeStatus(msg);
     exg.init_ids();
 
+    msg.str("");
+    msg << "Traversing paths";
+    printTimeStatus(msg);
     exg.merge(ccdbg_build_opt);
-    // TEST END
 
 
 
