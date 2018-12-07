@@ -35,6 +35,9 @@ typedef std::vector<std::string> VSequences;
 */
 class Traceback{
 
+private:
+    void cutconcat(string &s, const VSequences &path, const size_t k) const;
+
     VVSequences pathseqs;
 
 public:
@@ -54,12 +57,11 @@ public:
     void printPathSeqs() const;
 #endif // DEBUG
 
-    void join(const Traceback &t);
-
-    void cutconcat(string &s, const VSequences &path, const size_t k) const;
-
     bool write(ofstream &ofs, const size_t k, size_t &counter) const;
 
+    void join(const Traceback &t);
+
+    bool empty() const {return pathseqs.empty();}
     void push_back(const VSequences &ps) {pathseqs.push_back(ps);}
     const_iterator cbegin() const { return pathseqs.cbegin(); }
     const_iterator cend() const { return pathseqs.cend(); }

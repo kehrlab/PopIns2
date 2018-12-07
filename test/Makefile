@@ -6,7 +6,7 @@ LDLIBS = -lbifrost -pthread -lz -lrt -rdynamic
 
 CXXFLAGS+=-W -Wall -Wno-long-long -pedantic -Wno-variadic-macros -Wno-unused-result
 CXXFLAGS+= -march=native
-CXXFLAGS+=-g -O0 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
+CXXFLAGS+=-g -O0 -DDEBUG -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
 
 all: test_popins2
 

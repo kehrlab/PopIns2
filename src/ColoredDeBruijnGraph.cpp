@@ -400,6 +400,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                                 returned_tb.oris.at(i).push_back(ucm.strand);
                                 returned_tb.ids.at(i).push_back(ue->getID());
                             }
+                            assert(returned_tb.empty() == false)
 #endif // DEBUG
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -427,6 +428,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                                 returned_tb.oris.at(i).push_back(ucm.strand);
                                 returned_tb.ids.at(i).push_back(ue->getID());
                             }
+                            assert(returned_tb.empty() == false)
 #endif // DEBUG
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -464,6 +466,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                                 returned_tb.oris.at(i).push_back(ucm.strand);
                                 returned_tb.ids.at(i).push_back(ue->getID());
                             }
+                            assert(returned_tb.empty() == false)
 #endif // DEBUG
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -491,6 +494,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
                                 returned_tb.oris.at(i).push_back(ucm.strand);
                                 returned_tb.ids.at(i).push_back(ue->getID());
                             }
+                            assert(returned_tb.empty() == false)
 #endif // DEBUG
                             for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                                 ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -591,6 +595,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                             returned_tb.oris.at(i).push_back(ucm.strand);
                             returned_tb.ids.at(i).push_back(ue->getID());
                         }
+                        assert(returned_tb.empty() == false)
 #endif // DEBUG
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -618,6 +623,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                             returned_tb.oris.at(i).push_back(ucm.strand);
                             returned_tb.ids.at(i).push_back(ue->getID());
                         }
+                        assert(returned_tb.empty() == false)
 #endif // DEBUG
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -687,6 +693,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                             returned_tb.oris.at(i).push_back(ucm.strand);
                             returned_tb.ids.at(i).push_back(ue->getID());
                         }
+                        assert(returned_tb.empty() == false)
 #endif // DEBUG
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -714,6 +721,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                             returned_tb.oris.at(i).push_back(ucm.strand);
                             returned_tb.ids.at(i).push_back(ue->getID());
                         }
+                        assert(returned_tb.empty() == false)
 #endif // DEBUG
                         for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                             ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
