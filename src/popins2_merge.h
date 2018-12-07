@@ -47,7 +47,14 @@ int popins2_merge(int argc, char const *argv[]){
 
 #ifdef DEBUG
     if (ccdbg_build_opt.verbose) {
+        std::cout << "Sequence files:" << std::endl;
         for (auto file : ccdbg_build_opt.filename_seq_in){
+            cout << file << endl;
+        }
+    }
+    if (ccdbg_build_opt.verbose) {
+        std::cout << "Reference files:" << std::endl;
+        for (auto file : ccdbg_build_opt.filename_ref_in){
             cout << file << endl;
         }
     }

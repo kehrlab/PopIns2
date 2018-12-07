@@ -41,8 +41,7 @@ struct MergeOptions {
 // Option transfer functions
 // =========================
 
-void getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
-
+bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
     // Setup graph object
     if (seqan::isSet(parser, "verbose")) seqan::getOptionValue(options.ccdbg_build_opt->verbose, parser, "verbose");
     if (seqan::isSet(parser, "output-file")) seqan::getOptionValue(options.ccdbg_build_opt->prefixFilenameOut, parser, "output-file");
@@ -54,13 +53,25 @@ void getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
     if (seqan::isSet(parser, "input-seq-files")) {
         string indir;
         seqan::getOptionValue(indir, parser, "input-seq-files");
-        // IMPORTANT to have verbosity check before filename_seq_in assignment
+        // IMPORTANT for debug build: have verbosity check before filename_seq_in assignment
         getFastx(options.ccdbg_build_opt->filename_seq_in, indir, options.ccdbg_build_opt->verbose);
+    }
+    if (seqan::isSet(parser, "input-ref-files")) {
+        string indir;
+        seqan::getOptionValue(indir, parser, "input-ref-files");
+        // IMPORTANT for debug build: have verbosity check before filename_ref_in assignment
+        getFastx(options.ccdbg_build_opt->filename_ref_in, indir, options.ccdbg_build_opt->verbose);
+    }
+    if (!seqan::isSet(parser, "input-seq-files") && !seqan::isSet(parser, "input-ref-files")){
+        std::cout << "[Argparse Error]: At least one of --input-seq-files or --input-ref-files has to be specified." << std::endl;
+        return false;
     }
     if (seqan::isSet(parser, "clip-tips")) seqan::getOptionValue(options.ccdbg_build_opt->clipTips, parser, "clip-tips");
     if (seqan::isSet(parser, "del-isolated")) seqan::getOptionValue(options.ccdbg_build_opt->deleteIsolated, parser, "del-isolated");
     if (seqan::isSet(parser, "fasta"))
         options.ccdbg_build_opt->outputGFA = false;
+
+    return true;
 }
 
 
@@ -110,11 +121,12 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::setShortDescription(parser, "Build a colored and compacted de Bruijn Graph (CCDBG)");
     seqan::setVersion(parser, VERSION);
     seqan::setDate(parser, DATE);
-    seqan::addUsageLine(parser, "\\--input-seq-files DIR \\--output-file STRING [OPTIONS] \\fP ");
+    seqan::addUsageLine(parser, "\\--input-{seq|ref}-files DIR \\--output-file STRING [OPTIONS] \\fP ");
 
     // Setup options
     seqan::addSection(parser, "Input/output options");
     seqan::addOption(parser, seqan::ArgParseOption("s", "input-seq-files", "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIRECTORY"));
+    seqan::addOption(parser, seqan::ArgParseOption("r", "input-ref-files", "Source directory with reference FASTA/Q files (will not be filtered)", seqan::ArgParseArgument::STRING, "DIRECTORY"));
     seqan::addOption(parser, seqan::ArgParseOption("o", "output-file", "Prefix for the output file", seqan::ArgParseArgument::STRING, "TEXT"));
 
     seqan::addSection(parser, "Algorithm options");
@@ -131,7 +143,8 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::addOption(parser, seqan::ArgParseOption("t", "threads", "Amount of threads for parallel processing", seqan::ArgParseArgument::INTEGER, "INT"));
 
     // Setup option constraints
-    seqan::setRequired(parser, "input-seq-files", true);
+    // At least one argument of input-seq-files or input-ref-files has to be specified!
+  //seqan::setRequired(parser, "input-seq-files", true);
     seqan::setRequired(parser, "output-file", true);
 
     seqan::setDefaultValue(parser, "k", "31");
@@ -189,7 +202,8 @@ seqan::ArgumentParser::ParseResult parseCommandLine(TOptions &options, int argc,
     // Transfer program arguments from command line object to Bifrost's graph options object.
     /* This design recommendation by seqan is absolutely overengineered here, but it leaves the possibility to extend
        the cmd line options object with variables that do not belong to the Bifrost graph. */
-    getOptionValues(options, parser);
+    if (getOptionValues(options, parser) == false)
+        return seqan::ArgumentParser::PARSE_HELP;
 
     return res;
 }
