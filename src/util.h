@@ -109,15 +109,19 @@ inline void getFilesFromDir(std::vector<std::string> &v, std::string &path){
 
 
 /*!
-* \fn       void getFastx(std::vector<std::string> &v, std::string &path)
+* \fn       void getFastx(std::vector<std::string> &v, std::string path, const bool verbose = false)
 * \brief    Function fills a referenced vector with all FASTX (*.f[ast]?a|q[.gz]?) files in a given path.
 * \remark   Only works for UNIX/POSIX so far.
 * \return   bool; false if no fastx file was found
 */
-inline bool getFastx(std::vector<std::string> &v, std::string &path, const bool verbose = false){
+inline bool getFastx(std::vector<std::string> &v, std::string path, const bool verbose = false){
     bool ret = false;
     DIR *dir;
     struct dirent *ent;
+
+    if (path.back() != '/')
+        path += "/";
+
     if ((dir = opendir(seqan::toCString(path))) != NULL){
         while ((ent = readdir(dir)) != NULL){
             std::string current_fastx = ent->d_name;
