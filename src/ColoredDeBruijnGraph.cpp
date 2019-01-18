@@ -754,14 +754,12 @@ inline bool ExtendedCCDBG::endsHaveSameColors(const UnitigColorMap<UnitigExtensi
 
         for (size_t color_id = 0; color_id != nb_colors; ++color_id){
             same = uc_observed_tail->contains(mapping_observed, color_id) == uc_neighbor_head->contains(mapping_neighbor, color_id);
-            if (!same){
-                same = false;
+            if (!same)
                 break;
-            }
         }
     }
 
-    else{
+    else{   // (direction == GO_BACKWARD)
 
         // get kmers
         const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(0);
@@ -773,10 +771,8 @@ inline bool ExtendedCCDBG::endsHaveSameColors(const UnitigColorMap<UnitigExtensi
 
         for (size_t color_id = 0; color_id != nb_colors; ++color_id){
             same = uc_observed_head->contains(mapping_observed, color_id) == uc_neighbor_tail->contains(mapping_neighbor, color_id);
-            if (!same){
-                same = false;
+            if (!same)
                 break;
-            }
         }
     }
 
@@ -801,10 +797,8 @@ inline bool ExtendedCCDBG::endsHaveCommonColor(const UnitigColorMap<UnitigExtens
 
         for (size_t color_id = 0; color_id != nb_colors; ++color_id){
             same = uc_observed_tail->contains(mapping_observed, color_id) == uc_neighbor_head->contains(mapping_neighbor, color_id);
-            if (same){
-                same = true;
+            if (same)
                 break;
-            }
         }
     }
 
@@ -820,10 +814,8 @@ inline bool ExtendedCCDBG::endsHaveCommonColor(const UnitigColorMap<UnitigExtens
 
         for (size_t color_id = 0; color_id != nb_colors; ++color_id){
             same = uc_observed_head->contains(mapping_observed, color_id) == uc_neighbor_tail->contains(mapping_neighbor, color_id);
-            if (same){
-                same = true;
+            if (same)
                 break;
-            }
         }
     }
 
