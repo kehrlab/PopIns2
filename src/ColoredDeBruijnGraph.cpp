@@ -316,7 +316,7 @@ inline uint8_t ExtendedCCDBG::whereToGo(const UnitigColorMap< UnitigExtension >&
  *          this function indicates where to go to reach the source (src).
  *          src  ----------
  *          um          --------->
- * \details This function can be used to detemine a successors (SUC) orientation with respect to the current unitig (CU) if src=CU and um=SUC.
+ * \details This function can also be used to detemine a neighbor's (NBR) orientation with respect to the current unitig (CU) if src=CU and um=NBR.
  * \return  DIRECTION
  */
 inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >& um, const UnitigColorMap< UnitigExtension >& src) const{
@@ -341,7 +341,9 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
     BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
     ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
-    /* handle singletons */
+    // --------------------
+    //  handle singletons 
+    // --------------------
     if (!bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors()){
         // no DFS states to set here
 
@@ -367,13 +369,18 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
         tb.recursive_return_status = true;
         return tb;
     }
-    /* handle internal nodes */
+
+    // -----------------------
+    // handle internal nodes
+    // -----------------------
     else if(bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors()){
         // NOTE: just do nothing in this case (internal node)
         if (verbose) cout << "Returning from internal node." << endl;
         return tb;
     }
-    /* Traverse further */
+    // ------------------
+    // Traverse further
+    // ------------------
     else{
         const uint8_t direction = !bw_neighbors.hasPredecessors() ? GO_FORWARD : GO_BACKWARD;
 
@@ -409,6 +416,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
 
 /*!
  * \fn      Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
+ *                                             const UnitigColorMap<UnitigExtension> &src,
  *                                             const uint8_t src_direction,
  *                                             const bool verbose)
  * \brief   This function executes the recursion of the directed DFS.
@@ -418,6 +426,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
  * \return  Traceback object
  */
 Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
+                                   const UnitigColorMap<UnitigExtension> &src,
                                    const uint8_t src_direction,
                                    const bool verbose){
     Traceback tb;
@@ -428,14 +437,19 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 
     uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // NOTE: I guess this could be avoided if I'd pass traversal direction directly in DFS_visit
 
+    // -------------------------
+    // |  if traverse forward  |
+    // -------------------------
     if (traversal_direction==GO_BACKWARD){
         if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
         ue->set_seen_bw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
 
         BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
 
-        // if sink node
-        if (!bw_neighbors.hasPredecessors() && !ue->is_visited_bw()){   // visited check could be bw/fw; visited check necessary to avoid RC path
+        // ------------------
+        // |  if sink node  |
+        // ------------------
+        if ((!bw_neighbors.hasPredecessors() && !ue->is_visited_bw()) || !endsHaveCommonColor(src, ucm, verbose)){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
@@ -462,7 +476,9 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             return tb;
         }
 
-        // if traverse further
+        // -------------------------
+        // |  if traverse further  |
+        // -------------------------
         for (auto &predecessor : bw_neighbors){
 
             DFS_case(ucm, predecessor, tb, verbose);
@@ -470,14 +486,19 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         }
     }
 
+    // --------------------------
+    // |  if traverse backward  |
+    // --------------------------
     else{   // traversal_direction==GO_FORWARD
         if (verbose) cout << "I am setting " << ue->getID() << " to seen (fw)." << endl;
         ue->set_seen_fw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
 
         ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
-        // if sink node
-        if (!fw_neighbors.hasSuccessors() && !ue->is_visited_fw()){   // visited check could be bw/fw; visited check necessary to avoid RC path
+        // ------------------
+        // |  if sink node  |
+        // ------------------
+        if ((!fw_neighbors.hasSuccessors() && !ue->is_visited_fw()) || !endsHaveCommonColor(src, ucm, verbose)){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
@@ -504,7 +525,9 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             return tb;
         }
 
-        // if traverse further
+        // -------------------------
+        // |  if traverse further  |
+        // -------------------------
         for (auto &successor : fw_neighbors){
 
             DFS_case(ucm, successor, tb, verbose);
@@ -548,7 +571,7 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
 #ifdef DEBUG
             if (verbose) cout << "I am at " << ucm_ue->getID() << " and will go forward to " << neighbor_ue->getID() << endl;
 #endif // DEBUG
-            Traceback returned_tb = DFS_Visit(neighbor, GO_BACKWARD, verbose);
+            Traceback returned_tb = DFS_Visit(neighbor, ucm, GO_BACKWARD, verbose);
 #ifdef DEBUG
             if (verbose) cout << "I jumped back to ID " << ucm_ue->getID() << endl;
 #endif // DEBUG
@@ -580,7 +603,7 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
 #ifdef DEBUG
             if (verbose) cout << "I am at " << ucm_ue->getID() << " and will go forward to " << neighbor_ue->getID() << endl;
 #endif // DEBUG
-            Traceback returned_tb = DFS_Visit(neighbor, GO_FORWARD, verbose);
+            Traceback returned_tb = DFS_Visit(neighbor, ucm, GO_FORWARD, verbose);
 #ifdef DEBUG
             if (verbose) cout << "I jumped back to ID " << ucm_ue->getID() << endl;
 #endif // DEBUG
@@ -605,90 +628,98 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
 }
 
 
-inline bool ExtendedCCDBG::endsHaveSameColors(const UnitigColorMap<UnitigExtension> &observed, const UnitigColorMap<UnitigExtension> &neighbor) const{
-    uint8_t direction = whereFrom(observed, neighbor);
+/*!
+ * \fn      inline bool ExtendedCCDBG::endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed,
+ *                                                         const UnitigColorMap<UnitigExtension> &neighbor) const
+ * \details This function compares the last kmer's color vector of two consecutive unitigs (observed OBS, neighbor NBR), i.e.
+ *          OBS -------        -------- NBR
+ *                    X               A
+ *                    Y  --->         B         if (X==A) || (Y==B) || (Z==C) then return true
+ *                    Z               C
+ * \return  bool
+ */
+inline bool ExtendedCCDBG::endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed,
+                                               const UnitigColorMap<UnitigExtension> &neighbor, 
+                                               const bool verbose) const{
+    bool rValue = false;
     size_t nb_colors = this->getNbColors();
-    bool same = true;
 
-    if (direction == GO_FORWARD){
+    // get unitig orientations
+    uint8_t observed_to_neighbor_direction = whereFrom(observed, neighbor);
+    uint8_t neighbor_to_observed_direction = whereFrom(neighbor, observed);
 
-        // get kmers
-        const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(observed.size - static_cast<size_t>(this->getK()));
-        const const_UnitigColorMap<UnitigExtension> mapping_neighbor = neighbor.getKmerMapping(0);
+    if (observed_to_neighbor_direction == GO_FORWARD){
+        if(neighbor_to_observed_direction == GO_FORWARD){
+            // CASE 1:      OBS -----> <----- NBR
+            // Comp. :               X      X
+            // get kmers
+            const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(observed.size - static_cast<size_t>(this->getK()));
+            const const_UnitigColorMap<UnitigExtension> mapping_neighbor = neighbor.getKmerMapping(0);
+            // get compressed UnitigColor objects
+            const UnitigColors* uc_observed_tail = mapping_observed.getData()->getUnitigColors(mapping_observed);
+            const UnitigColors* uc_neighbor_head = mapping_neighbor.getData()->getUnitigColors(mapping_neighbor);
 
-        // get compressed UnitigColor objects
-        const UnitigColors* uc_observed_tail = mapping_observed.getData()->getUnitigColors(mapping_observed);
-        const UnitigColors* uc_neighbor_head = mapping_neighbor.getData()->getUnitigColors(mapping_neighbor);
+            for (size_t color_id = 0; color_id != nb_colors; ++color_id){
+                rValue = uc_observed_tail->contains(mapping_observed, color_id) == uc_neighbor_head->contains(mapping_neighbor, color_id);
+                if (rValue) break;
+            }
+        }
 
-        for (size_t color_id = 0; color_id != nb_colors; ++color_id){
-            same = uc_observed_tail->contains(mapping_observed, color_id) == uc_neighbor_head->contains(mapping_neighbor, color_id);
-            if (!same)
-                break;
+        if(neighbor_to_observed_direction == GO_BACKWARD){
+            // CASE 2:      OBS -----> -----> NBR
+            // Comp. :               X      X
+            // get kmers
+            const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(observed.size - static_cast<size_t>(this->getK()));
+            const const_UnitigColorMap<UnitigExtension> mapping_neighbor = neighbor.getKmerMapping(neighbor.size - static_cast<size_t>(this->getK()));
+            // get compressed UnitigColor objects
+            const UnitigColors* uc_observed_tail = mapping_observed.getData()->getUnitigColors(mapping_observed);
+            const UnitigColors* uc_neighbor_tail = mapping_neighbor.getData()->getUnitigColors(mapping_neighbor);
+ 
+            for (size_t color_id = 0; color_id != nb_colors; ++color_id){
+                rValue = uc_observed_tail->contains(mapping_observed, color_id) == uc_neighbor_tail->contains(mapping_neighbor, color_id);
+                if (rValue) break;
+            }
         }
     }
 
-    else{   // (direction == GO_BACKWARD)
+    else{   // observed_to_neighbor_direction == GO_BACKWARD
+        if(neighbor_to_observed_direction == GO_FORWARD){
+            // CASE 3:      NBR -----> -----> OBS
+            // Comp. :          X      X
+            // get kmers
+            const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(0);
+            const const_UnitigColorMap<UnitigExtension> mapping_neighbor = neighbor.getKmerMapping(0);
+            // get compressed UnitigColor objects
+            const UnitigColors* uc_observed_head = mapping_observed.getData()->getUnitigColors(mapping_observed);
+            const UnitigColors* uc_neighbor_head = mapping_neighbor.getData()->getUnitigColors(mapping_neighbor);
 
-        // get kmers
-        const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(0);
-        const const_UnitigColorMap<UnitigExtension> mapping_neighbor = neighbor.getKmerMapping(neighbor.size - static_cast<size_t>(this->getK()));
+            for (size_t color_id = 0; color_id != nb_colors; ++color_id){
+                rValue = uc_observed_head->contains(mapping_observed, color_id) == uc_neighbor_head->contains(mapping_neighbor, color_id);
+                if (rValue) break;
+            }
+        }
 
-        // get compressed UnitigColor objects
-        const UnitigColors* uc_observed_head = mapping_observed.getData()->getUnitigColors(mapping_observed);
-        const UnitigColors* uc_neighbor_tail = mapping_neighbor.getData()->getUnitigColors(mapping_neighbor);
+        if(neighbor_to_observed_direction == GO_BACKWARD){
+            // CASE 4:      NBR <----- -----> OBS
+            // Comp. :          X      X
+            // get kmers
+            const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(0);
+            const const_UnitigColorMap<UnitigExtension> mapping_neighbor = neighbor.getKmerMapping(neighbor.size - static_cast<size_t>(this->getK()));
+            // get compressed UnitigColor objects
+            const UnitigColors* uc_observed_head = mapping_observed.getData()->getUnitigColors(mapping_observed);
+            const UnitigColors* uc_neighbor_tail = mapping_neighbor.getData()->getUnitigColors(mapping_neighbor);
 
-        for (size_t color_id = 0; color_id != nb_colors; ++color_id){
-            same = uc_observed_head->contains(mapping_observed, color_id) == uc_neighbor_tail->contains(mapping_neighbor, color_id);
-            if (!same)
-                break;
+            for (size_t color_id = 0; color_id != nb_colors; ++color_id){
+                rValue = uc_observed_head->contains(mapping_observed, color_id) == uc_neighbor_tail->contains(mapping_neighbor, color_id);
+                if (rValue) break;
+            }
         }
     }
 
-    return same;
-}
+    if (verbose)
+        if (!rValue) cout << "Color-criterion stopped traversal." << endl;
 
-
-inline bool ExtendedCCDBG::endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed, const UnitigColorMap<UnitigExtension> &neighbor) const{
-    uint8_t direction = whereFrom(observed, neighbor);
-    size_t nb_colors = this->getNbColors();
-    bool same = false;
-
-    if (direction == GO_FORWARD){
-
-        // get kmers
-        const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(observed.size - static_cast<size_t>(this->getK()));
-        const const_UnitigColorMap<UnitigExtension> mapping_neighbor = neighbor.getKmerMapping(0);
-
-        // get compressed UnitigColor objects
-        const UnitigColors* uc_observed_tail = mapping_observed.getData()->getUnitigColors(mapping_observed);
-        const UnitigColors* uc_neighbor_head = mapping_neighbor.getData()->getUnitigColors(mapping_neighbor);
-
-        for (size_t color_id = 0; color_id != nb_colors; ++color_id){
-            same = uc_observed_tail->contains(mapping_observed, color_id) == uc_neighbor_head->contains(mapping_neighbor, color_id);
-            if (same)
-                break;
-        }
-    }
-
-    else{
-
-        // get kmers
-        const const_UnitigColorMap<UnitigExtension> mapping_observed = observed.getKmerMapping(0);
-        const const_UnitigColorMap<UnitigExtension> mapping_neighbor = neighbor.getKmerMapping(neighbor.size - static_cast<size_t>(this->getK()));
-
-        // get compressed UnitigColor objects
-        const UnitigColors* uc_observed_head = mapping_observed.getData()->getUnitigColors(mapping_observed);
-        const UnitigColors* uc_neighbor_tail = mapping_neighbor.getData()->getUnitigColors(mapping_neighbor);
-
-        for (size_t color_id = 0; color_id != nb_colors; ++color_id){
-            same = uc_observed_head->contains(mapping_observed, color_id) == uc_neighbor_tail->contains(mapping_neighbor, color_id);
-            if (same)
-                break;
-        }
-    }
-
-    return same;
-
+    return rValue;
 }
 
 

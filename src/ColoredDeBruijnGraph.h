@@ -104,16 +104,24 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         uint8_t whereToGo(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
         uint8_t whereFrom(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
 
-        Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm, const uint8_t src_direction, const bool verbose);
         Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
 
-        void DFS_case(const UnitigColorMap<UnitigExtension> &ucm, const UnitigColorMap<UnitigExtension> &neighbor, Traceback &tb, const bool verbose);
+        Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
+                            const UnitigColorMap<UnitigExtension> &src,
+                            const uint8_t src_direction,
+                            const bool verbose);
+
+        void DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
+                      const UnitigColorMap<UnitigExtension> &neighbor,
+                      Traceback &tb,
+                      const bool verbose);
         
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
 
-        bool endsHaveSameColors(const UnitigColorMap<UnitigExtension> &ucm, const UnitigColorMap<UnitigExtension> &neighbor) const;
-        bool endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed, const UnitigColorMap<UnitigExtension> &neighbor) const;
+        bool endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed,
+                                 const UnitigColorMap<UnitigExtension> &neighbor, 
+                                 const bool verbose) const;
 
 
 };
