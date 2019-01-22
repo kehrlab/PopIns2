@@ -107,20 +107,24 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
 
         Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
-                            const UnitigColorMap<UnitigExtension> &src,
+                            const UnitigColorMap<UnitigExtension> &start_ucm,
                             const uint8_t src_direction,
+                            const uint8_t start_direction,
                             const bool verbose);
 
         void DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                       const UnitigColorMap<UnitigExtension> &neighbor,
+                      const UnitigColorMap<UnitigExtension> &start_ucm,
                       Traceback &tb,
+                      const uint8_t start_direction,
                       const bool verbose);
         
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
 
-        bool endsHaveCommonColor(const UnitigColorMap<UnitigExtension> &observed,
-                                 const UnitigColorMap<UnitigExtension> &neighbor, 
+        bool haveCommonColor(const UnitigColorMap<UnitigExtension> &start_ucm,
+                                 const UnitigColorMap<UnitigExtension> &ucm,
+                                 const uint8_t start_direction, 
                                  const bool verbose) const;
 
 
