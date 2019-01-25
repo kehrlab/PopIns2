@@ -9,6 +9,19 @@
 using namespace seqan;
 
 
+template <typename TType>
+inline void print(std::vector<TType> &v){
+    std::cout << "[";
+    // stay safe with constant iterators
+    typename std::vector<TType>::const_iterator it = v.cbegin();
+    for ( ; it != v.cend(); ++it){
+        // output format
+        std::cout << *it << ", ";
+    }
+    std::cout << "]" << std::endl;
+}
+
+
 CCDBG_Build_opt ccdbg_opt;
 SEQAN_DEFINE_TEST(test_ccdbg_opt){
 
@@ -24,6 +37,10 @@ SEQAN_DEFINE_TEST(test_ccdbg_opt){
     ccdbg_opt.outputGFA = true;
     ccdbg_opt.verbose = false;
 }
+
+// -------------
+// | NEW GRAPH |
+// -------------
 
 ExtendedCCDBG ccdbg(ccdbg_opt.k, ccdbg_opt.g);
 SEQAN_DEFINE_TEST(test_ccdbg_build){
@@ -70,57 +87,9 @@ SEQAN_DEFINE_TEST(test_ccdbg_connected_components){
     );
 }
 
-// NOTE: TEST was designed for other testfile. DO NOT RUN!
-/*
-SEQAN_DEFINE_TEST(test_neighbors_and_bit_operations){
-    size_t nb_potential_splitnodes = 0;
-    for (auto &ucm : xg){
-        // -----------------------------
-        // | Test amount of neighbors  |
-        // -----------------------------
-        ForwardCDBG<UnitigExtension, false> fw_dbg = ucm.getSuccessors();
-        BackwardCDBG<UnitigExtension, false> bw_dbg = ucm.getPredecessors();
-
-        size_t i=0;
-        for (auto &suc : fw_dbg) ++i;
-
-        size_t j=0;
-        for (auto &pre : bw_dbg) ++j;
-
-        if (i>1 && j>1)
-            ++nb_potential_splitnodes;
-
-        // ------------------------
-        // | Test base accession  |
-        // ------------------------
-        if (ucm.getData()->getID() == 4) {
-            UnitigMap<UnitigExtension>::neighbor_iterator suc1 = fw_dbg.begin();
-            UnitigMap<UnitigExtension>::neighbor_iterator pre1 = bw_dbg.begin();
-
-            char firstPredecessor_lastBase = (pre1->getTail()).getChar(graph_opt.k-1);   // getChar(offset) returns the base from Kmer at offset from the beginning
-            char firstSuccessor_firstBase = (suc1->getHead()).getChar(0);                   // getChar(offset) returns the base from Kmer at offset from the beginning
-
-            SEQAN_ASSERT_EQ(firstPredecessor_lastBase, 'T');
-            SEQAN_ASSERT_EQ(firstSuccessor_firstBase, 'C');
-
-            // -------------------------------------------
-            // | Test succint bit storage and bit masks  |
-            // -------------------------------------------
-            uint8_t pre_bitmask = bitmask_encoder_predecessor[firstPredecessor_lastBase];
-            uint8_t suc_bitmask = bitmask_encoder_successor[firstSuccessor_firstBase];
-            uint8_t test_bit_encoding = setNeighborPairFromBases(pre_bitmask, suc_bitmask);
-            SEQAN_ASSERT_EQ(test_bit_encoding, 0b00001101);
-
-            pair<uint8_t, uint8_t> test_bit_decoding = getBasesFromNeighborPair(test_bit_encoding);
-            char f = bitmask_decoder[test_bit_decoding.first];
-            char s = bitmask_decoder[test_bit_decoding.second];
-            SEQAN_ASSERT_EQ(f, 'T');
-            SEQAN_ASSERT_EQ(s, 'C');
-        }
-    }
-    SEQAN_ASSERT_EQ(nb_potential_splitnodes, 5u);
-}
-*/
+// -------------
+// | NEW GRAPH |
+// -------------
 
 CCDBG_Build_opt opt;
 ExtendedCCDBG g(opt.k, opt.g);
@@ -188,10 +157,14 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBranching_singleThread){
     }
     
     if(remove("contigs.fa") || remove("simpleBranching.gfa") || remove("simpleBranching.bfg_colors"))
-        perror("Error deleting file");
+        perror("[test_ccdbg_simpleBranching_singleThread] Error deleting meta files");
     else
-        puts("Files successfully deleted");
+        puts("[test_ccdbg_simpleBranching_singleThread] Meta files successfully deleted");
 }
+
+// -------------
+// | NEW GRAPH |
+// -------------
 
 CCDBG_Build_opt opt2;
 ExtendedCCDBG g2(opt2.k, opt2.g);
@@ -255,10 +228,38 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles_singleThread){
     }
     
     if(remove("contigs.fa") || remove("simpleBubbles.gfa") || remove("simpleBubbles.bfg_colors"))
-        perror("Error deleting file");
+        perror("[test_ccdbg_simpleBubbles_singleThread] Error deleting meta files");
     else
-        puts("Files successfully deleted");
+        puts("[test_ccdbg_simpleBubbles_singleThread] Meta files successfully deleted");
 }
+
+// -------------
+// | NEW GRAPH |
+// -------------
+/*
+CCDBG_Build_opt opt3;
+ExtendedCCDBG g3(opt3.k, opt3.g);
+SEQAN_DEFINE_TEST(test_ccdbg_simpleColorTest){
+
+    std::string path = "./testcases/simpleColorTest/";
+    std::vector<std::string> infiles;
+    SEQAN_ASSERT_EQ(getFastx(infiles, path), true);
+
+    opt2.filename_seq_in = infiles;
+    opt2.deleteIsolated = true;
+    opt2.clipTips = true;
+    opt2.prefixFilenameOut = "simpleColorTest";
+    opt2.nb_threads = 1;
+    opt2.outputGFA = true;
+    opt2.verbose = false;
+
+    // Build and prune graph
+    SEQAN_ASSERT_EQ(g2.buildGraph(opt2), true);
+    SEQAN_ASSERT_EQ(g2.simplify(opt2.deleteIsolated, opt2.clipTips, opt2.verbose), true);
+    SEQAN_ASSERT_EQ(g2.buildColors(opt2), true);
+    SEQAN_ASSERT_EQ(g2.write(opt2.prefixFilenameOut, opt2.nb_threads, opt2.verbose), true);
+}
+*/
 
 SEQAN_BEGIN_TESTSUITE(test_popins2){
 

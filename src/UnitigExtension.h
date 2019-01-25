@@ -145,7 +145,9 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension> {
         void extract(const UnitigColors *uc_dest,
                      const UnitigColorMap<UnitigExtension> &um_src,
                      const bool last_extraction);
-
+        */
+       
+        /*
         string serialize(const const_UnitigColorMap<UnitigExtension> &um_src) const;
         */
 };

@@ -105,7 +105,7 @@ bool Traceback::write(ofstream &ofs, const size_t k, size_t &counter) const{
             cutconcat(seq, *it, k);
             ++counter;
 
-            ofs << ">" << counter << "\n";
+            ofs << ">contig_" << counter << "\n";
             ofs << seq << "\n";
         }
         return 1;
@@ -448,8 +448,8 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // ------------------
         // |  if sink node  |
         // ------------------
-        if ((!bw_neighbors.hasPredecessors() && !ue->is_visited_bw()) || !haveCommonColor(start_ucm, ucm, start_direction, verbose)){   // visited check could be bw/fw; visited check necessary to avoid RC path
-            if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
+        if ((!bw_neighbors.hasPredecessors() && !ue->is_visited_bw()) || !haveCommonColor(start_ucm, ucm, start_direction, verbose) ){   // visited check could be bw/fw; visited check necessary to avoid RC path
+            if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited OR does not satisfy the color criteria." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
             // Traceback:
@@ -497,8 +497,8 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // ------------------
         // |  if sink node  |
         // ------------------
-        if ((!fw_neighbors.hasSuccessors() && !ue->is_visited_fw()) || !haveCommonColor(start_ucm, ucm, start_direction, verbose)){   // visited check could be bw/fw; visited check necessary to avoid RC path
-            if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
+        if ((!fw_neighbors.hasSuccessors() && !ue->is_visited_fw()) || !haveCommonColor(start_ucm, ucm, start_direction, verbose) ){   // visited check could be bw/fw; visited check necessary to avoid RC path
+            if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited OR does not satisfy the color criteria." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
             // Traceback:
@@ -641,7 +641,7 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
  * \brief   This function intersects the last color vector (depending on orientation) of the DFS start unitig (start_ucm) with the intersection of
  *          the current unitig's (ucm) start and end color vectors. If the outer intersection is not empty, this function returns true.
  * \details ColVec_start_? INTERSECT (ColVec_current_head INTERSECT ColVec_current_tail)
- * \return  bool
+ * \return  bool, true if start and current unitig have common sample (color)
  */
 inline bool ExtendedCCDBG::haveCommonColor(const UnitigColorMap<UnitigExtension> &start_ucm,
                                            const UnitigColorMap<UnitigExtension> &ucm,
@@ -660,6 +660,19 @@ inline bool ExtendedCCDBG::haveCommonColor(const UnitigColorMap<UnitigExtension>
     const const_UnitigColorMap<UnitigExtension> start_kmer = (start_direction==GO_FORWARD) ? start_ucm.getKmerMapping(start_ucm.size - static_cast<size_t>(this->getK())) : start_ucm.getKmerMapping(0);
     const UnitigColors* start_uc = start_kmer.getData()->getUnitigColors(start_kmer);
 
+    if (verbose){
+        DataAccessor<UnitigExtension>* da_start_ucm = start_ucm.getData();
+        UnitigExtension* ue_start_ucm = da_start_ucm->getData(start_ucm);
+        
+        DataAccessor<UnitigExtension>* da_ucm = ucm.getData();
+        UnitigExtension* ue_ucm = da_ucm->getData(ucm);
+        
+        cout << "Color Compare: Current Unitig: " << ue_ucm->getID() << ", Start Unitig: " << ue_start_ucm->getID() << endl;
+    }
+
+    if (verbose)
+        cout << "u_s: | u_e: | s__: | return" << endl;
+    
     for (size_t color_id = 0; color_id != nb_colors; ++color_id){
         bool hasColor_ucm_head = ucm_head_uc->contains(ucm_head_kmer, color_id);
         bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
@@ -667,6 +680,9 @@ inline bool ExtendedCCDBG::haveCommonColor(const UnitigColorMap<UnitigExtension>
         
         bool rValue = true && hasColor_ucm_head && hasColor_ucm_tail && hasColor_start;
         
+        if (verbose)
+            cout << hasColor_ucm_head << "    | " << hasColor_ucm_tail << "    | " << hasColor_start << "    | " << rValue << endl;
+
         if (rValue) break;
     }
 
