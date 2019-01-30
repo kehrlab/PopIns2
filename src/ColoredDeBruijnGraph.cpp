@@ -448,8 +448,8 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // ------------------
         // |  if sink node  |
         // ------------------
-        if ((!bw_neighbors.hasPredecessors() && !ue->is_visited_bw()) || !haveCommonColor(start_ucm, ucm, start_direction, verbose) ){   // visited check could be bw/fw; visited check necessary to avoid RC path
-            if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited OR does not satisfy the color criteria." << endl;
+        if ( !bw_neighbors.hasPredecessors() && !ue->is_visited_bw() ){   // visited check could be bw/fw; visited check necessary to avoid RC path
+            if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
             // Traceback:
@@ -466,6 +466,18 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             l_seqs.push_back(ucm.referenceUnitigToString());
             tb.seqs.push_back(l_seqs);
 #endif // DEBUG
+
+            VSequences vseqs;
+            ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
+            tb.push_back(vseqs);
+
+            tb.recursive_return_status = true;
+            return tb;
+        }
+
+        if (!haveCommonColor(start_ucm, ucm, start_direction, verbose)){
+            if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
+            if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
             VSequences vseqs;
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -497,8 +509,8 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // ------------------
         // |  if sink node  |
         // ------------------
-        if ((!fw_neighbors.hasSuccessors() && !ue->is_visited_fw()) || !haveCommonColor(start_ucm, ucm, start_direction, verbose) ){   // visited check could be bw/fw; visited check necessary to avoid RC path
-            if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited OR does not satisfy the color criteria." << endl;
+        if ( !fw_neighbors.hasSuccessors() && !ue->is_visited_fw() ){   // visited check could be bw/fw; visited check necessary to avoid RC path
+            if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
             // Traceback:
@@ -515,6 +527,18 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             l_seqs.push_back(ucm.referenceUnitigToString());
             tb.seqs.push_back(l_seqs);
 #endif // DEBUG
+
+            VSequences vseqs;
+            ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
+            tb.push_back(vseqs);
+
+            tb.recursive_return_status = true;
+            return tb;
+        }
+
+        if (!haveCommonColor(start_ucm, ucm, start_direction, verbose)){
+            if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
+            if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
             VSequences vseqs;
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -678,7 +702,7 @@ inline bool ExtendedCCDBG::haveCommonColor(const UnitigColorMap<UnitigExtension>
         bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
         bool hasColor_start    =    start_uc->contains(start_kmer,    color_id);
         
-        bool rValue = true && hasColor_ucm_head && hasColor_ucm_tail && hasColor_start;
+        rValue = true && hasColor_ucm_head && hasColor_ucm_tail && hasColor_start;
         
         if (verbose)
             cout << hasColor_ucm_head << "    | " << hasColor_ucm_tail << "    | " << hasColor_start << "    | " << rValue << endl;
