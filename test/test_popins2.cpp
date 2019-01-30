@@ -158,8 +158,8 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBranching_singleThread){
     
     if(remove("contigs.fa") || remove("simpleBranching.gfa") || remove("simpleBranching.bfg_colors"))
         perror("[test_ccdbg_simpleBranching_singleThread] Error deleting meta files");
-    else
-        puts("[test_ccdbg_simpleBranching_singleThread] Meta files successfully deleted");
+    //else
+    //    puts("[test_ccdbg_simpleBranching_singleThread] Meta files successfully deleted");
 }
 
 // -------------
@@ -229,14 +229,14 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles_singleThread){
     
     if(remove("contigs.fa") || remove("simpleBubbles.gfa") || remove("simpleBubbles.bfg_colors"))
         perror("[test_ccdbg_simpleBubbles_singleThread] Error deleting meta files");
-    else
-        puts("[test_ccdbg_simpleBubbles_singleThread] Meta files successfully deleted");
+    //else
+    //    puts("[test_ccdbg_simpleBubbles_singleThread] Meta files successfully deleted");
 }
 
 // -------------
 // | NEW GRAPH |
 // -------------
-/*
+
 CCDBG_Build_opt opt3;
 ExtendedCCDBG g3(opt3.k, opt3.g);
 SEQAN_DEFINE_TEST(test_ccdbg_simpleColorTest){
@@ -245,21 +245,64 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleColorTest){
     std::vector<std::string> infiles;
     SEQAN_ASSERT_EQ(getFastx(infiles, path), true);
 
-    opt2.filename_seq_in = infiles;
-    opt2.deleteIsolated = true;
-    opt2.clipTips = true;
-    opt2.prefixFilenameOut = "simpleColorTest";
-    opt2.nb_threads = 1;
-    opt2.outputGFA = true;
-    opt2.verbose = false;
+    opt3.filename_seq_in = infiles;
+    opt3.deleteIsolated = true;
+    opt3.clipTips = true;
+    opt3.prefixFilenameOut = "simpleColorTest";
+    opt3.nb_threads = 1;
+    opt3.outputGFA = true;
+    opt3.verbose = false;
 
     // Build and prune graph
-    SEQAN_ASSERT_EQ(g2.buildGraph(opt2), true);
-    SEQAN_ASSERT_EQ(g2.simplify(opt2.deleteIsolated, opt2.clipTips, opt2.verbose), true);
-    SEQAN_ASSERT_EQ(g2.buildColors(opt2), true);
-    SEQAN_ASSERT_EQ(g2.write(opt2.prefixFilenameOut, opt2.nb_threads, opt2.verbose), true);
+    SEQAN_ASSERT_EQ(g3.buildGraph(opt3), true);
+    SEQAN_ASSERT_EQ(g3.simplify(opt3.deleteIsolated, opt3.clipTips, opt3.verbose), true);
+    SEQAN_ASSERT_EQ(g3.buildColors(opt3), true);
+    SEQAN_ASSERT_EQ(g3.write(opt3.prefixFilenameOut, opt3.nb_threads, opt3.verbose), true);
+
+    /* Run merge */
+    g3.init_ids();
+    SEQAN_ASSERT_EQ(g3.merge(opt3), true);
+
+    /* Truth set */
+    StringSet<DnaString> simpleColorTestTruthSet;
+    DnaString str1 = "TTACCTCTACAAAAAGCGACTGCCAGTGTAACCCCACGAGGATCCGAAAAGGCGAACCGGCCCAGACGACCCGGGGGCACGGGCCTCAAAGCCGCGACACGACGGCTGTCGGCCGGTAACAGTAACCCCGGAGTGAACTCCTATGGGGCTGGATAGAACAGCCCTGGTGGGCCCCATCAGCAACCCGAATACGTGGCTCTTCGGGAGGCGGCCGGAGGGGCGATGTCTTCCACTATTCGAGGCCGTTCGTTAATACTTGTTGCGTTCCTAGCCGCTATATTTGTCTCTTTGCCGACTAATGTGGACAAGCACACCATAGCCATTTGTCGGGGCGCCTCGGAATACGGTATGAGCAGGCGCCTCGTGAGGCCATCGCGAATACCAGGTGTCCTGTAAGCAGCGAAGGCCCGCACGCGAGATAAACTGCTAGGGAACCGCGTGTCCACGACCGGTGGTGGATTTAATCTCGCCGACGTGTAGACATTCCAGGCAGTGCGTCT";
+    DnaString str2 = "GCCGCCGGGCCCCTCTGGTGACTGGGTAGCTGGACTTGCCCTTGGAAGACATAGCAAGACCCTGCCTCTCTATTGATGTCACGGCGAATGTCGGGGAGACAGCAGCGGCTGCAGACATCAGATAACCCCGGAGTGAACTCCTATGGGGCTGGATAGAACAGCCCTGGTGGGCCCCATCAGCAACCCGAATACGTGGCTCTTCGGGAGGCGGCCGGAGGGGCGATGTCTTCCACTATTCGAGGCCGTTCGTTAATACTTGTTGCGTTCCTAGCCGCTATATTTGTCTCTTTGCCGACTAATGTGGACAAGCACACCATAGCCATTTGTCGGGGCGCCTCGGAATACGGTATGAGCAGGCGCCTCGTGCGTTACCGCCATAAGATGGGAGCATGACTCCTTCTCCGCTGCGCCCACGCCAGTAGTGATTACTCCTATGACCCTTCCGAGAGTCCGGAGGCGGAAATCCGCCACGAATGAGAATGTATTTCCCCGACAGTCAT";
+    appendValue(simpleColorTestTruthSet, str1);
+    appendValue(simpleColorTestTruthSet, str2);
+
+    /* Test contig.fa for correctness */
+    CharString seqFileName = "contigs.fa";
+    StringSet<CharString> ids;
+    StringSet<DnaString> seqs;
+
+    SeqFileIn seqFileIn;
+    if (!open(seqFileIn, toCString(seqFileName))) std::cerr << "ERROR: Could not open the file.\n";
+
+    try{
+        readRecords(ids, seqs, seqFileIn);
+    }
+    catch (Exception const & e){
+        std::cout << "ERROR: " << e.what() << std::endl;
+    }
+    SEQAN_ASSERT_EQ(length(seqs), 2u);
+    SEQAN_ASSERT_EQ(length(ids), 2u);
+
+    typedef Iterator<StringSet<DnaString> >::Type TStringSetIterator;
+    for (TStringSetIterator seq = begin(seqs); seq != end(seqs); ++seq){
+        unsigned c = 0;
+        for (TStringSetIterator true_seq = begin(simpleColorTestTruthSet); true_seq != end(simpleColorTestTruthSet); ++true_seq)
+            if (*seq == *true_seq)
+                ++c;
+        SEQAN_ASSERT_EQ(c, 1u);
+    }
+    
+    if(remove("contigs.fa") || remove("simpleColorTest.gfa") || remove("simpleColorTest.bfg_colors"))
+        perror("[test_ccdbg_simpleColorTest] Error deleting meta files");
+    //else
+    //    puts("[test_ccdbg_simpleColorTest] Meta files successfully deleted");
 }
-*/
+
+
 
 SEQAN_BEGIN_TESTSUITE(test_popins2){
 
@@ -268,6 +311,7 @@ SEQAN_BEGIN_TESTSUITE(test_popins2){
     SEQAN_CALL_TEST(test_ccdbg_connected_components);
     SEQAN_CALL_TEST(test_ccdbg_simpleBranching_singleThread);
     SEQAN_CALL_TEST(test_ccdbg_simpleBubbles_singleThread);
+    SEQAN_CALL_TEST(test_ccdbg_simpleColorTest);
 
 }
 SEQAN_END_TESTSUITE
