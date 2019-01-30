@@ -443,11 +443,21 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
         ue->set_seen_bw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
 
-        BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
+        // -----------------------
+        // |  if stop by colors  |
+        // -----------------------
+        if (!haveCommonColor(start_ucm, ucm, start_direction, verbose)){
+            if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
+            if (verbose) cout << "Traversal will not go further here." << endl;
+
+            return tb;
+        }
 
         // ------------------
         // |  if sink node  |
         // ------------------
+        BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
+        
         if ( !bw_neighbors.hasPredecessors() && !ue->is_visited_bw() ){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
@@ -475,18 +485,6 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             return tb;
         }
 
-        if (!haveCommonColor(start_ucm, ucm, start_direction, verbose)){
-            if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
-            if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
-
-            VSequences vseqs;
-            ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
-            tb.push_back(vseqs);
-
-            tb.recursive_return_status = true;
-            return tb;
-        }
-
         // -------------------------
         // |  if traverse further  |
         // -------------------------
@@ -504,11 +502,21 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         if (verbose) cout << "I am setting " << ue->getID() << " to seen (fw)." << endl;
         ue->set_seen_fw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
 
-        ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
+        // -----------------------
+        // |  if stop by colors  |
+        // -----------------------
+        if (!haveCommonColor(start_ucm, ucm, start_direction, verbose)){
+            if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
+            if (verbose) cout << "Traversal will not go further here." << endl;
+
+            return tb;
+        }
 
         // ------------------
         // |  if sink node  |
         // ------------------
+        ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
+
         if ( !fw_neighbors.hasSuccessors() && !ue->is_visited_fw() ){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
@@ -527,18 +535,6 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             l_seqs.push_back(ucm.referenceUnitigToString());
             tb.seqs.push_back(l_seqs);
 #endif // DEBUG
-
-            VSequences vseqs;
-            ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
-            tb.push_back(vseqs);
-
-            tb.recursive_return_status = true;
-            return tb;
-        }
-
-        if (!haveCommonColor(start_ucm, ucm, start_direction, verbose)){
-            if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
-            if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
             VSequences vseqs;
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
@@ -621,6 +617,7 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                 tb.join(returned_tb);
             }
         }
+        // else: don't do anything. This means &tb doesn't get any update and will stay as initiated (no traceback). Happens e.g. at loops.
     }
     else{   // whereFrom(neighbor, ucm)==GO_FORWARD
         /*  Case 4:                             Case 2:
@@ -653,6 +650,7 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                 tb.join(returned_tb);
             }
         }
+        // else: don't do anything. This means &tb doesn't get any update and will stay as initiated (no traceback). Happens e.g. at loops.
     }
 }
 
