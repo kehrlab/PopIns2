@@ -152,7 +152,7 @@ inline bool getFastx(std::vector<std::string> &v, std::string path, const bool v
                 }
                 else{
                     if (verbose){
-                        std::cerr << "getFastx(): Input file is not in FASTX (*.f[ast]?a|q[.gz]?) format." << std::endl;
+                        std::cerr << "getFastx(): Input file is not in FASTX (*.f[ast]?[a|q][.gz]?) format." << std::endl;
                         std::cerr << "Skipping " << current_fastx << std::endl;
                     }
                 }

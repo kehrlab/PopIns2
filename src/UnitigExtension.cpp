@@ -24,12 +24,19 @@ inline void UnitigExtension::extract(const UnitigColors* uc_dest,
                                      const bool last_extraction){
     // defaults are fine
 }
+*/
 
 
-inline string UnitigExtension::serialize(const const_UnitigColorMap< UnitigExtension >& um_src) const{
-    return std::to_string(getID());
+/*
+string UnitigExtension::serialize(const const_UnitigColorMap< UnitigExtension >& um_src) const{
+
+    const DataAccessor<UnitigExtension>* da = um_src.getData();
+    const UnitigExtension* ue = da->getData(um_src);
+
+    return std::to_string(ue->getID());
 }
 */
+
 
 /*!
  * \fn      uint8_t setNeighborPairFromBases(const uint8_t predecessor, const uint8_t successor)

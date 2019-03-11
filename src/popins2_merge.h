@@ -95,6 +95,41 @@ int popins2_merge(int argc, char const *argv[]){
     exg.merge(ccdbg_build_opt);
 
 
+    // ==============================
+    // ~~DEBUG~~
+    //
+    // - prints every unitig as a matrix of color vectors
+    // - needs: prettyprint
+    // ==============================
+    #include "prettyprint.h"
+    size_t nb_colors = exg.getNbColors();
+
+    std::vector<std::vector<bool> > vv;
+    for (auto &unitig : exg){
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+        cout << "Unitig: " << ue->getID() << ", Len: " << unitig.len << endl;
+
+        std::vector<bool> v;
+        
+        for (size_t kmerIter = 0; kmerIter <= unitig.size - exg.getK(); ++kmerIter){
+            const const_UnitigColorMap<UnitigExtension> kmer = unitig.getKmerMapping(kmerIter);
+            const UnitigColors* colors = kmer.getData()->getUnitigColors(kmer);
+
+            for (size_t colorIter = 0; colorIter != nb_colors; ++colorIter){
+                bool hasColor = colors->contains(kmer, colorIter);
+                v.push_back(hasColor);
+            }
+            vv.push_back(v);
+            v.clear();
+        }
+
+        prettyprint::print(vv, true);
+        vv.clear();
+    }
+
+
+
 
 
     return 0;
