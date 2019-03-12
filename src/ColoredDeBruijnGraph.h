@@ -127,6 +127,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                                  const uint8_t start_direction, 
                                  const bool verbose) const;
 
+        template <class TContainer> void getSourceNodes(TContainer &m) const;
 
 };
 

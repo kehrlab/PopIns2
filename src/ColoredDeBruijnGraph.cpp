@@ -5,6 +5,7 @@
 #include <vector>
 #include <queue>
 #include <fstream>
+#include <map>
 
 
 #ifdef DEBUG
@@ -720,25 +721,38 @@ inline bool ExtendedCCDBG::haveCommonColor(const UnitigColorMap<UnitigExtension>
  * \return  bool; true if successful
  */
 bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
+    
     /* sanity check */
     if (!this->is_id_init())
         return false;
     
     Traceback tb;
-
     size_t sv_counter = 0;
-    std::string sv_filename = "contigs.fa";
-    
-    ofstream ofs(sv_filename, std::ofstream::out);
 
+    std::string sv_filename = "contigs.fa";
+    ofstream ofs(sv_filename, std::ofstream::out);
     if (!ofs.is_open()){
         cerr << "Error: Couldn't open ofstream for contig file." << endl;
         return false;
     }
 
+    /* build a multimap here with |colors| as keys and IDs as values, in descending order */
+    struct GreaterThan {
+        bool operator() (const char& lhs, const char& rhs) const {return lhs>rhs;}
+    };
+    std::multimap<unsigned, unsigned, GreaterThan> start_nodes;
+
+    getSourceNodes(start_nodes);
+
+    for (auto it = start_nodes.cbegin(); it != start_nodes.cend(); ++it)
+        std::cout << " [" << it->first << ':' << it->second << ']';
+    std::cout << '\n';
+
+    /*
     for (auto &unitig : *this){
         tb = DFS_Init(unitig, opt.verbose);
         if (tb.recursive_return_status){
+
 #ifdef DEBUG
             tb.printIds();
             tb.printOris();
@@ -750,6 +764,7 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
         }
         DFS_cleaner_seen_only();
     }
+    */
 
     ofs.close();
 
@@ -757,8 +772,39 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
 }
 
 
+/*!
+ * \fn
+ * \return
+ */
+template <class TContainer>
+void ExtendedCCDBG::getSourceNodes(TContainer &m) const {
+    size_t nb_colors = this->getNbColors();
 
+    for (auto &ucm : *this){
+        BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, true> bw_neighbors = ucm.getPredecessors();
+        ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, true> fw_neighbors = ucm.getSuccessors();
 
+        bool pre = bw_neighbors.hasPredecessors();
+        bool suc = fw_neighbors.hasSuccessors();
+
+        if (pre && !suc || !pre && suc){
+            // get ID
+            const DataAccessor<UnitigExtension>* da = ucm.getData();
+            const UnitigExtension* ue = da->getData(ucm);
+            unsigned id = ue->getID();
+
+            // get #colors in traversal direction
+            const const_UnitigColorMap<UnitigExtension> start_kmer = (!pre && suc) ? ucm.getKmerMapping(ucm.size - static_cast<size_t>(this->getK())) : ucm.getKmerMapping(0);
+            const UnitigColors* start_uc = start_kmer.getData()->getUnitigColors(start_kmer);
+            size_t nb_colors_in_start_kmer = 0;
+            for (size_t color_id = 0; color_id != nb_colors; ++color_id)
+                if (start_uc->contains(start_kmer, color_id)) ++nb_colors_in_start_kmer;
+
+            // save (#colors, ID) in multimap
+            m.insert(std::pair<size_t, size_t>(nb_colors_in_start_kmer, id));
+        }
+    }
+}
 
 
 
