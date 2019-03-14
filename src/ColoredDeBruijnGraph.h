@@ -16,8 +16,8 @@
 #include "../../prettyprint/prettyprint.h"
 
 #ifdef DEBUG
-typedef std::vector<std::vector<unsigned> > PathSet;
-typedef std::vector<unsigned> Path;
+    typedef std::vector<std::vector<unsigned> > PathSet;
+    typedef std::vector<unsigned> Path;
 #endif // DEBUG
 
 typedef std::vector<std::vector<std::string> >VVSequences;
@@ -27,6 +27,10 @@ typedef std::vector<std::string> VSequences;
 // =========================
 // Structs
 // =========================
+struct GreaterThan {
+    bool operator() (const char& lhs, const char& rhs) const {return lhs>rhs;}
+};
+
 
 /*!
 * \class        Traceback
@@ -45,6 +49,8 @@ public:
     using iterator = VVSequences::iterator;
 
     bool recursive_return_status = false;
+
+    static uint8_t recursion_priority_counter;
 
 #ifdef DEBUG
     PathSet ids;
@@ -126,6 +132,9 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                                  const UnitigColorMap<UnitigExtension> &ucm,
                                  const uint8_t start_direction, 
                                  const bool verbose) const;
+
+        float equalColorbitsRate(const std::vector<bool> v,
+                                 const UnitigColorMap<UnitigExtension> &neighbor) const;
 
         template <class TContainer> void getSourceNodes(TContainer &m) const;
 

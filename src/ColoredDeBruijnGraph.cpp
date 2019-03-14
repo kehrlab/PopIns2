@@ -8,62 +8,65 @@
 #include <map>
 
 
+uint8_t Traceback::recursion_priority_counter = 0;
+
+
 #ifdef DEBUG
 
-void Traceback::printIds() const{
-    std::cout << "[";
-    for (auto it : this->ids){    
+    void Traceback::printIds() const{
         std::cout << "[";
-        for (auto itt : it){
-            // output format
-            std::cout << itt << ", ";
+        for (auto it : this->ids){    
+            std::cout << "[";
+            for (auto itt : it){
+                // output format
+                std::cout << itt << ", ";
+            }
+            std::cout << "]";
         }
-        std::cout << "]";
+        std::cout << "]" << std::endl;
     }
-    std::cout << "]" << std::endl;
-}
 
 
-void Traceback::printOris() const{
-    std::cout << "[";
-    for (auto it : this->oris){    
+    void Traceback::printOris() const{
         std::cout << "[";
-        for (auto itt : it){
-            // output format
-            std::cout << (itt ? "+" : "-") << ", ";
+        for (auto it : this->oris){    
+            std::cout << "[";
+            for (auto itt : it){
+                // output format
+                std::cout << (itt ? "+" : "-") << ", ";
+            }
+            std::cout << "]";
         }
-        std::cout << "]";
+        std::cout << "]" << std::endl;
     }
-    std::cout << "]" << std::endl;
-}
 
 
-void Traceback::printSeqs() const{
-    std::cout << "[";
-    for (auto it : this->seqs){    
+    void Traceback::printSeqs() const{
         std::cout << "[";
-        for (auto itt : it){
-            // output format
-            std::cout << itt << ", ";
+        for (auto it : this->seqs){    
+            std::cout << "[";
+            for (auto itt : it){
+                // output format
+                std::cout << itt << ", ";
+            }
+            std::cout << "]";
         }
-        std::cout << "]";
+        std::cout << "]" << std::endl;
     }
-    std::cout << "]" << std::endl;
-}
 
 
-void Traceback::printPathSeqs() const{
-    std::cout << "[";
-    for (auto it = cbegin(); it != cend(); ++it){
+    void Traceback::printPathSeqs() const{
         std::cout << "[";
-        for (auto itt : *it){
-            // output format
-            std::cout << itt << ", ";
+        for (auto it = cbegin(); it != cend(); ++it){
+            std::cout << "[";
+            for (auto itt : *it){
+                // output format
+                std::cout << itt << ", ";
+            }
+            std::cout << "]";
         }
-        std::cout << "]";
+        std::cout << "]" << std::endl;
     }
-    std::cout << "]" << std::endl;
-}
 
 #endif // DEBUG
 
@@ -331,8 +334,8 @@ inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >&
  * \return  Traceback object
  */
 Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose){
-
     Traceback tb;
+    tb.recursion_priority_counter = 0;
 
     // get data of current unitig
     DataAccessor<UnitigExtension>* da = ucm.getData();
@@ -437,9 +440,9 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 
     uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // NOTE: I guess this could be avoided if I'd pass traversal direction directly in DFS_visit
 
-    // -------------------------
-    // |  if traverse forward  |
-    // -------------------------
+    // --------------------------
+    // |  if traverse backward  |
+    // --------------------------
     if (traversal_direction==GO_BACKWARD){
         if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
         ue->set_seen_bw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
@@ -483,22 +486,21 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             tb.push_back(vseqs);
 
             tb.recursive_return_status = true;
+            tb.recursion_priority_counter += 1;
             return tb;
         }
 
         // -------------------------
         // |  if traverse further  |
         // -------------------------
-        for (auto &predecessor : bw_neighbors){
-
-            DFS_case(ucm, predecessor, start_ucm, tb, start_direction, verbose);
-
-        }
+        for (auto &predecessor : bw_neighbors)
+            if (tb.recursion_priority_counter < 1)                                                   // TODO: parameterize "1"
+                DFS_case(ucm, predecessor, start_ucm, tb, start_direction, verbose);
     }
 
-    // --------------------------
-    // |  if traverse backward  |
-    // --------------------------
+    // -------------------------
+    // |  if traverse forward  |
+    // -------------------------
     else{   // traversal_direction==GO_FORWARD
         if (verbose) cout << "I am setting " << ue->getID() << " to seen (fw)." << endl;
         ue->set_seen_fw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
@@ -542,17 +544,16 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             tb.push_back(vseqs);
 
             tb.recursive_return_status = true;
+            tb.recursion_priority_counter += 1;
             return tb;
         }
 
         // -------------------------
         // |  if traverse further  |
         // -------------------------
-        for (auto &successor : fw_neighbors){
-
-            DFS_case(ucm, successor, start_ucm, tb, start_direction, verbose);
-
-        }
+        for (auto &successor : fw_neighbors)
+            if (tb.recursion_priority_counter < 1)                                                // TODO: parameterize "1"
+                DFS_case(ucm, successor, start_ucm, tb, start_direction, verbose);
     }
 
     return tb;
@@ -726,9 +727,6 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
     if (!this->is_id_init())
         return false;
     
-    Traceback tb;
-    size_t sv_counter = 0;
-
     std::string sv_filename = "contigs.fa";
     ofstream ofs(sv_filename, std::ofstream::out);
     if (!ofs.is_open()){
@@ -736,21 +734,20 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
         return false;
     }
 
-    /* build a multimap here with |colors| as keys and IDs as values, in descending order */
-    struct GreaterThan {
-        bool operator() (const char& lhs, const char& rhs) const {return lhs>rhs;}
-    };
+    /* get start nodes */
     std::multimap<unsigned, unsigned, GreaterThan> start_nodes;
-
     getSourceNodes(start_nodes);
 
     for (auto it = start_nodes.cbegin(); it != start_nodes.cend(); ++it)
         std::cout << " [" << it->first << ':' << it->second << ']';
     std::cout << '\n';
 
-    /*
+    /* run traversal */
+
+    size_t sv_counter = 0;
+
     for (auto &unitig : *this){
-        tb = DFS_Init(unitig, opt.verbose);
+        Traceback tb = DFS_Init(unitig, opt.verbose);
         if (tb.recursive_return_status){
 
 #ifdef DEBUG
@@ -764,7 +761,6 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
         }
         DFS_cleaner_seen_only();
     }
-    */
 
     ofs.close();
 
@@ -787,7 +783,7 @@ void ExtendedCCDBG::getSourceNodes(TContainer &m) const {
         bool pre = bw_neighbors.hasPredecessors();
         bool suc = fw_neighbors.hasSuccessors();
 
-        if (pre && !suc || !pre && suc){
+        if ((pre && !suc) || (!pre && suc)){
             // get ID
             const DataAccessor<UnitigExtension>* da = ucm.getData();
             const UnitigExtension* ue = da->getData(ucm);
@@ -807,7 +803,31 @@ void ExtendedCCDBG::getSourceNodes(TContainer &m) const {
 }
 
 
+/*!
+ * \fn      inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> v, const UnitigColorMap<UnitigExtension> &neighbor) const
+ * \return  float
+ */
+inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> v,
+                                               const UnitigColorMap<UnitigExtension> &neighbor) const{
+    unsigned equalColorbits = 0;
+    size_t nb_colors = this->getNbColors();
 
+    // current unitig color vectors
+    const const_UnitigColorMap<UnitigExtension> ucm_head_kmer = ucm.getKmerMapping(0);
+    const const_UnitigColorMap<UnitigExtension> ucm_tail_kmer = ucm.getKmerMapping(ucm.size - static_cast<size_t>(this->getK()));
+    const UnitigColors* ucm_head_uc = ucm_head_kmer.getData()->getUnitigColors(ucm_head_kmer);
+    const UnitigColors* ucm_tail_uc = ucm_tail_kmer.getData()->getUnitigColors(ucm_tail_kmer);
+    
+    for (size_t color_id = 0; color_id != nb_colors; ++color_id){
+        bool hasColor_ucm_head = ucm_head_uc->contains(ucm_head_kmer, color_id);
+        bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
+        
+        if (hasColor_ucm_head==hasColor_ucm_tail && hasColor_ucm_tail==v[color_id])
+            ++eqalColorbits;
+    }
+
+    return static_cast<float>(equalColorbits)/nb_colors;
+}
 
 
 
