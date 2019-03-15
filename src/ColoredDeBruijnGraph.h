@@ -113,16 +113,14 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
 
         Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
-                            const UnitigColorMap<UnitigExtension> &start_ucm,
+                            std::vector<bool> &start_vec,
                             const uint8_t src_direction,
-                            const uint8_t start_direction,
                             const bool verbose);
 
         void DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                       const UnitigColorMap<UnitigExtension> &neighbor,
-                      const UnitigColorMap<UnitigExtension> &start_ucm,
+                      std::vector<bool> &start_vec,
                       Traceback &tb,
-                      const uint8_t start_direction,
                       const bool verbose);
         
         void DFS_cleaner();
@@ -138,6 +136,9 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
         template <class TContainer> void getSourceNodes(TContainer &m) const;
 
+        void update_start_vec(std::vector<bool> &start_vec,
+                              const UnitigColorMap<UnitigExtension> &ucm) const;
+        bool is_empty_start_vec(cosnt std::vector<bool> &start_vec) const;
 };
 
 
