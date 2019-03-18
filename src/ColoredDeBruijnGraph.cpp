@@ -458,6 +458,9 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 
     uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // NOTE: I guess this could be avoided if I'd pass traversal direction directly in DFS_visit
 
+    // keep start_vec up-to-date
+    update_start_vec(start_vec, ucm);
+
     // --------------------------
     // |  if traverse backward  |
     // --------------------------
@@ -468,7 +471,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // -----------------------
         // |  if stop by colors  |  // TODO: this should neve be the case now, delete?
         // -----------------------
-        if (!haveCommonColor(start_ucm, ucm, start_direction, verbose)){
+        if (is_empty_start_vec(start_vec)){
             if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
             if (verbose) cout << "Traversal will not go further here." << endl;
 
@@ -516,7 +519,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
             UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
             unsigned id = neighbor_ue->getID();
-            float ecr = equalColorbitsRate(/* v */, neighbor);
+            float ecr = equalColorbitsRate(start_vec, neighbor);
             if (ecr > 0.0f)
                 descendingSortedNeighbors.insert(std::pair<float, unsigned>(ecr, id));
         }
@@ -551,7 +554,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // -----------------------
         // |  if stop by colors  |  // TODO: this should neve be the case now, delete?
         // -----------------------
-        if (!haveCommonColor(start_ucm, ucm, start_direction, verbose)){
+        if (is_empty_start_vec(start_vec)){
             if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
             if (verbose) cout << "Traversal will not go further here." << endl;
 
@@ -600,7 +603,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
             UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
             unsigned id = neighbor_ue->getID();
-            float ecr = equalColorbitsRate(/* v */, neighbor);
+            float ecr = equalColorbitsRate(start_vec, neighbor);
             if (ecr > 0.0f)
                 descendingSortedNeighbors.insert(std::pair<float, unsigned>(ecr, id));
         }
@@ -886,7 +889,7 @@ void ExtendedCCDBG::getSourceNodes(TContainer &m) const {
 
 
 /*!
- * \fn      inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> v,
+ * \fn      inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> &v,
  *                                                         const UnitigColorMap<UnitigExtension> &neighbor) const
  * \details This function computes the rate of equal color bit, i.e. how many times we observe
  *          0&&0 or 1&&1 in the comparison between a neighbor's colors (neighbor) and a reference
@@ -894,14 +897,14 @@ void ExtendedCCDBG::getSourceNodes(TContainer &m) const {
  *          This value is used to rank neighbors for further traversal.
  * \return  float
  */
-inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> v,
+inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> &v,
                                                const UnitigColorMap<UnitigExtension> &neighbor) const{
     unsigned equalColorbits = 0;
     size_t nb_colors = this->getNbColors();
 
     // current unitig color vectors
-    const const_UnitigColorMap<UnitigExtension> ucm_head_kmer = ucm.getKmerMapping(0);
-    const const_UnitigColorMap<UnitigExtension> ucm_tail_kmer = ucm.getKmerMapping(ucm.size - static_cast<size_t>(this->getK()));
+    const const_UnitigColorMap<UnitigExtension> ucm_head_kmer = neighbor.getKmerMapping(0);
+    const const_UnitigColorMap<UnitigExtension> ucm_tail_kmer = neighbor.getKmerMapping(neighbor.size - static_cast<size_t>(this->getK()));
     const UnitigColors* ucm_head_uc = ucm_head_kmer.getData()->getUnitigColors(ucm_head_kmer);
     const UnitigColors* ucm_tail_uc = ucm_tail_kmer.getData()->getUnitigColors(ucm_tail_kmer);
     
@@ -910,7 +913,7 @@ inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> v,
         bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
         
         if (hasColor_ucm_head==hasColor_ucm_tail && hasColor_ucm_tail==v[color_id])
-            ++eqalColorbits;
+            ++equalColorbits;
     }
 
     return static_cast<float>(equalColorbits)/nb_colors;
@@ -925,6 +928,8 @@ inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> v,
  */
 inline void ExtendedCCDBG::update_start_vec(std::vector<bool> &start_vec,
                                             const UnitigColorMap<UnitigExtension> &ucm) const {
+    size_t nb_colors = this->getNbColors();
+
     // ucm color vectors
     const const_UnitigColorMap<UnitigExtension> ucm_head_kmer = ucm.getKmerMapping(0);
     const const_UnitigColorMap<UnitigExtension> ucm_tail_kmer = ucm.getKmerMapping(ucm.size - static_cast<size_t>(this->getK()));
@@ -945,9 +950,10 @@ inline void ExtendedCCDBG::update_start_vec(std::vector<bool> &start_vec,
 /*!
  * \fn      inline bool ExtendedCCDBG::is_empty_start_vec(const std::vector<bool> &start_vec) const
  * \details This function checks, if a vector of bool contains any set bits (1s).
+ * \return  bool; true if no entry is true
  */
 inline bool ExtendedCCDBG::is_empty_start_vec(const std::vector<bool> &start_vec) const{
-    if (find(start_vec.cbegin(), start_vec.cend(), true) == start_vec.cend())
+    if (std::find(start_vec.cbegin(), start_vec.cend(), true) == start_vec.cend())
         return true;
     return false;
 }

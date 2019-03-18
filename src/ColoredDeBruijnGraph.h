@@ -131,14 +131,14 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                                  const uint8_t start_direction, 
                                  const bool verbose) const;
 
-        float equalColorbitsRate(const std::vector<bool> v,
+        float equalColorbitsRate(const std::vector<bool> &v,
                                  const UnitigColorMap<UnitigExtension> &neighbor) const;
 
         template <class TContainer> void getSourceNodes(TContainer &m) const;
 
         void update_start_vec(std::vector<bool> &start_vec,
                               const UnitigColorMap<UnitigExtension> &ucm) const;
-        bool is_empty_start_vec(cosnt std::vector<bool> &start_vec) const;
+        bool is_empty_start_vec(const std::vector<bool> &start_vec) const;
 };
 
 
