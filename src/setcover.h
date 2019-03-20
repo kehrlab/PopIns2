@@ -13,24 +13,40 @@
 * \class    Setcover
 * \brief    This class is a wrapper for a container to sto
 */
-template <typename TContainer = std::set>
+template <typename TContainer = std::set<unsigned> >
 class Setcover{
     using iterator = TContainer::iterator;
     using const_iterator = TContainer::const_iterator;
     using key_type = TContainer::key_type;
 
 public:
-    Setcover(unsigned p) : p_(p) {}
+    Setcover(unsigned t) : t_(t) {}
+
+    /*!
+    * \fn       Setcover.check()
+    * \brief    Check if an input container contains enough new elements, with respect to the set cover,
+    *           to unify the container with the set cover.
+    * \return   bool; true if #new elements is >= threshold
+    */
+    template <typename TCheckContainer> bool check(TCheckContainer::const_iterator &cbegin, TCheckContainer::const_iterator &cend){
+        unsigned novel_elements = 0;
+        while (cbegin != cend){
+            if (c_.find(*cbegin) != c_.end())
+                ++novel_elements;
+            if (novel_elements >= this->t)
+                return true;
+            ++cbegin;
+        }
+        return false;
+    }
 
 private:
-    unsigned p_ = 2;
+    unsigned t_ = 2;
     TContainer c_;
 
+    /* Insert an element or a range of elements into the set cover. */
     void insert(key_type e){c_.insert(e);}
-    template <typename TCopyContainer> void insert_range(TCopyContainer::iterator &begin, TCopyContainer::iterator &end){c_.insert(begin, end);}
-    template <typename TCopyContainer> void insert_range(TCopyContainer::const_iterator &cbegin, TCopyContainer::const_iterator &cend){c_.insert(cbegin, cend);}
-    
-    template <typename TCheckContainer> bool check();
+    template <typename TInsertContainer> void insert_range(TInsertContainer::const_iterator &cbegin, TInsertContainer::const_iterator &cend){c_.insert(cbegin, cend);}
 
 };
 
