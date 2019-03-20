@@ -7,18 +7,16 @@
 #define SETCOVER_
 
 #include <set>
+#include <vector>
 
 
 /*!
 * \class    Setcover
 * \brief    This class is a wrapper for a container to sto
 */
-template <typename TContainer = std::set<unsigned> >
+template <typename TSetcoverContainer = std::set<unsigned>, 
+          typename TPathContainer     = std::vector<unsigned> >
 class Setcover{
-    using iterator = TContainer::iterator;
-    using const_iterator = TContainer::const_iterator;
-    using key_type = TContainer::key_type;
-
 public:
     Setcover(unsigned t) : t_(t) {}
 
@@ -28,25 +26,36 @@ public:
     *           to unify the container with the set cover.
     * \return   bool; true if #new elements is >= threshold
     */
-    template <typename TCheckContainer> bool check(TCheckContainer::const_iterator &cbegin, TCheckContainer::const_iterator &cend){
+    bool check() const{
         unsigned novel_elements = 0;
-        while (cbegin != cend){
-            if (c_.find(*cbegin) != c_.end())
+        auto cit = current_path.cbegin();
+
+        while (cit != current_path.cend()){
+            if (c_.find(*cit) != c_.end())
                 ++novel_elements;
             if (novel_elements >= this->t)
                 return true;
-            ++cbegin;
+            ++cit;
         }
         return false;
     }
 
+    // add/delete/clear functions for the current path container
+    void add(unsigned u){current_path.push_back(u);}
+    void del(){current_path.pop_back();}
+    void clear(){current_path.clear();}
+
+    // Unify the the elements of the current path with the set cover
+    void unify(){c_.insert(current_path.cbegin(), current_path.cend());}
+
 private:
     unsigned t_ = 2;
-    TContainer c_;
 
-    /* Insert an element or a range of elements into the set cover. */
-    void insert(key_type e){c_.insert(e);}
-    template <typename TInsertContainer> void insert_range(TInsertContainer::const_iterator &cbegin, TInsertContainer::const_iterator &cend){c_.insert(cbegin, cend);}
+    // set cover
+    TSetcoverContainer c_;
+
+    // container for the curent path
+    TPathContainer current_path;
 
 };
 
