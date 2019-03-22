@@ -11,6 +11,8 @@
 #include <seqan/misc/union_find.h>
 
 #include "UnitigExtension.h"
+#include "setcover.h"
+
 
 // TODO exclude prettyprint for release
 #include "../../prettyprint/prettyprint.h"
@@ -110,17 +112,21 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         uint8_t whereToGo(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
         uint8_t whereFrom(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
 
-        Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
+        Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
+                           Setcover<> &sc,
+                           const bool verbose);
 
         Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                             std::vector<bool> &start_vec,
                             const uint8_t src_direction,
+                            Setcover<> &sc,
                             const bool verbose);
 
         void DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                       const UnitigColorMap<UnitigExtension> &neighbor,
                       std::vector<bool> &start_vec,
                       Traceback &tb,
+                      Setcover<> &sc,
                       const bool verbose);
         
         void DFS_cleaner();
