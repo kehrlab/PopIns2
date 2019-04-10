@@ -5,64 +5,68 @@
 #include <vector>
 #include <queue>
 #include <fstream>
+#include <map>
+
+
+uint8_t Traceback::recursion_priority_counter = 0;
 
 
 #ifdef DEBUG
 
-void Traceback::printIds() const{
-    std::cout << "[";
-    for (auto it : this->ids){    
+    void Traceback::printIds() const{
         std::cout << "[";
-        for (auto itt : it){
-            // output format
-            std::cout << itt << ", ";
+        for (auto it : this->ids){
+            std::cout << "[";
+            for (auto itt : it){
+                // output format
+                std::cout << itt << ", ";
+            }
+            std::cout << "]";
         }
-        std::cout << "]";
+        std::cout << "]" << std::endl;
     }
-    std::cout << "]" << std::endl;
-}
 
 
-void Traceback::printOris() const{
-    std::cout << "[";
-    for (auto it : this->oris){    
+    void Traceback::printOris() const{
         std::cout << "[";
-        for (auto itt : it){
-            // output format
-            std::cout << (itt ? "+" : "-") << ", ";
+        for (auto it : this->oris){
+            std::cout << "[";
+            for (auto itt : it){
+                // output format
+                std::cout << (itt ? "+" : "-") << ", ";
+            }
+            std::cout << "]";
         }
-        std::cout << "]";
+        std::cout << "]" << std::endl;
     }
-    std::cout << "]" << std::endl;
-}
 
 
-void Traceback::printSeqs() const{
-    std::cout << "[";
-    for (auto it : this->seqs){    
+    void Traceback::printSeqs() const{
         std::cout << "[";
-        for (auto itt : it){
-            // output format
-            std::cout << itt << ", ";
+        for (auto it : this->seqs){
+            std::cout << "[";
+            for (auto itt : it){
+                // output format
+                std::cout << itt << ", ";
+            }
+            std::cout << "]";
         }
-        std::cout << "]";
+        std::cout << "]" << std::endl;
     }
-    std::cout << "]" << std::endl;
-}
 
 
-void Traceback::printPathSeqs() const{
-    std::cout << "[";
-    for (auto it = cbegin(); it != cend(); ++it){
+    void Traceback::printPathSeqs() const{
         std::cout << "[";
-        for (auto itt : *it){
-            // output format
-            std::cout << itt << ", ";
+        for (auto it = cbegin(); it != cend(); ++it){
+            std::cout << "[";
+            for (auto itt : *it){
+                // output format
+                std::cout << itt << ", ";
+            }
+            std::cout << "]";
         }
-        std::cout << "]";
+        std::cout << "]" << std::endl;
     }
-    std::cout << "]" << std::endl;
-}
 
 #endif // DEBUG
 
@@ -312,7 +316,7 @@ inline uint8_t ExtendedCCDBG::whereToGo(const UnitigColorMap< UnitigExtension >&
 
 /*!
  * \fn      inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >& um, const UnitigColorMap< UnitigExtension >& src) const
- * \brief   Reverses the direction of whereToGo(). E.g. if the answer is "GO_BACKWARD", then 
+ * \brief   Reverses the direction of whereToGo(). E.g. if the answer is "GO_BACKWARD", then
  *          this function indicates where to go to reach the source (src).
  *          src  ----------
  *          um          --------->
@@ -325,25 +329,30 @@ inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >&
 
 
 /*!
- * \fn      Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap< UnitigExtension >& ucm, const bool verbose)
+ * \fn      Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, Setcover<> &sc, const bool verbose)
  * \brief   This function initiates the recursion of the directed DFS.
  * \return  Traceback object
  */
-Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose){
-
+Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
+                                  Setcover<> &sc,
+                                  const bool verbose){
     Traceback tb;
+    tb.recursion_priority_counter = 0;
 
     // get data of current unitig
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);
     if (verbose) cout << "I am starting at " << ue->getID() << "." << endl;
 
+    // push current ID into set cover's current path container
+    sc.add(ue->getID());
+
     BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
     ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
-    // --------------------
-    //  handle singletons 
-    // --------------------
+    // ---------------------
+    // | handle singletons |
+    // ---------------------
     if (!bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors()){
         // no DFS states to set here
 
@@ -351,7 +360,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
 #ifdef DEBUG
         Path currentpath;
         currentpath.push_back(ue->getID());
-        tb.ids.push_back(currentpath); 
+        tb.ids.push_back(currentpath);
 
         std::vector<bool> l_oris;
         l_oris.push_back(ucm.strand);
@@ -367,36 +376,59 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
         tb.push_back(vseqs);
 
         tb.recursive_return_status = true;
+        sc.del();
+
         return tb;
     }
 
-    // -----------------------
-    // handle internal nodes
-    // -----------------------
+    // -------------------------
+    // | handle internal nodes |
+    // -------------------------
     else if(bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors()){
         // NOTE: just do nothing in this case (internal node)
         if (verbose) cout << "Returning from internal node." << endl;
+        sc.del();
         return tb;
     }
-    // ------------------
-    // Traverse further
-    // ------------------
+    // -------------------
+    // | start traversal |
+    // -------------------
     else{
         const uint8_t direction = !bw_neighbors.hasPredecessors() ? GO_FORWARD : GO_BACKWARD;
+        size_t nb_colors = this->getNbColors();
+        std::vector<bool> start_vec(nb_colors, false);
 
         if (direction==GO_BACKWARD){
             ue->set_seen_bw();
+
+            // init start_vec
+            const const_UnitigColorMap<UnitigExtension> ucm_head_kmer = ucm.getKmerMapping(0);
+            const UnitigColors* ucm_head_uc = ucm_head_kmer.getData()->getUnitigColors(ucm_head_kmer);
+            for (size_t color_id = 0; color_id != nb_colors; ++color_id)
+                if (ucm_head_uc->contains(ucm_head_kmer, color_id))
+                    start_vec[color_id] = true;
+
+            // traverse
             if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
             for (auto &predecessor : bw_neighbors){
-                DFS_case(ucm, predecessor, ucm, tb, GO_BACKWARD, verbose);
+                DFS_case(ucm, predecessor, start_vec, tb, sc, verbose);
             }
         }
 
         else{   // direction==GO_FORWARD
             ue->set_seen_fw();
+
+            // init start_vec
+            const const_UnitigColorMap<UnitigExtension> ucm_tail_kmer = ucm.getKmerMapping(ucm.size - static_cast<size_t>(this->getK()));
+            const UnitigColors* ucm_tail_uc = ucm_tail_kmer.getData()->getUnitigColors(ucm_tail_kmer);
+            for (size_t color_id = 0; color_id != nb_colors; ++color_id)
+                if (ucm_tail_uc->contains(ucm_tail_kmer, color_id))
+                    start_vec[color_id] = true;
+
+            // traverse
             if (verbose) cout << "I am setting " << ue->getID() << " to seen (fw)." << endl;
             for (auto &successor : fw_neighbors){
-                DFS_case(ucm, successor, ucm, tb, GO_FORWARD, verbose);
+                DFS_case(ucm, successor, start_vec, tb, sc, verbose);
             }
         }
 
@@ -404,6 +436,8 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
         ue->set_visited_bw();
         if (verbose) cout << "I am setting " << ue->getID() << " to visited (both)." << endl;
         if (verbose) cout << "I am done with " << ue->getID() << endl;
+
+        sc.del();
     }
 
     return tb;
@@ -412,9 +446,9 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
 
 /*!
  * \fn      Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
- *                                             const UnitigColorMap<UnitigExtension> &start_ucm,
+ *                                             std::vector<bool> &start_vec,
  *                                             const uint8_t src_direction,
- *                                             const uint8_t start_direction,
+ *                                             Setcover<> &sc,
  *                                             const bool verbose)
  * \brief   This function executes the recursion of the directed DFS.
  * \param   ucm is the current node during traversal
@@ -424,9 +458,9 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, co
  * \return  Traceback object
  */
 Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
-                                   const UnitigColorMap<UnitigExtension> &start_ucm,
+                                   std::vector<bool> &start_vec,
                                    const uint8_t src_direction,
-                                   const uint8_t start_direction,
+                                   Setcover<> &sc,
                                    const bool verbose){
     Traceback tb;
 
@@ -436,20 +470,27 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 
     uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // NOTE: I guess this could be avoided if I'd pass traversal direction directly in DFS_visit
 
-    // -------------------------
-    // |  if traverse forward  |
-    // -------------------------
+    // keep start_vec up-to-date
+    update_start_vec(start_vec, ucm);
+
+    // put current ID in setcover's current_path container
+    sc.add(ue->getID());
+
+    // --------------------------
+    // |  if traverse backward  |
+    // --------------------------
     if (traversal_direction==GO_BACKWARD){
         if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
         ue->set_seen_bw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
 
         // -----------------------
-        // |  if stop by colors  |
+        // |  if stop by colors  |  // TODO: this should neve be the case now, delete?
         // -----------------------
-        if (!haveCommonColor(start_ucm, ucm, start_direction, verbose)){
+        if (is_empty_start_vec(start_vec)){
             if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
             if (verbose) cout << "Traversal will not go further here." << endl;
 
+            sc.del();
             return tb;
         }
 
@@ -457,12 +498,11 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // |  if sink node  |
         // ------------------
         BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
-        
+
         if ( !bw_neighbors.hasPredecessors() && !ue->is_visited_bw() ){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
-            // Traceback:
 #ifdef DEBUG
             Path currentpath;
             currentpath.push_back(ue->getID());
@@ -481,34 +521,69 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
             tb.push_back(vseqs);
 
-            tb.recursive_return_status = true;
+            tb.recursion_priority_counter += 1;
+
+            // check set cover if traceback is valid
+            if (sc.check()){
+                tb.recursive_return_status = true;
+                sc.unify();
+            }
+            else{
+                sc.del();
+            }
+
             return tb;
         }
 
         // -------------------------
         // |  if traverse further  |
         // -------------------------
-        for (auto &predecessor : bw_neighbors){
+        // get pairs (rel. overlap, ID) of all neighbors in descending order
+        std::multimap<float, unsigned, GreaterThan> descendingSortedNeighbors;              // IDEA: for more decision criteria, encode this in the compare functor
+        for (auto &neighbor : bw_neighbors){
+            DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+            UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+            unsigned id = neighbor_ue->getID();
+            float ecr = equalColorbitsRate(start_vec, neighbor);
+            if (ecr > 0.0f)
+                descendingSortedNeighbors.insert(std::pair<float, unsigned>(ecr, id));
+        }
 
-            DFS_case(ucm, predecessor, start_ucm, tb, start_direction, verbose);
+        // traverse neighbor with highest rel. overlapping overlap first and so on
+        for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
+            if (tb.recursion_priority_counter < 1){                                                                     // TODO: parameterize "1"
 
+                for (auto &neighbor : bw_neighbors){
+                    DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+                    UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+                    unsigned ue_id = neighbor_ue->getID();
+                    unsigned neighbor_id = it->second;
+
+                    if (ue_id == neighbor_id){
+                        DFS_case(ucm, neighbor, start_vec, tb, sc, verbose);
+                        break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
+                    }
+                }
+            }
+            else{break;}
         }
     }
 
-    // --------------------------
-    // |  if traverse backward  |
-    // --------------------------
+    // -------------------------
+    // |  if traverse forward  |
+    // -------------------------
     else{   // traversal_direction==GO_FORWARD
         if (verbose) cout << "I am setting " << ue->getID() << " to seen (fw)." << endl;
         ue->set_seen_fw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
 
         // -----------------------
-        // |  if stop by colors  |
+        // |  if stop by colors  |  // TODO: this should neve be the case now, delete?
         // -----------------------
-        if (!haveCommonColor(start_ucm, ucm, start_direction, verbose)){
+        if (is_empty_start_vec(start_vec)){
             if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
             if (verbose) cout << "Traversal will not go further here." << endl;
 
+            sc.del();
             return tb;
         }
 
@@ -521,7 +596,6 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             if (verbose) cout << "I see " << ue->getID() << " has no successors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
 
-            // Traceback:
 #ifdef DEBUG
             Path currentpath;
             currentpath.push_back(ue->getID());
@@ -540,19 +614,59 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
             tb.push_back(vseqs);
 
-            tb.recursive_return_status = true;
+            tb.recursion_priority_counter += 1;
+
+            // check set cover if traceback is valid
+            if (sc.check()){
+                tb.recursive_return_status = true;
+                sc.unify();
+            }
+            else{
+                sc.del();
+            }
+
             return tb;
         }
 
         // -------------------------
         // |  if traverse further  |
         // -------------------------
-        for (auto &successor : fw_neighbors){
 
-            DFS_case(ucm, successor, start_ucm, tb, start_direction, verbose);
+        // get pairs (rel. overlap, ID) of all neighbors in descending order
+        std::multimap<float, unsigned, GreaterThan> descendingSortedNeighbors;              // IDEA: for more decision criteria, encode this in the compare functor
+        for (auto &neighbor : fw_neighbors){
+            DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+            UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+            unsigned id = neighbor_ue->getID();
+            float ecr = equalColorbitsRate(start_vec, neighbor);
+            if (ecr > 0.0f)
+                descendingSortedNeighbors.insert(std::pair<float, unsigned>(ecr, id));
+        }
 
+        // traverse neighbor with highest rel. overlapping overlap first and so on
+        for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
+            if (tb.recursion_priority_counter < 1){                                                                     // TODO: parameterize "1"
+
+                for (auto &neighbor : fw_neighbors){
+                    DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+                    UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+                    unsigned ue_id = neighbor_ue->getID();
+                    unsigned neighbor_id = it->second;
+
+                    if (ue_id == neighbor_id){
+                        DFS_case(ucm, neighbor, start_vec, tb, sc, verbose);
+                        break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
+                    }
+                }
+            }
+            else{break;}
         }
     }
+
+    /* Whenever the traversal jumps back from a deeper recursion level, the current ucm id has
+       to be deleted from the current path of the setcover instance, independed whether the
+       traceback is happening or not. */
+    sc.del();
 
     return tb;
 }
@@ -561,9 +675,9 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 /*!
  * \fn      void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
  *                                       const UnitigColorMap<UnitigExtension> &neighbor,
- *                                       const UnitigColorMap<UnitigExtension> &start_ucm,
+ *                                       std::vector<bool> &start_vec,
  *                                       Traceback &tb,
- *                                       const uint8_t start_direction,
+ *                                       Setcover<> &sc,
  *                                       const bool verbose)
  * \brief   This function contains the code to determine the neighbor's (pre/suc) orientation, the recursion call of the according case and
  *          the management of a (recursively) returned traceback instance.
@@ -573,9 +687,9 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
  */
 void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                              const UnitigColorMap<UnitigExtension> &neighbor,
-                             const UnitigColorMap<UnitigExtension> &start_ucm,
+                             std::vector<bool> &start_vec,
                              Traceback &tb,
-                             const uint8_t start_direction,
+                             Setcover<> &sc,
                              const bool verbose){
 
 #ifdef DEBUG
@@ -586,22 +700,29 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
     DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
     UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
 
+    // ----------------
+    // |   Case 1+3   |
+    // ----------------
     if (whereFrom(neighbor, ucm)==GO_BACKWARD){
         /*  Case 3:                             Case 1:
         *   SRC ------->                OR              -------> SRC
         *           -------> SUC                PRE <--------
         */
         if (neighbor_ue->is_undiscovered_fw()){
-            // Recursion
+            // ---------------
+            // |  Recursion  |
+            // ---------------
 #ifdef DEBUG
             if (verbose) cout << "I am at " << ucm_ue->getID() << " and will go forward to " << neighbor_ue->getID() << endl;
 #endif // DEBUG
-            Traceback returned_tb = DFS_Visit(neighbor, start_ucm, GO_BACKWARD, start_direction, verbose);
+            Traceback returned_tb = DFS_Visit(neighbor, start_vec, GO_BACKWARD, sc, verbose);
 #ifdef DEBUG
             if (verbose) cout << "I jumped back to ID " << ucm_ue->getID() << endl;
 #endif // DEBUG
 
-            // Traceback
+            // -----------------------------------------
+            // |  check recursively returned tb object |
+            // -----------------------------------------
             if (returned_tb.recursive_return_status){
 #ifdef DEBUG
                 for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
@@ -619,22 +740,29 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
         }
         // else: don't do anything. This means &tb doesn't get any update and will stay as initiated (no traceback). Happens e.g. at loops.
     }
+    // ----------------
+    // |   Case 2+4   |
+    // ----------------
     else{   // whereFrom(neighbor, ucm)==GO_FORWARD
         /*  Case 4:                             Case 2:
         *   SRC ------->                OR              -------> SRC
         *           <------- SUC                PRE ------->
         */
         if (neighbor_ue->is_undiscovered_bw()){
-            // Recursion
+            // ---------------
+            // |  Recursion  |
+            // ---------------
 #ifdef DEBUG
             if (verbose) cout << "I am at " << ucm_ue->getID() << " and will go forward to " << neighbor_ue->getID() << endl;
 #endif // DEBUG
-            Traceback returned_tb = DFS_Visit(neighbor, start_ucm, GO_FORWARD, start_direction, verbose);
+            Traceback returned_tb = DFS_Visit(neighbor, start_vec, GO_FORWARD, sc, verbose);
 #ifdef DEBUG
             if (verbose) cout << "I jumped back to ID " << ucm_ue->getID() << endl;
 #endif // DEBUG
 
-            // Traceback recursion
+            // -----------------------------------------
+            // |  check recursively returned tb object |
+            // -----------------------------------------
             if (returned_tb.recursive_return_status){
 #ifdef DEBUG
                 for (unsigned i=0; i < returned_tb.seqs.size(); ++i){
@@ -652,6 +780,7 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
         }
         // else: don't do anything. This means &tb doesn't get any update and will stay as initiated (no traceback). Happens e.g. at loops.
     }
+
 }
 
 
@@ -685,23 +814,23 @@ inline bool ExtendedCCDBG::haveCommonColor(const UnitigColorMap<UnitigExtension>
     if (verbose){
         DataAccessor<UnitigExtension>* da_start_ucm = start_ucm.getData();
         UnitigExtension* ue_start_ucm = da_start_ucm->getData(start_ucm);
-        
+
         DataAccessor<UnitigExtension>* da_ucm = ucm.getData();
         UnitigExtension* ue_ucm = da_ucm->getData(ucm);
-        
+
         cout << "Color Compare: Current Unitig: " << ue_ucm->getID() << ", Start Unitig: " << ue_start_ucm->getID() << endl;
     }
 
     if (verbose)
         cout << "u_s: | u_e: | s__: | return" << endl;
-    
+
     for (size_t color_id = 0; color_id != nb_colors; ++color_id){
         bool hasColor_ucm_head = ucm_head_uc->contains(ucm_head_kmer, color_id);
         bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
         bool hasColor_start    =    start_uc->contains(start_kmer,    color_id);
-        
+
         rValue = true && hasColor_ucm_head && hasColor_ucm_tail && hasColor_start;
-        
+
         if (verbose)
             cout << hasColor_ucm_head << "    | " << hasColor_ucm_tail << "    | " << hasColor_start << "    | " << rValue << endl;
 
@@ -720,49 +849,164 @@ inline bool ExtendedCCDBG::haveCommonColor(const UnitigColorMap<UnitigExtension>
  * \return  bool; true if successful
  */
 bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
+
     /* sanity check */
     if (!this->is_id_init())
         return false;
-    
-    Traceback tb;
 
-    size_t sv_counter = 0;
     std::string sv_filename = "contigs.fa";
-    
     ofstream ofs(sv_filename, std::ofstream::out);
-
     if (!ofs.is_open()){
         cerr << "Error: Couldn't open ofstream for contig file." << endl;
         return false;
     }
 
-    for (auto &unitig : *this){
-        tb = DFS_Init(unitig, opt.verbose);
-        if (tb.recursive_return_status){
+    /* get start nodes */
+    //std::multimap<unsigned, unsigned, GreaterThan> start_nodes;     // key: #colors, value: unitig-id
+    //getSourceNodes(start_nodes);
+
+
+    //for (auto it = start_nodes.cbegin(); it != start_nodes.cend(); ++it)
+    //    std::cout << " [" << it->first << ':' << it->second << ']';
+    //std::cout << '\n';
+
+    Setcover<> sc;
+
+    /* run traversal, startnodes prioritized by #colors */
+
+    size_t sv_counter = 0;
+
+    //for (auto it = start_nodes.cbegin(); it != start_nodes.cend(); ++it){
+        for (auto &unitig : *this){
+    //      DataAccessor<UnitigExtension>* unitig_da = unitig.getData();
+    //      UnitigExtension* unitig_ue = unitig_da->getData(unitig);
+    //      unsigned id = unitig_ue->getID();
+    //      if(it->second == id){
+    //          std::cout << "Start with id [" << it->second << ']' << std::endl;
+
+                Traceback tb = DFS_Init(unitig, sc, opt.verbose);
+                if (tb.recursive_return_status){
+
 #ifdef DEBUG
-            tb.printIds();
-            tb.printOris();
-            tb.printSeqs();
+                    tb.printIds();
+                    tb.printOris();
+                    tb.printSeqs();
 #endif // DEBUG
 
-            if (!tb.write(ofs, opt.k, sv_counter))
-                return false;
+                    if (!tb.write(ofs, opt.k, sv_counter))
+                        return false;
+                }
+                DFS_cleaner_seen_only();
         }
-        DFS_cleaner_seen_only();
-    }
-
+    //}
     ofs.close();
 
     return true;
 }
 
 
+/*!
+ * \fn      void ExtendedCCDBG::getSourceNodes(TContainer &m) const
+ * \details This function fills the given container with start node IDs ranked by their
+ *          amount of colors, in descending order.
+ */
+template <class TContainer>
+void ExtendedCCDBG::getSourceNodes(TContainer &m) const {
+    size_t nb_colors = this->getNbColors();
+
+    for (auto &ucm : *this){
+        BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, true> bw_neighbors = ucm.getPredecessors();
+        ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, true> fw_neighbors = ucm.getSuccessors();
+
+        bool pre = bw_neighbors.hasPredecessors();
+        bool suc = fw_neighbors.hasSuccessors();
+
+        if ((pre && !suc) || (!pre && suc)){
+            // get ID
+            const DataAccessor<UnitigExtension>* da = ucm.getData();
+            const UnitigExtension* ue = da->getData(ucm);
+            unsigned id = ue->getID();
+
+            // get #colors in traversal direction
+            const const_UnitigColorMap<UnitigExtension> start_kmer = (!pre && suc) ? ucm.getKmerMapping(ucm.size - static_cast<size_t>(this->getK())) : ucm.getKmerMapping(0);
+            const UnitigColors* start_uc = start_kmer.getData()->getUnitigColors(start_kmer);
+            size_t nb_colors_in_start_kmer = 0;
+            for (size_t color_id = 0; color_id != nb_colors; ++color_id)
+                if (start_uc->contains(start_kmer, color_id)) ++nb_colors_in_start_kmer;
+
+            // save (#colors, ID) in multimap
+            m.insert(std::pair<size_t, size_t>(nb_colors_in_start_kmer, id));
+        }
+    }
+}
 
 
+/*!
+ * \fn      inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> &v,
+ *                                                         const UnitigColorMap<UnitigExtension> &neighbor) const
+ * \details This function computes the rate of equal color bit, i.e. how many times we observe
+ *          0&&0 or 1&&1 in the comparison between a neighbor's colors (neighbor) and a reference
+ *          vector (v) divided by the #samples in the graph.
+ *          This value is used to rank neighbors for further traversal.
+ * \return  float
+ */
+inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> &v,
+                                               const UnitigColorMap<UnitigExtension> &neighbor) const{
+    unsigned equalColorbits = 0;
+    size_t nb_colors = this->getNbColors();
+
+    // current unitig color vectors
+    const const_UnitigColorMap<UnitigExtension> ucm_head_kmer = neighbor.getKmerMapping(0);
+    const const_UnitigColorMap<UnitigExtension> ucm_tail_kmer = neighbor.getKmerMapping(neighbor.size - static_cast<size_t>(this->getK()));
+    const UnitigColors* ucm_head_uc = ucm_head_kmer.getData()->getUnitigColors(ucm_head_kmer);
+    const UnitigColors* ucm_tail_uc = ucm_tail_kmer.getData()->getUnitigColors(ucm_tail_kmer);
+
+    for (size_t color_id = 0; color_id != nb_colors; ++color_id){
+        bool hasColor_ucm_head = ucm_head_uc->contains(ucm_head_kmer, color_id);
+        bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
+
+        if (hasColor_ucm_head==hasColor_ucm_tail && hasColor_ucm_tail==v[color_id])
+            ++equalColorbits;
+    }
+
+    return static_cast<float>(equalColorbits)/nb_colors;
+}
 
 
+/*!
+ * \fn      inline void ExtendedCCDBG::update_start_vec(std::vector<bool> &start_vec,
+                                                        const UnitigColorMap<UnitigExtension> &ucm) const
+ * \details This function updates the color bits in a referenced vector (start_vec) with
+ *          the color bits of the head and tail kmer of ucm. No return value needed.
+ */
+inline void ExtendedCCDBG::update_start_vec(std::vector<bool> &start_vec,
+                                            const UnitigColorMap<UnitigExtension> &ucm) const {
+    size_t nb_colors = this->getNbColors();
+
+    // ucm color vectors
+    const const_UnitigColorMap<UnitigExtension> ucm_head_kmer = ucm.getKmerMapping(0);
+    const const_UnitigColorMap<UnitigExtension> ucm_tail_kmer = ucm.getKmerMapping(ucm.size - static_cast<size_t>(this->getK()));
+    const UnitigColors* ucm_head_uc = ucm_head_kmer.getData()->getUnitigColors(ucm_head_kmer);
+    const UnitigColors* ucm_tail_uc = ucm_tail_kmer.getData()->getUnitigColors(ucm_tail_kmer);
+
+    for (size_t color_id = 0; color_id != nb_colors; ++color_id){
+        bool hasColor_ucm_head = ucm_head_uc->contains(ucm_head_kmer, color_id);
+        bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
+
+        start_vec[color_id] = start_vec[color_id] &&
+                              hasColor_ucm_head &&
+                              hasColor_ucm_tail;
+    }
+}
 
 
-
-
-
+/*!
+ * \fn      inline bool ExtendedCCDBG::is_empty_start_vec(const std::vector<bool> &start_vec) const
+ * \details This function checks, if a vector of bool contains any set bits (1s).
+ * \return  bool; true if no entry is true
+ */
+inline bool ExtendedCCDBG::is_empty_start_vec(const std::vector<bool> &start_vec) const{
+    if (std::find(start_vec.cbegin(), start_vec.cend(), true) == start_vec.cend())
+        return true;
+    return false;
+}

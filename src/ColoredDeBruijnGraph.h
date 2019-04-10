@@ -11,13 +11,15 @@
 #include <seqan/misc/union_find.h>
 
 #include "UnitigExtension.h"
+#include "setcover.h"
+
 
 // TODO exclude prettyprint for release
 #include "../../prettyprint/prettyprint.h"
 
 #ifdef DEBUG
-typedef std::vector<std::vector<unsigned> > PathSet;
-typedef std::vector<unsigned> Path;
+    typedef std::vector<std::vector<unsigned> > PathSet;
+    typedef std::vector<unsigned> Path;
 #endif // DEBUG
 
 typedef std::vector<std::vector<std::string> >VVSequences;
@@ -27,6 +29,10 @@ typedef std::vector<std::string> VSequences;
 // =========================
 // Structs
 // =========================
+struct GreaterThan {
+    bool operator() (const char& lhs, const char& rhs) const {return lhs>rhs;}
+};
+
 
 /*!
 * \class        Traceback
@@ -45,6 +51,8 @@ public:
     using iterator = VVSequences::iterator;
 
     bool recursive_return_status = false;
+
+    static uint8_t recursion_priority_counter;
 
 #ifdef DEBUG
     PathSet ids;
@@ -104,19 +112,21 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         uint8_t whereToGo(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
         uint8_t whereFrom(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
 
-        Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm, const bool verbose);
+        Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
+                           Setcover<> &sc,
+                           const bool verbose);
 
         Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
-                            const UnitigColorMap<UnitigExtension> &start_ucm,
+                            std::vector<bool> &start_vec,
                             const uint8_t src_direction,
-                            const uint8_t start_direction,
+                            Setcover<> &sc,
                             const bool verbose);
 
         void DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                       const UnitigColorMap<UnitigExtension> &neighbor,
-                      const UnitigColorMap<UnitigExtension> &start_ucm,
+                      std::vector<bool> &start_vec,
                       Traceback &tb,
-                      const uint8_t start_direction,
+                      Setcover<> &sc,
                       const bool verbose);
         
         void DFS_cleaner();
@@ -127,7 +137,14 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                                  const uint8_t start_direction, 
                                  const bool verbose) const;
 
+        float equalColorbitsRate(const std::vector<bool> &v,
+                                 const UnitigColorMap<UnitigExtension> &neighbor) const;
 
+        template <class TContainer> void getSourceNodes(TContainer &m) const;
+
+        void update_start_vec(std::vector<bool> &start_vec,
+                              const UnitigColorMap<UnitigExtension> &ucm) const;
+        bool is_empty_start_vec(const std::vector<bool> &start_vec) const;
 };
 
 

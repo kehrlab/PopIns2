@@ -101,6 +101,7 @@ int popins2_merge(int argc, char const *argv[]){
     // - prints every unitig as a matrix of color vectors
     // - needs: prettyprint
     // ==============================
+    /*
     #include "prettyprint.h"
     size_t nb_colors = exg.getNbColors();
 
@@ -127,6 +128,7 @@ int popins2_merge(int argc, char const *argv[]){
         prettyprint::print(vv, true);
         vv.clear();
     }
+    */
 
 
 
