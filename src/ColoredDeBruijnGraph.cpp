@@ -15,7 +15,7 @@ uint8_t Traceback::recursion_priority_counter = 0;
 
     void Traceback::printIds() const{
         std::cout << "[";
-        for (auto it : this->ids){    
+        for (auto it : this->ids){
             std::cout << "[";
             for (auto itt : it){
                 // output format
@@ -29,7 +29,7 @@ uint8_t Traceback::recursion_priority_counter = 0;
 
     void Traceback::printOris() const{
         std::cout << "[";
-        for (auto it : this->oris){    
+        for (auto it : this->oris){
             std::cout << "[";
             for (auto itt : it){
                 // output format
@@ -43,7 +43,7 @@ uint8_t Traceback::recursion_priority_counter = 0;
 
     void Traceback::printSeqs() const{
         std::cout << "[";
-        for (auto it : this->seqs){    
+        for (auto it : this->seqs){
             std::cout << "[";
             for (auto itt : it){
                 // output format
@@ -316,7 +316,7 @@ inline uint8_t ExtendedCCDBG::whereToGo(const UnitigColorMap< UnitigExtension >&
 
 /*!
  * \fn      inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >& um, const UnitigColorMap< UnitigExtension >& src) const
- * \brief   Reverses the direction of whereToGo(). E.g. if the answer is "GO_BACKWARD", then 
+ * \brief   Reverses the direction of whereToGo(). E.g. if the answer is "GO_BACKWARD", then
  *          this function indicates where to go to reach the source (src).
  *          src  ----------
  *          um          --------->
@@ -351,7 +351,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
     ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
 
     // ---------------------
-    // | handle singletons | 
+    // | handle singletons |
     // ---------------------
     if (!bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors()){
         // no DFS states to set here
@@ -360,7 +360,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
 #ifdef DEBUG
         Path currentpath;
         currentpath.push_back(ue->getID());
-        tb.ids.push_back(currentpath); 
+        tb.ids.push_back(currentpath);
 
         std::vector<bool> l_oris;
         l_oris.push_back(ucm.strand);
@@ -498,7 +498,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // |  if sink node  |
         // ------------------
         BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
-        
+
         if ( !bw_neighbors.hasPredecessors() && !ue->is_visited_bw() ){   // visited check could be bw/fw; visited check necessary to avoid RC path
             if (verbose) cout << "I see " << ue->getID() << " has no predecessors and is not visited." << endl;
             if (verbose) cout << "I will trigger traceback from " << ue->getID() << endl;
@@ -522,7 +522,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             tb.push_back(vseqs);
 
             tb.recursion_priority_counter += 1;
-            
+
             // check set cover if traceback is valid
             if (sc.check()){
                 tb.recursive_return_status = true;
@@ -565,7 +565,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                     }
                 }
             }
-            else{break;}            
+            else{break;}
         }
     }
 
@@ -615,7 +615,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             tb.push_back(vseqs);
 
             tb.recursion_priority_counter += 1;
-            
+
             // check set cover if traceback is valid
             if (sc.check()){
                 tb.recursive_return_status = true;
@@ -659,7 +659,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                     }
                 }
             }
-            else{break;}            
+            else{break;}
         }
     }
 
@@ -814,23 +814,23 @@ inline bool ExtendedCCDBG::haveCommonColor(const UnitigColorMap<UnitigExtension>
     if (verbose){
         DataAccessor<UnitigExtension>* da_start_ucm = start_ucm.getData();
         UnitigExtension* ue_start_ucm = da_start_ucm->getData(start_ucm);
-        
+
         DataAccessor<UnitigExtension>* da_ucm = ucm.getData();
         UnitigExtension* ue_ucm = da_ucm->getData(ucm);
-        
+
         cout << "Color Compare: Current Unitig: " << ue_ucm->getID() << ", Start Unitig: " << ue_start_ucm->getID() << endl;
     }
 
     if (verbose)
         cout << "u_s: | u_e: | s__: | return" << endl;
-    
+
     for (size_t color_id = 0; color_id != nb_colors; ++color_id){
         bool hasColor_ucm_head = ucm_head_uc->contains(ucm_head_kmer, color_id);
         bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
         bool hasColor_start    =    start_uc->contains(start_kmer,    color_id);
-        
+
         rValue = true && hasColor_ucm_head && hasColor_ucm_tail && hasColor_start;
-        
+
         if (verbose)
             cout << hasColor_ucm_head << "    | " << hasColor_ucm_tail << "    | " << hasColor_start << "    | " << rValue << endl;
 
@@ -849,11 +849,11 @@ inline bool ExtendedCCDBG::haveCommonColor(const UnitigColorMap<UnitigExtension>
  * \return  bool; true if successful
  */
 bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
-    
+
     /* sanity check */
     if (!this->is_id_init())
         return false;
-    
+
     std::string sv_filename = "contigs.fa";
     ofstream ofs(sv_filename, std::ofstream::out);
     if (!ofs.is_open()){
@@ -881,7 +881,7 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
     //      DataAccessor<UnitigExtension>* unitig_da = unitig.getData();
     //      UnitigExtension* unitig_ue = unitig_da->getData(unitig);
     //      unsigned id = unitig_ue->getID();
-    //      if(it->second == id){           
+    //      if(it->second == id){
     //          std::cout << "Start with id [" << it->second << ']' << std::endl;
 
                 Traceback tb = DFS_Init(unitig, sc, opt.verbose);
@@ -908,7 +908,7 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
 /*!
  * \fn      void ExtendedCCDBG::getSourceNodes(TContainer &m) const
  * \details This function fills the given container with start node IDs ranked by their
- *          amount of colors, in descending order.  
+ *          amount of colors, in descending order.
  */
 template <class TContainer>
 void ExtendedCCDBG::getSourceNodes(TContainer &m) const {
@@ -960,11 +960,11 @@ inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> &v,
     const const_UnitigColorMap<UnitigExtension> ucm_tail_kmer = neighbor.getKmerMapping(neighbor.size - static_cast<size_t>(this->getK()));
     const UnitigColors* ucm_head_uc = ucm_head_kmer.getData()->getUnitigColors(ucm_head_kmer);
     const UnitigColors* ucm_tail_uc = ucm_tail_kmer.getData()->getUnitigColors(ucm_tail_kmer);
-    
+
     for (size_t color_id = 0; color_id != nb_colors; ++color_id){
         bool hasColor_ucm_head = ucm_head_uc->contains(ucm_head_kmer, color_id);
         bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
-        
+
         if (hasColor_ucm_head==hasColor_ucm_tail && hasColor_ucm_tail==v[color_id])
             ++equalColorbits;
     }
@@ -976,8 +976,8 @@ inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> &v,
 /*!
  * \fn      inline void ExtendedCCDBG::update_start_vec(std::vector<bool> &start_vec,
                                                         const UnitigColorMap<UnitigExtension> &ucm) const
- * \details This function updates the color bits in a reference vector (start_vec) with
- *          the color bits of the head and tail kmer. No return value needed.  
+ * \details This function updates the color bits in a referenced vector (start_vec) with
+ *          the color bits of the head and tail kmer of ucm. No return value needed.
  */
 inline void ExtendedCCDBG::update_start_vec(std::vector<bool> &start_vec,
                                             const UnitigColorMap<UnitigExtension> &ucm) const {
@@ -988,7 +988,7 @@ inline void ExtendedCCDBG::update_start_vec(std::vector<bool> &start_vec,
     const const_UnitigColorMap<UnitigExtension> ucm_tail_kmer = ucm.getKmerMapping(ucm.size - static_cast<size_t>(this->getK()));
     const UnitigColors* ucm_head_uc = ucm_head_kmer.getData()->getUnitigColors(ucm_head_kmer);
     const UnitigColors* ucm_tail_uc = ucm_tail_kmer.getData()->getUnitigColors(ucm_tail_kmer);
-    
+
     for (size_t color_id = 0; color_id != nb_colors; ++color_id){
         bool hasColor_ucm_head = ucm_head_uc->contains(ucm_head_kmer, color_id);
         bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
