@@ -13,3 +13,4 @@ tmp/*
 backup/
 src/.kdev_include_paths
 src/prettyprint.h
+bin/

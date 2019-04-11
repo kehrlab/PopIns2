@@ -523,6 +523,12 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 
             tb.recursion_priority_counter += 1;
 
+            // =======================
+            // | checkpoint: setcover |
+            // =======================
+            // uncomment next line to deactivate setcover
+            tb.recursive_return_status = true;
+
             // check set cover if traceback is valid
             if (sc.check()){
                 tb.recursive_return_status = true;
@@ -538,6 +544,11 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // -------------------------
         // |  if traverse further  |
         // -------------------------
+
+        // =====================================
+        // | checkpoint: color ranked neighbors |
+        // =====================================
+        /**/
         // get pairs (rel. overlap, ID) of all neighbors in descending order
         std::multimap<float, unsigned, GreaterThan> descendingSortedNeighbors;              // IDEA: for more decision criteria, encode this in the compare functor
         for (auto &neighbor : bw_neighbors){
@@ -548,25 +559,47 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             if (ecr > 0.0f)
                 descendingSortedNeighbors.insert(std::pair<float, unsigned>(ecr, id));
         }
+        /**/
 
-        // traverse neighbor with highest rel. overlapping overlap first and so on
+        // =====================================
+        // | checkpoint: color ranked neighbors |
+        // =====================================
+        /**/
         for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
+        /**/
+
             if (tb.recursion_priority_counter < 1){                                                                     // TODO: parameterize "1"
 
                 for (auto &neighbor : bw_neighbors){
+                    // =====================================
+                    // | checkpoint: color ranked neighbors |
+                    // =====================================
+                    /**/
                     DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
                     UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
                     unsigned ue_id = neighbor_ue->getID();
                     unsigned neighbor_id = it->second;
 
                     if (ue_id == neighbor_id){
+                    /**/
                         DFS_case(ucm, neighbor, start_vec, tb, sc, verbose);
+                    // =====================================
+                    // | checkpoint: color ranked neighbors |
+                    // =====================================
+                    /**/
                         break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
                     }
+                    /**/
+
                 }
             }
+            // =====================================
+            // | checkpoint: color ranked neighbors |
+            // =====================================
+            /**/
             else{break;}
         }
+            /**/
     }
 
     // -------------------------
@@ -616,6 +649,12 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
 
             tb.recursion_priority_counter += 1;
 
+            // =======================
+            // | checkpoint: setcover |
+            // =======================
+            // uncomment next line to deactivate setcover
+            tb.recursive_return_status = true;
+
             // check set cover if traceback is valid
             if (sc.check()){
                 tb.recursive_return_status = true;
@@ -632,6 +671,10 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // |  if traverse further  |
         // -------------------------
 
+        // =====================================
+        // | checkpoint: color ranked neighbors |
+        // =====================================
+        /**/
         // get pairs (rel. overlap, ID) of all neighbors in descending order
         std::multimap<float, unsigned, GreaterThan> descendingSortedNeighbors;              // IDEA: for more decision criteria, encode this in the compare functor
         for (auto &neighbor : fw_neighbors){
@@ -642,25 +685,47 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             if (ecr > 0.0f)
                 descendingSortedNeighbors.insert(std::pair<float, unsigned>(ecr, id));
         }
+        /**/
 
-        // traverse neighbor with highest rel. overlapping overlap first and so on
+        // =====================================
+        // | checkpoint: color ranked neighbors |
+        // =====================================
+        /**/
         for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
+        /**/
+
             if (tb.recursion_priority_counter < 1){                                                                     // TODO: parameterize "1"
 
                 for (auto &neighbor : fw_neighbors){
+                    // =====================================
+                    // | checkpoint: color ranked neighbors |
+                    // =====================================
+                    /**/
                     DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
                     UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
                     unsigned ue_id = neighbor_ue->getID();
                     unsigned neighbor_id = it->second;
 
                     if (ue_id == neighbor_id){
+                    /**/
                         DFS_case(ucm, neighbor, start_vec, tb, sc, verbose);
+                    // =====================================
+                    // | checkpoint: color ranked neighbors |
+                    // =====================================
+                    /**/
                         break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
                     }
+                    /**/
+
                 }
             }
+            // =====================================
+            // | checkpoint: color ranked neighbors |
+            // =====================================
+            /**/
             else{break;}
         }
+            /**/
     }
 
     /* Whenever the traversal jumps back from a deeper recursion level, the current ucm id has
@@ -861,28 +926,39 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
         return false;
     }
 
-    /* get start nodes */
-    //std::multimap<unsigned, unsigned, GreaterThan> start_nodes;     // key: #colors, value: unitig-id
-    //getSourceNodes(start_nodes);
-
-
-    //for (auto it = start_nodes.cbegin(); it != start_nodes.cend(); ++it)
-    //    std::cout << " [" << it->first << ':' << it->second << ']';
-    //std::cout << '\n';
+    // =======================================
+    // | checkpoint: color ranked start nodes |
+    // =======================================
+    /*
+    std::multimap<unsigned, unsigned, GreaterThan> start_nodes;     // key: #colors, value: unitig-id
+    getSourceNodes(start_nodes);
+    for (auto it = start_nodes.cbegin(); it != start_nodes.cend(); ++it)
+        std::cout << " [" << it->first << ':' << it->second << ']';
+    std::cout << '\n';
+    */
 
     Setcover<> sc;
 
-    /* run traversal, startnodes prioritized by #colors */
-
     size_t sv_counter = 0;
 
-    //for (auto it = start_nodes.cbegin(); it != start_nodes.cend(); ++it){
+    // =======================================
+    // | checkpoint: color ranked start nodes |
+    // =======================================
+    /*
+    for (auto it = start_nodes.cbegin(); it != start_nodes.cend(); ++it){
+    */
+
         for (auto &unitig : *this){
-    //      DataAccessor<UnitigExtension>* unitig_da = unitig.getData();
-    //      UnitigExtension* unitig_ue = unitig_da->getData(unitig);
-    //      unsigned id = unitig_ue->getID();
-    //      if(it->second == id){
-    //          std::cout << "Start with id [" << it->second << ']' << std::endl;
+            // =======================================
+            // | checkpoint: color ranked start nodes |
+            // =======================================
+            /*
+            DataAccessor<UnitigExtension>* unitig_da = unitig.getData();
+            UnitigExtension* unitig_ue = unitig_da->getData(unitig);
+            unsigned id = unitig_ue->getID();
+            if(it->second == id){
+                std::cout << "Start with id [" << it->second << ']' << std::endl;
+            */
 
                 Traceback tb = DFS_Init(unitig, sc, opt.verbose);
                 if (tb.recursive_return_status){
@@ -897,8 +973,10 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
                         return false;
                 }
                 DFS_cleaner_seen_only();
+            //}
         }
     //}
+
     ofs.close();
 
     return true;
