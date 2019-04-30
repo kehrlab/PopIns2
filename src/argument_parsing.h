@@ -25,6 +25,8 @@ struct MergeOptions {
 
     CCDBG_Build_opt* ccdbg_build_opt;
 
+    unsigned max_paths = 1;     // Default: only one (best) path per start node
+
     MergeOptions () :
         ccdbg_build_opt(nullptr)
     {}
@@ -70,6 +72,7 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
     if (seqan::isSet(parser, "del-isolated")) seqan::getOptionValue(options.ccdbg_build_opt->deleteIsolated, parser, "del-isolated");
     if (seqan::isSet(parser, "fasta"))
         options.ccdbg_build_opt->outputGFA = false;
+    if (seqan::isSet(parser, "max-paths")) seqan::getOptionValue(options.max_paths, parser, "max-paths");
 
     return true;
 }
@@ -138,6 +141,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::addOption(parser, seqan::ArgParseOption("i", "clip-tips", "Clip tips shorter than k k-mers in length"));
     seqan::addOption(parser, seqan::ArgParseOption("d", "del-isolated", "Delete isolated contigs shorter than k k-mers in length"));
     seqan::addOption(parser, seqan::ArgParseOption("a", "fasta", "Output file is in FASTA format instead of GFA"));
+    seqan::addOption(parser, seqan::ArgParseOption("m", "max-paths", "Maximum amount of traceback attempts per DFS start node.", seqan::ArgParseArgument::INTEGER, "INT"));
 
     seqan::addSection(parser, "Compute resource options");
     seqan::addOption(parser, seqan::ArgParseOption("t", "threads", "Amount of threads for parallel processing", seqan::ArgParseArgument::INTEGER, "INT"));
@@ -150,6 +154,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::setDefaultValue(parser, "k", "31");
     seqan::setDefaultValue(parser, "g", "23");
     seqan::setDefaultValue(parser, "threads", "1");
+    seqan::setDefaultValue(parser, "m", "1");
 
   //seqan::setMinValue(parser, "unique-kmers", "1");
   //seqan::setMinValue(parser, "non-unique-kmers", "1");
@@ -158,6 +163,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::setMinValue(parser, "g", "1");
     seqan::setMaxValue(parser, "g", "62");
     seqan::setMinValue(parser, "t", "1");
+    seqan::setMinValue(parser, "m", "1");
 
     // Hide some options from default help.
     setHiddenOptions(parser, true, options);

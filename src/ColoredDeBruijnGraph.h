@@ -96,7 +96,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         size_t count_connected_components();
         seqan::UnionFind<unsigned> getUF() const {return UF;}
 
-        bool merge(const CCDBG_Build_opt &opt);
+        bool merge(const CCDBG_Build_opt &opt, const unsigned max_paths);
 
     private:
 
@@ -114,20 +114,23 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
         Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
                            Setcover<> &sc,
-                           const bool verbose);
+                           const bool verbose,
+                           const unsigned max_paths);
 
         Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                             std::vector<bool> &start_vec,
                             const uint8_t src_direction,
                             Setcover<> &sc,
-                            const bool verbose);
+                            const bool verbose,
+                            const unsigned max_paths);
 
         void DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                       const UnitigColorMap<UnitigExtension> &neighbor,
                       std::vector<bool> &start_vec,
                       Traceback &tb,
                       Setcover<> &sc,
-                      const bool verbose);
+                      const bool verbose,
+                      const unsigned max_paths);
         
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
