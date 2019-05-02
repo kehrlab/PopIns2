@@ -439,10 +439,12 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
             }
         }
 
-        ue->set_visited_fw();
-        ue->set_visited_bw();
-        if (verbose) cout << "I am setting " << ue->getID() << " to visited (both)." << endl;
-        if (verbose) cout << "I am done with " << ue->getID() << endl;
+        if (tb.recursive_return_status){        // mark start nodes only if at least one traceback happened. Important for #recursion attempts (c) > 1
+            ue->set_visited_fw();
+            ue->set_visited_bw();
+            if (verbose) cout << "I am setting " << ue->getID() << " to visited (both)." << endl;
+            if (verbose) cout << "I am done with " << ue->getID() << endl;
+        }
 
         sc.del();
     }
@@ -492,7 +494,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         ue->set_seen_bw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
 
         // -----------------------
-        // |  if stop by colors  |  // TODO: this should neve be the case now, delete?
+        // |  if stop by colors  |  // TODO: this should never be the case now, delete?
         // -----------------------
         if (is_empty_start_vec(start_vec)){
             if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
@@ -576,7 +578,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
         /**/
 
-            if (tb.recursion_priority_counter < max_paths){                                                                     // TODO: parameterize "1"
+            if (tb.recursion_priority_counter < max_paths){             // NOTE: add here " && tb.recursive_return_status==false" to restrict DFS to one traceback path only
 
                 for (auto &neighbor : bw_neighbors){
                     // =====================================
@@ -618,7 +620,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         ue->set_seen_fw();  // NOTE: I keep this marked since we (in it's current version) only report one path per source-sink note
 
         // -----------------------
-        // |  if stop by colors  |  // TODO: this should neve be the case now, delete?
+        // |  if stop by colors  |  // TODO: this should never be the case now, delete?
         // -----------------------
         if (is_empty_start_vec(start_vec)){
             if (verbose) cout << "I see " << ue->getID() << " does not satisfy the color criteria." << endl;
@@ -702,7 +704,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
         /**/
 
-            if (tb.recursion_priority_counter < max_paths){                                                                     // TODO: parameterize "1"
+            if (tb.recursion_priority_counter < max_paths){             // NOTE: add here " && tb.recursive_return_status==false" to restrict DFS to one traceback path only
 
                 for (auto &neighbor : fw_neighbors){
                     // =====================================
