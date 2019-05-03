@@ -406,47 +406,149 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
         std::vector<bool> start_vec(nb_colors, false);
 
         if (direction==GO_BACKWARD){
+            if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
             ue->set_seen_bw();
 
-            // init start_vec
+            // init start_vec bw traversal
             const const_UnitigColorMap<UnitigExtension> ucm_head_kmer = ucm.getKmerMapping(0);
             const UnitigColors* ucm_head_uc = ucm_head_kmer.getData()->getUnitigColors(ucm_head_kmer);
             for (size_t color_id = 0; color_id != nb_colors; ++color_id)
                 if (ucm_head_uc->contains(ucm_head_kmer, color_id))
                     start_vec[color_id] = true;
 
-            // traverse
-            if (verbose) cout << "I am setting " << ue->getID() << " to seen (bw)." << endl;
-            for (auto &predecessor : bw_neighbors){
-                DFS_case(ucm, predecessor, start_vec, tb, sc, verbose, max_paths);
+            // =====================================
+            // | checkpoint: color ranked neighbors |
+            // =====================================
+            /**/
+            // get pairs (rel. overlap, ID) of all neighbors in descending order
+            std::multimap<float, unsigned, GreaterThan> descendingSortedNeighbors;              // IDEA: for more decision criteria, encode this in the compare functor
+            for (auto &neighbor : bw_neighbors){
+                DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+                UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+                unsigned id = neighbor_ue->getID();
+                float ecr = equalColorbitsRate(start_vec, neighbor);
+                if (ecr > 0.0f)
+                    descendingSortedNeighbors.insert(std::pair<float, unsigned>(ecr, id));
             }
+            /**/
+
+            // =====================================
+            // | checkpoint: color ranked neighbors |
+            // =====================================
+            /**/
+            for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
+            /**/
+
+                if (tb.recursion_priority_counter < max_paths){             // NOTE: add here " && tb.recursive_return_status==false" to restrict DFS to one traceback path only
+
+                    for (auto &neighbor : bw_neighbors){
+                        // =====================================
+                        // | checkpoint: color ranked neighbors |
+                        // =====================================
+                        /**/
+                        DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+                        UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+                        unsigned ue_id = neighbor_ue->getID();
+                        unsigned neighbor_id = it->second;
+
+                        if (ue_id == neighbor_id){
+                        /**/
+                            DFS_case(ucm, neighbor, start_vec, tb, sc, verbose, max_paths);
+                        // =====================================
+                        // | checkpoint: color ranked neighbors |
+                        // =====================================
+                        /**/
+                            break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
+                        }
+                        /**/
+
+                    }
+                }
+                // =====================================
+                // | checkpoint: color ranked neighbors |
+                // =====================================
+                /**/
+                else{break;}
+            }
+                /**/
         }
 
         else{   // direction==GO_FORWARD
+            if (verbose) cout << "I am setting " << ue->getID() << " to seen (fw)." << endl;
             ue->set_seen_fw();
 
-            // init start_vec
+            // init start_vec fw traversal
             const const_UnitigColorMap<UnitigExtension> ucm_tail_kmer = ucm.getKmerMapping(ucm.size - static_cast<size_t>(this->getK()));
             const UnitigColors* ucm_tail_uc = ucm_tail_kmer.getData()->getUnitigColors(ucm_tail_kmer);
             for (size_t color_id = 0; color_id != nb_colors; ++color_id)
                 if (ucm_tail_uc->contains(ucm_tail_kmer, color_id))
                     start_vec[color_id] = true;
 
-            // traverse
-            if (verbose) cout << "I am setting " << ue->getID() << " to seen (fw)." << endl;
-            for (auto &successor : fw_neighbors){
-                DFS_case(ucm, successor, start_vec, tb, sc, verbose, max_paths);
+            // =====================================
+            // | checkpoint: color ranked neighbors |
+            // =====================================
+            /**/
+            // get pairs (rel. overlap, ID) of all neighbors in descending order
+            std::multimap<float, unsigned, GreaterThan> descendingSortedNeighbors;              // IDEA: for more decision criteria, encode this in the compare functor
+            for (auto &neighbor : fw_neighbors){
+                DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+                UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+                unsigned id = neighbor_ue->getID();
+                float ecr = equalColorbitsRate(start_vec, neighbor);
+                if (ecr > 0.0f)
+                    descendingSortedNeighbors.insert(std::pair<float, unsigned>(ecr, id));
             }
-        }
+            /**/
 
-        if (tb.recursive_return_status){        // mark start nodes only if at least one traceback happened. Important for #recursion attempts (c) > 1
-            ue->set_visited_fw();
-            ue->set_visited_bw();
-            if (verbose) cout << "I am setting " << ue->getID() << " to visited (both)." << endl;
-            if (verbose) cout << "I am done with " << ue->getID() << endl;
+            // =====================================
+            // | checkpoint: color ranked neighbors |
+            // =====================================
+            /**/
+            for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
+            /**/
+
+                if (tb.recursion_priority_counter < max_paths){             // NOTE: add here " && tb.recursive_return_status==false" to restrict DFS to one traceback path only
+
+                    for (auto &neighbor : fw_neighbors){
+                        // =====================================
+                        // | checkpoint: color ranked neighbors |
+                        // =====================================
+                        /**/
+                        DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+                        UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+                        unsigned ue_id = neighbor_ue->getID();
+                        unsigned neighbor_id = it->second;
+
+                        if (ue_id == neighbor_id){
+                        /**/
+                            DFS_case(ucm, neighbor, start_vec, tb, sc, verbose, max_paths);
+                        // =====================================
+                        // | checkpoint: color ranked neighbors |
+                        // =====================================
+                        /**/
+                            break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
+                        }
+                        /**/
+
+                    }
+                }
+                // =====================================
+                // | checkpoint: color ranked neighbors |
+                // =====================================
+                /**/
+                else{break;}
+            }
+                /**/
         }
 
         sc.del();
+    }
+
+    if (tb.recursive_return_status){        // mark start nodes only if at least one traceback happened. Important for #recursion attempts (c) > 1
+        ue->set_visited_fw();
+        ue->set_visited_bw();
+        if (verbose) cout << "I am setting " << ue->getID() << " to visited (both)." << endl;
+        if (verbose) cout << "I am done with " << ue->getID() << endl;
     }
 
     return tb;
