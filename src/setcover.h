@@ -58,6 +58,7 @@ public:
     void unify(){c_.insert(current_path.cbegin(), current_path.cend());}
 
 private:
+    // minimum contribution of a path, checked in Setcover::check()
     unsigned t_;
 
     // set cover
