@@ -131,13 +131,13 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                       Setcover<> &sc,
                       const bool verbose,
                       const unsigned max_paths);
-        
+
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
 
         bool haveCommonColor(const UnitigColorMap<UnitigExtension> &start_ucm,
                                  const UnitigColorMap<UnitigExtension> &ucm,
-                                 const uint8_t start_direction, 
+                                 const uint8_t start_direction,
                                  const bool verbose) const;
 
         float equalColorbitsRate(const std::vector<bool> &v,
@@ -148,6 +148,12 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         void update_start_vec(std::vector<bool> &start_vec,
                               const UnitigColorMap<UnitigExtension> &ucm) const;
         bool is_empty_start_vec(const std::vector<bool> &start_vec) const;
+
+
+        // ==========================
+        // DEBUG, NOTE: needs to be taken out at release
+        std::vector<unsigned> traversedIDs;
+        // ==========================
 };
 
 

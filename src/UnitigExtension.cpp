@@ -27,15 +27,17 @@ inline void UnitigExtension::extract(const UnitigColors* uc_dest,
 */
 
 
-/*
+/**/
 string UnitigExtension::serialize(const const_UnitigColorMap< UnitigExtension >& um_src) const{
 
     const DataAccessor<UnitigExtension>* da = um_src.getData();
     const UnitigExtension* ue = da->getData(um_src);
 
-    return std::to_string(ue->getID());
+    string field = "ID:i:" + std::to_string(ue->getID());
+
+    return field;
 }
-*/
+/**/
 
 
 /*!

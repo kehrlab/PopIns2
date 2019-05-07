@@ -60,6 +60,9 @@ int popins2_merge(int argc, char const *argv[]){
     }
 #endif // DEBUG
 
+    // ==============================
+    // Bifrost
+    // ==============================
     msg.str("");
     msg << "Building CCDBG";
     printTimeStatus(msg);
@@ -74,12 +77,6 @@ int popins2_merge(int argc, char const *argv[]){
     msg << "ColorMapping CCDBG";
     printTimeStatus(msg);
     exg.buildColors(ccdbg_build_opt);
-
-    msg.str("");
-    msg << "Writing CCDBG";
-    printTimeStatus(msg);
-    exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
-
 
     // ==============================
     // Merge specific functions
@@ -113,7 +110,7 @@ int popins2_merge(int argc, char const *argv[]){
         cout << "Unitig: " << ue->getID() << ", Len: " << unitig.len << endl;
 
         std::vector<bool> v;
-        
+
         for (size_t kmerIter = 0; kmerIter <= unitig.size - exg.getK(); ++kmerIter){
             const const_UnitigColorMap<UnitigExtension> kmer = unitig.getKmerMapping(kmerIter);
             const UnitigColors* colors = kmer.getData()->getUnitigColors(kmer);
@@ -132,6 +129,13 @@ int popins2_merge(int argc, char const *argv[]){
     */
 
 
+    // ==============================
+    // Bifrost
+    // ==============================
+    msg.str("");
+    msg << "Writing CCDBG";
+    printTimeStatus(msg);
+    exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
 
 
 

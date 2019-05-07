@@ -378,6 +378,11 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
         tb.seqs.push_back(l_seqs);
 #endif // DEBUG
 
+        // ==========================
+        // DEBUG, NOTE: needs to be taken out at release
+        traversedIDs.push_back(ue->getID());
+        // ==========================
+
         VSequences vseqs;
         ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
         tb.push_back(vseqs);
@@ -629,6 +634,11 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             tb.seqs.push_back(l_seqs);
 #endif // DEBUG
 
+            // ==========================
+            // DEBUG, NOTE: needs to be taken out at release
+            traversedIDs.push_back(ue->getID());
+            // ==========================
+
             VSequences vseqs;
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
             tb.push_back(vseqs);
@@ -755,6 +765,11 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
             tb.seqs.push_back(l_seqs);
 #endif // DEBUG
 
+            // ==========================
+            // DEBUG, NOTE: needs to be taken out at release
+            traversedIDs.push_back(ue->getID());
+            // ==========================
+
             VSequences vseqs;
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
             tb.push_back(vseqs);
@@ -870,10 +885,8 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                              const bool verbose,
                              const unsigned max_paths){
 
-#ifdef DEBUG
     DataAccessor<UnitigExtension>* ucm_da = ucm.getData();
     UnitigExtension* ucm_ue = ucm_da->getData(ucm);
-#endif // DEBUG
 
     DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
     UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
@@ -890,13 +903,12 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
             // ---------------
             // |  Recursion  |
             // ---------------
-#ifdef DEBUG
+
             if (verbose) cout << "I am at " << ucm_ue->getID() << " and will go forward to " << neighbor_ue->getID() << endl;
-#endif // DEBUG
+
             Traceback returned_tb = DFS_Visit(neighbor, start_vec, GO_BACKWARD, sc, verbose, max_paths);
-#ifdef DEBUG
+
             if (verbose) cout << "I jumped back to ID " << ucm_ue->getID() << endl;
-#endif // DEBUG
 
             // -----------------------------------------
             // |  check recursively returned tb object |
@@ -910,6 +922,12 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                 }
                 assert(returned_tb.empty() == false)
 #endif // DEBUG
+
+                // ==========================
+                // DEBUG, NOTE: needs to be taken out at release
+                traversedIDs.push_back(ucm_ue->getID());
+                // ==========================
+
                 for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                     ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                 tb.recursive_return_status = true;
@@ -930,13 +948,12 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
             // ---------------
             // |  Recursion  |
             // ---------------
-#ifdef DEBUG
+
             if (verbose) cout << "I am at " << ucm_ue->getID() << " and will go forward to " << neighbor_ue->getID() << endl;
-#endif // DEBUG
+
             Traceback returned_tb = DFS_Visit(neighbor, start_vec, GO_FORWARD, sc, verbose, max_paths);
-#ifdef DEBUG
+
             if (verbose) cout << "I jumped back to ID " << ucm_ue->getID() << endl;
-#endif // DEBUG
 
             // -----------------------------------------
             // |  check recursively returned tb object |
@@ -950,6 +967,12 @@ void ExtendedCCDBG::DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                 }
                 assert(returned_tb.empty() == false)
 #endif // DEBUG
+
+                // ==========================
+                // DEBUG, NOTE: needs to be taken out at release
+                traversedIDs.push_back(ucm_ue->getID());
+                // ==========================
+
                 for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
                     ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                 tb.recursive_return_status = true;
@@ -1094,6 +1117,16 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt, const unsigned max_paths){
     }
 
     ofs.close();
+
+    // ==========================
+    // DEBUG, NOTE: needs to be taken out at release
+    ofstream csv_f("contigs.csv");
+    csv_f << "Name,Colour" << endl;
+    for (unsigned n=0; n < traversedIDs.size(); n++){
+        csv_f << traversedIDs[n] << ",red" << endl;
+    }
+    csv_f.close();
+    // ==========================
 
     return true;
 }
