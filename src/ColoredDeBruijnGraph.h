@@ -135,6 +135,9 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
 
+        bool yStemCheck(const UnitigColorMap<UnitigExtension> &startnode,
+                             const bool verbose);
+
         bool haveCommonColor(const UnitigColorMap<UnitigExtension> &start_ucm,
                                  const UnitigColorMap<UnitigExtension> &ucm,
                                  const uint8_t start_direction,
@@ -153,6 +156,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         // ==========================
         // DEBUG, NOTE: needs to be taken out at release
         std::vector<unsigned> traversedIDs;
+        std::vector<unsigned> traversedStartnodes;
         // ==========================
 };
 

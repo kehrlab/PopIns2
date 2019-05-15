@@ -406,6 +406,12 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
     // | start traversal |
     // -------------------
     else{
+        // yShape check
+        if (yStemCheck(ucm, verbose)){
+            if (verbose) cout << "Discarding startnode " << ue->getID() << " since it is a heavy Y-chain element." << endl;
+            return tb;
+        }
+
         const uint8_t direction = !bw_neighbors.hasPredecessors() ? GO_FORWARD : GO_BACKWARD;
         size_t nb_colors = this->getNbColors();
         std::vector<bool> start_vec(nb_colors, false);
@@ -554,6 +560,11 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
         ue->set_visited_bw();
         if (verbose) cout << "I am setting " << ue->getID() << " to visited (both)." << endl;
         if (verbose) cout << "I am done with " << ue->getID() << endl;
+
+        // ==========================
+        // DEBUG, NOTE: needs to be taken out at release
+        traversedStartnodes.push_back(ue->getID());
+        // ==========================
     }
 
     return tb;
@@ -1121,9 +1132,12 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt, const unsigned max_paths){
     // ==========================
     // DEBUG, NOTE: needs to be taken out at release
     ofstream csv_f("contigs.csv");
-    csv_f << "Name,Colour" << endl;
+    csv_f << "ID,Colour" << endl;
     for (unsigned n=0; n < traversedIDs.size(); n++){
         csv_f << traversedIDs[n] << ",red" << endl;
+    }
+    for (unsigned n=0; n < traversedStartnodes.size(); n++){
+        csv_f << traversedStartnodes[n] << ",green" << endl;
     }
     csv_f.close();
     // ==========================
@@ -1237,3 +1251,52 @@ inline bool ExtendedCCDBG::is_empty_start_vec(const std::vector<bool> &start_vec
         return true;
     return false;
 }
+
+
+/*!
+ * \fn      yStemCheck()
+ * \details This function checks whether a start node is the stem of Y-shaped connected component (CC).
+ *          Speaking in terms of an antibody, the traversal of a y-shaped CC should not start in the heavy domain. If it
+ *          does, there is no chance for the second (not yet traversed) light chain to end up in a traversed path since the
+ *          heavy domain will be marked as visited already. To avoid this, we simply force the traversal not to start in
+ *          the heavy domain.
+ * \return  bool; true if startnode is Y-stem
+ */
+inline bool ExtendedCCDBG::yStemCheck(const UnitigColorMap<UnitigExtension> &startnode, const bool verbose){
+    // TODO: can be optimized to not calculate the neighbors twice (done in DFS_Init already)
+    BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = startnode.getPredecessors();
+    ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = startnode.getSuccessors();
+
+    bool isYstem = true;
+    if (bw_neighbors.hasPredecessors()){
+        for (auto &neighbors : bw_neighbors){
+            BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> pre_pre = neighbors.getPredecessors();
+            ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> pre_suc = neighbors.getSuccessors();
+            size_t c_pre_pre = pre_pre.cardinality();
+            size_t c_pre_suc = pre_suc.cardinality();
+            if (c_pre_pre + c_pre_suc != 1){
+                isYstem = false;
+                break;
+            }
+        }
+    }
+    else{
+        for (auto &neighbors : fw_neighbors){
+            BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> suc_pre = neighbors.getPredecessors();
+            ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> suc_suc = neighbors.getSuccessors();
+            size_t c_suc_pre = suc_pre.cardinality();
+            size_t c_suc_suc = suc_suc.cardinality();
+            if (c_suc_pre + c_suc_suc != 1){
+                isYstem = false;
+                break;
+            }
+        }
+    }
+    return isYstem;
+}
+
+
+
+
+
+
