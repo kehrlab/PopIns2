@@ -38,30 +38,14 @@ int popins2_merge(int argc, char const *argv[]){
         return 1;
     }
 
-
     // ==============================
-    // Bifrost graph functions
+    // Bifrost
     // ==============================
     std::ostringstream msg;
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
 
-#ifdef DEBUG
-    if (ccdbg_build_opt.verbose) {
-        std::cout << "Sequence files:" << std::endl;
-        for (auto file : ccdbg_build_opt.filename_seq_in){
-            cout << file << endl;
-        }
-    }
-    if (ccdbg_build_opt.verbose) {
-        std::cout << "Reference files:" << std::endl;
-        for (auto file : ccdbg_build_opt.filename_ref_in){
-            cout << file << endl;
-        }
-    }
-#endif // DEBUG
-
     // ==============================
-    // Bifrost
+    // Bifrost graph functions
     // ==============================
     msg.str("");
     msg << "Building CCDBG";
@@ -77,6 +61,14 @@ int popins2_merge(int argc, char const *argv[]){
     msg << "ColorMapping CCDBG";
     printTimeStatus(msg);
     exg.buildColors(ccdbg_build_opt);
+
+    // ==============================
+    // Bifrost
+    // ==============================
+    msg.str("");
+    msg << "Writing CCDBG";
+    printTimeStatus(msg);
+    exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
 
     // ==============================
     // Merge specific functions
@@ -127,15 +119,6 @@ int popins2_merge(int argc, char const *argv[]){
         vv.clear();
     }
     */
-
-
-    // ==============================
-    // Bifrost
-    // ==============================
-    msg.str("");
-    msg << "Writing CCDBG";
-    printTimeStatus(msg);
-    exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
 
 
 

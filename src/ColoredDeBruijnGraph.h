@@ -17,10 +17,6 @@
 // TODO exclude prettyprint for release
 #include "../../prettyprint/prettyprint.h"
 
-#ifdef DEBUG
-    typedef std::vector<std::vector<unsigned> > PathSet;
-    typedef std::vector<unsigned> Path;
-#endif // DEBUG
 
 typedef std::vector<std::vector<std::string> >VVSequences;
 typedef std::vector<std::string> VSequences;
@@ -53,17 +49,6 @@ public:
     bool recursive_return_status = false;
 
     static uint8_t recursion_priority_counter;
-
-#ifdef DEBUG
-    PathSet ids;
-    std::vector<std::vector<bool> > oris;
-    std::vector<std::vector<std::string> > seqs;
-
-    void printIds() const;
-    void printOris() const;
-    void printSeqs() const;
-    void printPathSeqs() const;
-#endif // DEBUG
 
     bool write(ofstream &ofs, const size_t k, size_t &counter) const;
 
@@ -152,12 +137,12 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                               const UnitigColorMap<UnitigExtension> &ucm) const;
         bool is_empty_start_vec(const std::vector<bool> &start_vec) const;
 
+        template <class TNeighborCDBG, class TMap>
+        void sortNeighbors(const TNeighborCDBG &neighbors,
+                           const std::vector<bool> &start_vec,
+                           TMap &container) const;
 
-        // ==========================
-        // DEBUG, NOTE: needs to be taken out at release
-        std::vector<unsigned> traversedIDs;
-        std::vector<unsigned> traversedStartnodes;
-        // ==========================
+
 };
 
 
