@@ -25,10 +25,6 @@ typedef std::vector<std::string> VSequences;
 // =========================
 // Structs
 // =========================
-struct GreaterThan {
-    bool operator() (const char& lhs, const char& rhs) const {return lhs>rhs;}
-};
-
 
 /*!
 * \class        Traceback
@@ -84,6 +80,22 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         bool merge(const CCDBG_Build_opt &opt, const unsigned max_paths);
 
     private:
+        struct GreaterThan {
+            bool operator() (const char &lhs, const char &rhs) const {return lhs>rhs;}
+        };
+
+        typedef std::multimap<float, unsigned, GreaterThan> neighborsContainer;
+
+        typedef std::pair <float, size_t> keyPair;
+
+        struct keyPair_GreaterThan {
+            bool operator() (const keyPair &lhs, const keyPair &rhs) const {
+                if (lhs.first != rhs.first) {return lhs.first > rhs.first;}
+                else {return lhs.second > rhs.second;}
+            }
+        };
+
+        typedef std::multimap<keyPair, unsigned, keyPair_GreaterThan> neighborsContainerWithStoredLength;
 
         bool id_init_status;
 
@@ -137,10 +149,16 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                               const UnitigColorMap<UnitigExtension> &ucm) const;
         bool is_empty_start_vec(const std::vector<bool> &start_vec) const;
 
-        template <class TNeighborCDBG, class TMap>
+
+        template <class TNeighborCDBG>
         void sortNeighbors(const TNeighborCDBG &neighbors,
                            const std::vector<bool> &start_vec,
-                           TMap &container) const;
+                           neighborsContainer &container) const;
+
+        template <class TNeighborCDBG>
+        void sortNeighbors(const TNeighborCDBG &neighbors,
+                           const std::vector<bool> &start_vec,
+                           neighborsContainerWithStoredLength &container) const;
 
 
 };

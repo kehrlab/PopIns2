@@ -8,8 +8,8 @@
 #include <map>
 
 
-uint8_t Traceback::recursion_priority_counter = 0;
 
+uint8_t Traceback::recursion_priority_counter = 0;
 
 
 inline void Traceback::join(const Traceback &t){
@@ -345,7 +345,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
             // =====================================
             /**/
             // get pairs (rel. overlap, ID) of all neighbors in descending order
-            std::multimap<float, unsigned, GreaterThan> descendingSortedNeighbors;              // IDEA: for more decision criteria, encode this in the compare functor
+            neighborsContainerWithStoredLength descendingSortedNeighbors;
             sortNeighbors(bw_neighbors, start_vec, descendingSortedNeighbors);
             /**/
 
@@ -409,7 +409,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
             // =====================================
             /**/
             // get pairs (rel. overlap, ID) of all neighbors in descending order
-            std::multimap<float, unsigned, GreaterThan> descendingSortedNeighbors;              // IDEA: for more decision criteria, encode this in the compare functor
+            neighborsContainerWithStoredLength descendingSortedNeighbors;
             sortNeighbors(fw_neighbors, start_vec, descendingSortedNeighbors);
             /**/
 
@@ -554,7 +554,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // =====================================
         /**/
         // get pairs (rel. overlap, ID) of all neighbors in descending order
-        std::multimap<float, unsigned, GreaterThan> descendingSortedNeighbors;              // IDEA: for more decision criteria, encode this in the compare functor
+        neighborsContainerWithStoredLength descendingSortedNeighbors;
         sortNeighbors(bw_neighbors, start_vec, descendingSortedNeighbors);
         /**/
 
@@ -652,7 +652,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // =====================================
         /**/
         // get pairs (rel. overlap, ID) of all neighbors in descending order
-        std::multimap<float, unsigned, GreaterThan> descendingSortedNeighbors;              // IDEA: for more decision criteria, encode this in the compare functor
+        neighborsContainerWithStoredLength descendingSortedNeighbors;
         sortNeighbors(fw_neighbors, start_vec, descendingSortedNeighbors);
         /**/
 
@@ -1008,6 +1008,7 @@ inline float ExtendedCCDBG::equalColorbitsRate(const std::vector<bool> &v,
         bool hasColor_ucm_head = ucm_head_uc->contains(ucm_head_kmer, color_id);
         bool hasColor_ucm_tail = ucm_tail_uc->contains(ucm_tail_kmer, color_id);
 
+        // count +1 whenever all color bits of a sample are 0/0/0 or 1/1/1
         if (hasColor_ucm_head==hasColor_ucm_tail && hasColor_ucm_tail==v[color_id])
             ++equalColorbits;
     }
@@ -1094,6 +1095,10 @@ inline bool ExtendedCCDBG::yStemCheck(const UnitigColorMap<UnitigExtension> &sta
             }
         }
     }
+
+    if (verbose)
+        if (isYstem) cout << "Found Y-stem." << endl;
+
     return isYstem;
 }
 
@@ -1104,17 +1109,40 @@ inline bool ExtendedCCDBG::yStemCheck(const UnitigColorMap<UnitigExtension> &sta
  * \param   TNeighborCDBG is either a ForwardCDBG or BackwardCDBG
  * \param   TMap is a sorted map with a float as key and unitig ID as value
  */
-template <class TNeighborCDBG, class TMap>
-inline void ExtendedCCDBG::sortNeighbors(const TNeighborCDBG &neighbors, const std::vector<bool> &start_vec, TMap &container) const{
+template <class TNeighborCDBG>
+inline void ExtendedCCDBG::sortNeighbors(const TNeighborCDBG &neighbors, const std::vector<bool> &start_vec, neighborsContainer &container) const{
+
+    // sort by color criterion
     for (auto &neighbor : neighbors){
         DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
         UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
         unsigned id = neighbor_ue->getID();
         float ecr = equalColorbitsRate(start_vec, neighbor);
+
+        size_t len = neighbor.size;
+        ecr = ecr * sqrt(len);
+
         if (ecr > 0.0f)
             container.insert(std::pair<float, unsigned>(ecr, id));
     }
 }
+
+
+template <class TNeighborCDBG>
+inline void ExtendedCCDBG::sortNeighbors(const TNeighborCDBG &neighbors, const std::vector<bool> &start_vec, neighborsContainerWithStoredLength &container) const{
+
+    // sort by color criterion first and length afterwards, see Functor of 'neighborsContainerWithStoredLength'
+    for (auto &neighbor : neighbors){
+        DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+        UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+        unsigned id = neighbor_ue->getID();
+        size_t l = neighbor.size;
+        float ecr = equalColorbitsRate(start_vec, neighbor);
+        if (ecr > 0.0f)
+            container.insert(std::pair<keyPair, unsigned>(keyPair(ecr, l), id));
+    }
+}
+
 
 
 
