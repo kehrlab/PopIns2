@@ -345,7 +345,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
             // =====================================
             /**/
             // get pairs (rel. overlap, ID) of all neighbors in descending order
-            neighborsContainerWithStoredLength descendingSortedNeighbors;
+            neighborsContainer descendingSortedNeighbors;
             sortNeighbors(bw_neighbors, start_vec, descendingSortedNeighbors);
             /**/
 
@@ -409,7 +409,7 @@ Traceback ExtendedCCDBG::DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
             // =====================================
             /**/
             // get pairs (rel. overlap, ID) of all neighbors in descending order
-            neighborsContainerWithStoredLength descendingSortedNeighbors;
+            neighborsContainer descendingSortedNeighbors;
             sortNeighbors(fw_neighbors, start_vec, descendingSortedNeighbors);
             /**/
 
@@ -554,7 +554,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // =====================================
         /**/
         // get pairs (rel. overlap, ID) of all neighbors in descending order
-        neighborsContainerWithStoredLength descendingSortedNeighbors;
+        neighborsContainer descendingSortedNeighbors;
         sortNeighbors(bw_neighbors, start_vec, descendingSortedNeighbors);
         /**/
 
@@ -652,7 +652,7 @@ Traceback ExtendedCCDBG::DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
         // =====================================
         /**/
         // get pairs (rel. overlap, ID) of all neighbors in descending order
-        neighborsContainerWithStoredLength descendingSortedNeighbors;
+        neighborsContainer descendingSortedNeighbors;
         sortNeighbors(fw_neighbors, start_vec, descendingSortedNeighbors);
         /**/
 
@@ -1119,8 +1119,8 @@ inline void ExtendedCCDBG::sortNeighbors(const TNeighborCDBG &neighbors, const s
         unsigned id = neighbor_ue->getID();
         float ecr = equalColorbitsRate(start_vec, neighbor);
 
-        size_t len = neighbor.size;
-        ecr = ecr * sqrt(len);
+        //size_t len = neighbor.size;
+        //ecr = ecr * sqrt(len);
 
         if (ecr > 0.0f)
             container.insert(std::pair<float, unsigned>(ecr, id));
