@@ -119,13 +119,18 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                            const bool verbose,
                            const unsigned max_paths);
 
+        Traceback DFS_Init_long_internal_nodes(const UnitigColorMap<UnitigExtension> &ucm,
+                                               Setcover<> &sc,
+                                               const bool verbose,
+                                               const unsigned max_paths);
+
         Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                             std::vector<bool> &start_vec,
                             const uint8_t src_direction,
                             Setcover<> &sc,
                             const bool verbose,
                             const unsigned max_paths,
-                            const bool started_at_internal);
+                            const bool ignore_traversal_history);
 
         void DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                       const UnitigColorMap<UnitigExtension> &neighbor,
@@ -134,7 +139,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                       Setcover<> &sc,
                       const bool verbose,
                       const unsigned max_paths,
-                      const bool started_at_internal);
+                      const bool ignore_traversal_history);
 
         void DFS_cleaner();
         void DFS_cleaner_seen_only();

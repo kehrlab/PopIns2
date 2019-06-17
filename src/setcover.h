@@ -47,6 +47,12 @@ public:
         return false;
     }
 
+    bool contains(const unsigned e) const{
+        if (c_.find(e)!=c_.end())
+            return true;
+        return false;
+    }
+
     // add/delete/clear functions for the current path container
     void add(unsigned u){current_path.push_back(u);}
     void add(const UnitigColorMap<UnitigExtension> &ucm){
