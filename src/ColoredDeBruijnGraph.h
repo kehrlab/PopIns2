@@ -119,6 +119,11 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                            const bool verbose,
                            const unsigned max_paths);
 
+        Traceback DFS_Init_long_start_nodes(const UnitigColorMap<UnitigExtension> &ucm,
+                                            Setcover<> &sc,
+                                            const bool verbose,
+                                            const unsigned max_paths);
+
         Traceback DFS_Init_long_internal_nodes(const UnitigColorMap<UnitigExtension> &ucm,
                                                Setcover<> &sc,
                                                const bool verbose,
