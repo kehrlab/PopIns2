@@ -41,6 +41,7 @@ private:
 public:
     using const_iterator = VVSequences::const_iterator;
     using iterator = VVSequences::iterator;
+    using const_reverse_iterator = VVSequences::const_reverse_iterator;
 
     bool recursive_return_status = false;
 
@@ -50,12 +51,16 @@ public:
 
     void join(const Traceback &t);
 
+    void rearrange(const Traceback &bw, const Traceback &fw);
+
     bool empty() const {return pathseqs.empty();}
     void push_back(const VSequences &ps) {pathseqs.push_back(ps);}
     const_iterator cbegin() const { return pathseqs.cbegin(); }
     const_iterator cend() const { return pathseqs.cend(); }
     iterator begin() { return pathseqs.begin(); }
     iterator end() { return pathseqs.end(); }
+    const_reverse_iterator crbegin() const {return pathseqs.crbegin();}
+    const_reverse_iterator crend() const {return pathseqs.crend();}
 };
 
 
@@ -114,12 +119,23 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                            const bool verbose,
                            const unsigned max_paths);
 
+        Traceback DFS_Init_long_start_nodes(const UnitigColorMap<UnitigExtension> &ucm,
+                                            Setcover<> &sc,
+                                            const bool verbose,
+                                            const unsigned max_paths);
+
+        Traceback DFS_Init_long_internal_nodes(const UnitigColorMap<UnitigExtension> &ucm,
+                                               Setcover<> &sc,
+                                               const bool verbose,
+                                               const unsigned max_paths);
+
         Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
                             std::vector<bool> &start_vec,
                             const uint8_t src_direction,
                             Setcover<> &sc,
                             const bool verbose,
-                            const unsigned max_paths);
+                            const unsigned max_paths,
+                            const bool ignore_traversal_history);
 
         void DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
                       const UnitigColorMap<UnitigExtension> &neighbor,
@@ -127,7 +143,8 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                       Traceback &tb,
                       Setcover<> &sc,
                       const bool verbose,
-                      const unsigned max_paths);
+                      const unsigned max_paths,
+                      const bool ignore_traversal_history);
 
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
