@@ -82,7 +82,7 @@ int popins2_merge(int argc, char const *argv[]){
     msg << "Traversing paths";
     printTimeStatus(msg);
     //cout << "max_paths: " << mo.max_paths << endl;
-    exg.merge(ccdbg_build_opt, mo.max_paths);
+    exg.merge(ccdbg_build_opt);
 
 
     // ==============================

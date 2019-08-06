@@ -12,56 +12,11 @@
 
 #include "UnitigExtension.h"
 #include "setcover.h"
+#include "Traceback.h"
 
 
 // TODO exclude prettyprint for release
 #include "../../prettyprint/prettyprint.h"
-
-
-typedef std::vector<std::vector<std::string> >VVSequences;
-typedef std::vector<std::string> VSequences;
-
-
-// =========================
-// Structs
-// =========================
-
-/*!
-* \class        Traceback
-* \headerfile   src/ColoredDeBruijnGraph.h
-* \brief        Struct to manage the metadata for the DFS traceback.
-*/
-class Traceback{
-
-private:
-    void cutconcat(string &s, const VSequences &path, const size_t k) const;
-
-    VVSequences pathseqs;
-
-public:
-    using const_iterator = VVSequences::const_iterator;
-    using iterator = VVSequences::iterator;
-    using const_reverse_iterator = VVSequences::const_reverse_iterator;
-
-    bool recursive_return_status = false;
-
-    static uint8_t recursion_priority_counter;
-
-    bool write(ofstream &ofs, const size_t k, size_t &counter) const;
-
-    void join(const Traceback &t);
-
-    void rearrange(const Traceback &bw, const Traceback &fw);
-
-    bool empty() const {return pathseqs.empty();}
-    void push_back(const VSequences &ps) {pathseqs.push_back(ps);}
-    const_iterator cbegin() const { return pathseqs.cbegin(); }
-    const_iterator cend() const { return pathseqs.cend(); }
-    iterator begin() { return pathseqs.begin(); }
-    iterator end() { return pathseqs.end(); }
-    const_reverse_iterator crbegin() const {return pathseqs.crbegin();}
-    const_reverse_iterator crend() const {return pathseqs.crend();}
-};
 
 
 /*!
@@ -72,35 +27,46 @@ public:
 struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
     public:
-        ExtendedCCDBG(int kmer_length = 31, int minimizer_length = 23);      // hidden inits! (see definition)
+        ExtendedCCDBG(int kmer_length = 31, int minimizer_length = 23);
+
+        // -------------
+        // | Functions |
+        // -------------
 
         void init_ids();
         void print_ids();
         bool is_id_init() const {return id_init_status;}
 
+        /**
+         *          Compute the connected component for every node.
+         * @ref     seqan/include/seqan/misc/union_find.h
+         * @return  true if successful
+         */
         bool connected_components(const CCDBG_Build_opt &graph_options);
-        size_t count_connected_components();
-        seqan::UnionFind<unsigned> getUF() const {return UF;}
 
-        bool merge(const CCDBG_Build_opt &opt, const unsigned max_paths);
+        /**         Compute the amount of distict connected components in the dBG.
+         *          Prior to this function, the connected_components() function needs to be ran successfully.
+         * @return  number of connected components
+         */
+        size_t count_connected_components();
+
+        /**
+         *          Main function for the DFS procedure.
+         * @param   opt is a wrapper object for the program input parameter.
+         * @return  true if successful
+         */
+        bool merge(const CCDBG_Build_opt &opt);
 
     private:
+        // ----------
+        // | Member |
+        // ----------
+
         struct GreaterThan {
-            bool operator() (const char &lhs, const char &rhs) const {return lhs>rhs;}
+            bool operator() (const unsigned &lhs, const unsigned &rhs) const {return lhs>rhs;}
         };
 
-        typedef std::multimap<float, unsigned, GreaterThan> neighborsContainer;
-
-        typedef std::pair <float, size_t> keyPair;
-
-        struct keyPair_GreaterThan {
-            bool operator() (const keyPair &lhs, const keyPair &rhs) const {
-                if (lhs.first != rhs.first) {return lhs.first > rhs.first;}
-                else {return lhs.second > rhs.second;}
-            }
-        };
-
-        typedef std::multimap<keyPair, unsigned, keyPair_GreaterThan> neighborsContainerWithStoredLength;
+        typedef std::multimap<unsigned, unsigned, GreaterThan> neighborsContainer;
 
         bool id_init_status;
 
@@ -109,74 +75,89 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         const static uint8_t GO_FORWARD = 0x0;
         const static uint8_t GO_BACKWARD = 0x1;
 
-        float entropy(const std::string &sequence);
-
-        uint8_t whereToGo(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
-        uint8_t whereFrom(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
-
-        Traceback DFS_Init(const UnitigColorMap<UnitigExtension> &ucm,
-                           Setcover<> &sc,
-                           const bool verbose,
-                           const unsigned max_paths);
-
-        Traceback DFS_Init_long_start_nodes(const UnitigColorMap<UnitigExtension> &ucm,
-                                            Setcover<> &sc,
-                                            const bool verbose,
-                                            const unsigned max_paths);
-
-        Traceback DFS_Init_long_internal_nodes(const UnitigColorMap<UnitigExtension> &ucm,
-                                               Setcover<> &sc,
-                                               const bool verbose,
-                                               const unsigned max_paths);
-
-        Traceback DFS_Visit(const UnitigColorMap<UnitigExtension> &ucm,
-                            std::vector<bool> &start_vec,
-                            const uint8_t src_direction,
-                            Setcover<> &sc,
-                            const bool verbose,
-                            const unsigned max_paths,
-                            const bool ignore_traversal_history);
-
-        void DFS_case(const UnitigColorMap<UnitigExtension> &ucm,
-                      const UnitigColorMap<UnitigExtension> &neighbor,
-                      std::vector<bool> &start_vec,
-                      Traceback &tb,
-                      Setcover<> &sc,
-                      const bool verbose,
-                      const unsigned max_paths,
-                      const bool ignore_traversal_history);
+        // -------------
+        // | Functions |
+        // -------------
 
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
 
-        bool yStemCheck(const UnitigColorMap<UnitigExtension> &startnode,
-                             const bool verbose);
+        /**
+         *          Computes the entropy for a given string.
+         *          If all dimers are equaly distributed, the entropy is high (highly chaotic system),
+         *          if certain dimers are prevalent, the entropy is low (highly ordered system).
+         * @ref     Function taken from PopIns.
+         * @return  The entropy [0,1] of bi-nucleotides
+         */
+        float entropy(const std::string &sequence);
 
-        bool haveCommonColor(const UnitigColorMap<UnitigExtension> &start_ucm,
-                                 const UnitigColorMap<UnitigExtension> &ucm,
-                                 const uint8_t start_direction,
-                                 const bool verbose) const;
+        /**
+         *          Function to determine the traversal direction to go, given a unitig u and the previously visited unitig v.
+         *          This function tests the predecessors P of u (due to the orientation of u, v could be predecessor or successor)
+         *          and returns GO_FORWARD if v is in P or GO_BACKWARD otherwise.
+         * @return  returns a direction of {GO_BACKWARD, GO_FORWARD}
+         */
+        uint8_t whereToGo(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
 
-        float equalColorbitsRate(const std::vector<bool> &v,
-                                 const UnitigColorMap<UnitigExtension> &neighbor) const;
+        /**
+         *          Function to determine how to reach a previously visited node v with respect to the current unitig u.
+         *          Reverses the direction of whereToGo().
+         * @details This function can also be used to detemine a neighbor's (NBR) orientation with respect to u if um=NBR and src=u.
+         *          NBR  --------->           or    NBR         --------->
+         *          u          ----------           u     ----------
+         * @return  returns a direction of {GO_BACKWARD, GO_FORWARD}
+         */
+        uint8_t whereFrom(const UnitigColorMap<UnitigExtension> &um, const UnitigColorMap<UnitigExtension> &src) const;
 
-        template <class TContainer> void getSourceNodes(TContainer &m) const;
+        /**
+         *          Initial stage of the DFS algorithm.
+         * @return  Traceback object
+         */
+        Traceback DFS_Init_bidirectional(const UnitigColorMap<UnitigExtension> &ucm,
+                                         const bool verbose,
+                                         Setcover<> &sc);
 
-        void update_start_vec(std::vector<bool> &start_vec,
-                              const UnitigColorMap<UnitigExtension> &ucm) const;
-        bool is_empty_start_vec(const std::vector<bool> &start_vec) const;
+        /**
+         *          Recursive stage of the DFS algorithm.
+         * @param   src_direction indicates the direction to go (from ucm) to reach the previously visited unitig.
+         * @return  Traceback object
+         */
+        Traceback DFS_Visit_NEW(const UnitigColorMap<UnitigExtension> &ucm,
+                                const uint8_t src_direction,
+                                Setcover<> &sc,
+                                const bool verbose);
 
+        /**
+         *          Function to outsource a case analysis for different orientations of the current unitig and its
+         *          previously visited unitig.
+         * @details See function definition for sketch.
+         * @param   neighbor a successor or predecessor of ucm, depending on the traversal direction
+         */
+        void DFS_case_NEW(const UnitigColorMap<UnitigExtension> &ucm,
+                          const UnitigColorMap<UnitigExtension> &neighbor,
+                          Traceback &tb,
+                          Setcover<> &sc,
+                          const bool verbose);
 
+        /**
+         *          Funtion to sort neighbors v of a unitig u according to a given criterion f.
+         * @param   neighbors is a neighbors object of {BackwardCDBG, ForwardCDBG}
+         * @param   container is a data structure D to store and sort the pair (f, v.id) for every v.
+         *          D has to be initialized with an appropiate Functor for a descending sort of the pairs.
+         */
         template <class TNeighborCDBG>
-        void sortNeighbors(const TNeighborCDBG &neighbors,
-                           const std::vector<bool> &start_vec,
+        void sortNeighbors(const UnitigColorMap<UnitigExtension> &ucm,
+                           const TNeighborCDBG &neighbors,
                            neighborsContainer &container) const;
 
-        template <class TNeighborCDBG>
-        void sortNeighbors(const TNeighborCDBG &neighbors,
-                           const std::vector<bool> &start_vec,
-                           neighborsContainerWithStoredLength &container) const;
-
+        /**
+         *          Function to compute the number of common colors between two unitigs.
+         * @details Every color is checked for at least one occurence (in any k-mer) in both unitigs.
+         *          We count a color c as common if both unitigs have at least one k-mer with labelled with c.
+         * @return  number of common colors
+         */
+        unsigned check_common_colors(const UnitigColorMap<UnitigExtension> &ucm,
+                                     const UnitigColorMap<UnitigExtension> &neighbor) const;
 
 };
 

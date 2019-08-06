@@ -37,9 +37,20 @@ public:
     }
 
     float maxRatio() const{
-        // TODO
+        float maxRatio = 0;
+        for (auto i : kmer_counts_)
+            if (i/(float)total_kmers_ > maxRatio)
+                maxRatio = i/(float)total_kmers_;
+        return maxRatio;
     }
 
+    float minRatio() const{
+        float minRatio = 1;
+        for (auto i : kmer_counts_)
+            if (i/(float)total_kmers_ < minRatio && i/(float)total_kmers_ > 0)
+                minRatio = i/(float)total_kmers_;
+        return minRatio;
+    }
 
 private:
     // this vector stores for all colors the relative amount of kmers in the current path

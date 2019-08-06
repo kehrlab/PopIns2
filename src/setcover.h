@@ -19,8 +19,7 @@
 * \brief    This class implements a setcover for the ccDBG's unitigs.
 */
 template <typename TSetcover     = std::unordered_set<unsigned>,
-          typename TCurrentNodes = std::vector<unsigned>,
-          typename TStartNodes   = std::vector<unsigned> >
+          typename TCurrentPath  = std::vector<unsigned> >
 class Setcover{
 public:
     // Constructors
@@ -54,18 +53,16 @@ public:
         UnitigExtension* ucm_ue = ucm_da->getData(ucm);
         current_path_.push_back(ucm_ue->getID());
     }
-    void addStartnode(unsigned s){s_.push_back(s);}
     void del(){current_path_.pop_back();}
     void clear(){current_path_.clear();}
 
     // Unify the the elements of the current path with the set cover
-    void incorporate(){c_.insert(current_path.cbegin(), current_path.cend());}
+    void incorporate(){c_.insert(current_path_.cbegin(), current_path_.cend());}
 
     void print_CSV(){
         ofstream csv_f("contigs.csv");
         csv_f << "ID,Colour" << endl;
         for (auto it=c_.cbegin(); it != c_.cend(); ++it) csv_f << *it << ",red" << endl;
-        for (unsigned n=0; n < s_.size(); n++) csv_f << s_[n] << ",green" << endl;
         csv_f.close();
     }
 
@@ -79,10 +76,8 @@ private:
     TSetcover c_;
 
     // container for the curent path
-    TCurrentNodes current_path_;
+    TCurrentPath current_path_;
 
-    // Container for traversed startnodes
-    TStartNodes s_;
 
     bool contains(const unsigned e) const{
         if (c_.find(e)!=c_.end())
