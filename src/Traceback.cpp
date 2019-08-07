@@ -44,7 +44,7 @@ bool Traceback::write(ofstream &ofs, const size_t k, size_t &counter) const{
         return 1;
     }
     else
-        cout << "Error: Unable to open file.";
+        cout << "Error: Unable to open file." << endl;
     return 0;
 }
 

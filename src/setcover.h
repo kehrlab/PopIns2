@@ -26,13 +26,11 @@ public:
     Setcover() : t_(2) {}
     Setcover(unsigned t) : t_(t) {}
 
-    /*!
-    * \fn       Setcover.hasMinContribution()
-    * \brief    Check if the current path contains enough new elements with respect to the set cover
-    *           to incorporate the container's elements (current path) into the set cover. Returns true
-    *           if the amount of new elements is larger than or equal to the threshold.
-    * \return   bool
-    */
+    /**
+     *          Checks if the current path p contains enough new elements with respect to the set cover c
+     *          to incorporate the elements of p into the c.
+     * @return  true if number of new elements is larger than or equal threshold t_
+     */
     bool hasMinContribution() const{
         unsigned novel_elements = 0;
         auto cit = current_path_.cbegin();
@@ -56,10 +54,12 @@ public:
     void del(){current_path_.pop_back();}
     void clear(){current_path_.clear();}
 
+    bool empty(){return c_.empty();};
+
     // Unify the the elements of the current path with the set cover
     void incorporate(){c_.insert(current_path_.cbegin(), current_path_.cend());}
 
-    void print_CSV(){
+    void write_CSV(){
         ofstream csv_f("contigs.csv");
         csv_f << "ID,Colour" << endl;
         for (auto it=c_.cbegin(); it != c_.cend(); ++it) csv_f << *it << ",red" << endl;
@@ -67,6 +67,12 @@ public:
     }
 
     void print_current(){prettyprint::print(current_path_);}
+
+    bool contains(const unsigned e) const{
+        if (c_.find(e)!=c_.end())
+            return true;
+        return false;
+    }
 
 private:
     // minimum contribution of a path, checked in Setcover::check()
@@ -78,12 +84,6 @@ private:
     // container for the curent path
     TCurrentPath current_path_;
 
-
-    bool contains(const unsigned e) const{
-        if (c_.find(e)!=c_.end())
-            return true;
-        return false;
-    }
 };
 
 

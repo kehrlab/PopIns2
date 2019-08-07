@@ -176,37 +176,29 @@ inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >&
 
 
 bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
-
-    /* sanity check */
+    // SANITY CHECK(S)
     if (!this->is_id_init())
         return false;
 
+    // I/O
     std::string sv_filename = "contigs.fa";
     ofstream ofs(sv_filename, std::ofstream::out);
-    if (!ofs.is_open()){
-        cerr << "Error: Couldn't open ofstream for contig file." << endl;
-        return false;
-    }
+    if (!ofs.is_open()){cerr << "Error: Couldn't open ofstream for contig file." << endl; return false;}
 
     // DFS
-
     Setcover<> sc;
-
     size_t sv_counter = 0;
-
     for (auto &unitig : *this){
             if (opt.verbose) cout << " -------------------------------- " << endl;
             Traceback tb = DFS_Init_bidirectional(unitig, opt.verbose, sc);
-
             if (tb.recursive_return_status)
                 if (!tb.write(ofs, opt.k, sv_counter))
                     return false;
-            DFS_cleaner_seen_only();
     }
 
+    // I/O
     ofs.close();
-
-    sc.print_CSV();
+    sc.write_CSV();     // OPTIONAL
 
     return true;
 }
@@ -215,78 +207,120 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
 Traceback ExtendedCCDBG::DFS_Init_bidirectional(const UnitigColorMap<UnitigExtension> &ucm,
                                                 const bool verbose,
                                                 Setcover<std::unordered_set<unsigned int> > &sc){
-    Traceback tb;
+    Traceback tb_bw;
+    Traceback tb_fw;
 
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);
 
+    if (verbose) cout << "Starting at " << ue->getID() << endl;
+
     BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
     ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
-
-    if (verbose) cout << "Starting at " << ue->getID() << endl;
 
     // ----------------
     // | go backward  |
     // ----------------
-    if (verbose) cout << "Setting " << ue->getID() << " to seen (bw)" << endl;
-    ue->set_seen_bw();
+    if (!bw_neighbors.hasPredecessors()){
+        tb_bw.recursive_return_status = true;
+    }
+    else{
+        if (verbose) cout << "Setting " << ue->getID() << " to seen (bw)" << endl;
+        ue->set_seen_bw();
 
-    neighborsContainer descendingSortedNeighbors;
-    sortNeighbors(ucm, bw_neighbors, descendingSortedNeighbors);
+        neighborsContainer descendingSortedNeighbors;
+        sortNeighbors(ucm, bw_neighbors, descendingSortedNeighbors);
 
-    Traceback tb_bw;
-    for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
-        if (tb_bw.recursive_return_status == false){    //restriction to only one successful path search
-            for (auto &neighbor : bw_neighbors){
-                DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
-                UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
-                unsigned ue_id = neighbor_ue->getID();
-                unsigned neighbor_id = it->second;
+        for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
+            if (tb_bw.recursive_return_status == false){    //restriction to only one successful path search
+                for (auto &neighbor : bw_neighbors){
+                    DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+                    UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+                    unsigned ue_id = neighbor_ue->getID();
+                    unsigned neighbor_id = it->second;
 
-                if (ue_id == neighbor_id){
-                    DFS_case_NEW(ucm, neighbor, tb_bw, sc, verbose);
-                    break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
+                    if (ue_id == neighbor_id){
+                        DFS_case_NEW(ucm, neighbor, tb_bw, sc, verbose);
+                        break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
+                    }
                 }
             }
+            else {break;}
         }
-        else {break;}
     }
 
     // ---------------
     // | go forward  |
     // ---------------
-    if (verbose) cout << "Setting " << ue->getID() << " to seen (fw)" << endl;
-    ue->set_seen_fw();
+    if (!fw_neighbors.hasSuccessors()){
+        tb_fw.recursive_return_status = true;
+    }
+    else{
+        if (verbose) cout << "Setting " << ue->getID() << " to seen (fw)" << endl;
+        ue->set_seen_fw();
 
-    descendingSortedNeighbors.clear();
-    sortNeighbors(ucm, fw_neighbors, descendingSortedNeighbors);
+        neighborsContainer descendingSortedNeighbors;
+        sortNeighbors(ucm, fw_neighbors, descendingSortedNeighbors);
 
-    Traceback tb_fw;
-    for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
-        if (tb_fw.recursive_return_status == false){    //restriction to only one successful path search
-            for (auto &neighbor : fw_neighbors){
-                DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
-                UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
-                unsigned ue_id = neighbor_ue->getID();
-                unsigned neighbor_id = it->second;
+        for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
+            if (tb_fw.recursive_return_status == false){    //restriction to only one successful path search
+                for (auto &neighbor : fw_neighbors){
+                    DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+                    UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+                    unsigned ue_id = neighbor_ue->getID();
+                    unsigned neighbor_id = it->second;
 
-                if (ue_id == neighbor_id){
-                    DFS_case_NEW(ucm, neighbor, tb_fw, sc, verbose);
-                    break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
+                    if (ue_id == neighbor_id){
+                        DFS_case_NEW(ucm, neighbor, tb_fw, sc, verbose);
+                        break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
+                    }
                 }
             }
+            else{break;}
         }
-        else{break;}
     }
 
     // ----------
     // | return |
     // ----------
-    if (tb_bw.recursive_return_status && tb_fw.recursive_return_status){    //TODO: check SC for min contribution here
-        tb.recursive_return_status = true;
-        tb.rearrange(tb_bw, tb_fw);
+    Traceback tb;
+
+    if (tb_bw.recursive_return_status && tb_fw.recursive_return_status){                                                // both directions had successful DFS
+        if (bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors() && sc.hasMinContribution()){                 // started at internal node
+            tb.recursive_return_status = true;
+            tb.rearrange(tb_bw, tb_fw);
+            sc.incorporate();
+        }
+        else if (bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors() && sc.hasMinContribution()){           // start node was an end node
+            tb.recursive_return_status = true;
+            tb.join(tb_bw);
+            sc.incorporate();
+        }
+        else if (!bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors() && sc.hasMinContribution()){           // start node was an end node
+            tb.recursive_return_status = true;
+            tb.join(tb_fw);
+            sc.incorporate();
+        }
+        else if (!bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors()){                                     // start node is a singleton
+            tb.recursive_return_status = true;
+            VSequences vseqs;
+            ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
+            tb.push_back(vseqs);
+            sc.add(ue->getID());
+            sc.incorporate();
+        }
+        else{
+            cout << ue->getID() << " was rejected by the Setcover." << endl;
+        }
     }
+    else{
+        cout << "At least one DFS traversal (bw/fw) was not successful." << endl;
+    }
+
     if (verbose) cout << "Done with " << ue->getID() << endl;
+
+    sc.clear();
+    DFS_cleaner_seen_only();
 
     return tb;
 }
@@ -321,6 +355,7 @@ Traceback ExtendedCCDBG::DFS_Visit_NEW(const UnitigColorMap<UnitigExtension> &uc
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
             tb.push_back(vseqs);
             tb.recursive_return_status = true;
+            sc.add(ue->getID());
             return tb;
         }
 
@@ -365,6 +400,7 @@ Traceback ExtendedCCDBG::DFS_Visit_NEW(const UnitigColorMap<UnitigExtension> &uc
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
             tb.push_back(vseqs);
             tb.recursive_return_status = true;
+            sc.add(ue->getID());
             return tb;
         }
 
@@ -418,6 +454,7 @@ void ExtendedCCDBG::DFS_case_NEW(const UnitigColorMap<UnitigExtension> &ucm,
 
         if ( neighbor_ue->is_undiscovered_fw() ){
             if (verbose) cout << "Traversal at " << ucm_ue->getID() << " will go to " << neighbor_ue->getID() << endl;
+            sc.add(ucm_ue->getID());    // covers DFS_Init and DFS_Visit
             Traceback returned_tb = DFS_Visit_NEW(neighbor, GO_BACKWARD, sc, verbose);
             if (verbose) cout << "Jumped back to " << ucm_ue->getID() << endl;
 
@@ -426,6 +463,9 @@ void ExtendedCCDBG::DFS_case_NEW(const UnitigColorMap<UnitigExtension> &ucm,
                     ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                 tb.recursive_return_status = true;
                 tb.join(returned_tb);
+            }
+            else{
+                sc.del();   // in case DFS jumps back without traceback, e.g. at loop
             }
         }
         else{
@@ -444,6 +484,7 @@ void ExtendedCCDBG::DFS_case_NEW(const UnitigColorMap<UnitigExtension> &ucm,
 
         if ( neighbor_ue->is_undiscovered_bw() ){
             if (verbose) cout << "Traversal at " << ucm_ue->getID() << " will go to " << neighbor_ue->getID() << endl;
+            sc.add(ucm_ue->getID());    // covers DFS_Init and DFS_Visit
             Traceback returned_tb = DFS_Visit_NEW(neighbor, GO_FORWARD, sc, verbose);
             if (verbose) cout << "Jumped back to " << ucm_ue->getID() << endl;
 
@@ -452,6 +493,9 @@ void ExtendedCCDBG::DFS_case_NEW(const UnitigColorMap<UnitigExtension> &ucm,
                     ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
                 tb.recursive_return_status = true;
                 tb.join(returned_tb);
+            }
+            else{
+                sc.del();   // in case DFS jumps back without traceback, e.g. at loop
             }
         }
         else{
