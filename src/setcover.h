@@ -31,16 +31,24 @@ public:
      *          to incorporate the elements of p into the c.
      * @return  true if number of new elements is larger than or equal threshold t_
      */
-    bool hasMinContribution() const{
+    bool hasMinContribution(bool verbose = true) const{
         unsigned novel_elements = 0;
         auto cit = current_path_.cbegin();
         while (cit != current_path_.cend()){
-            if (!contains(*cit))
+            if (!contains(*cit)){
                 ++novel_elements;
-            if (novel_elements >= t_)
+                if (verbose) cout << *cit << " is novel" << endl;
+            }
+            else{
+                if (verbose) cout << *cit << " is not novel" << endl;
+            }
+            if (novel_elements >= t_){
+                if (verbose) cout << "Found enough novel elements" << endl;
                 return true;
+            }
             ++cit;
         }
+        if (verbose) cout << novel_elements << " of " << current_path_.size() << "are in the SC" << endl;
         return false;
     }
 
@@ -57,7 +65,12 @@ public:
     bool empty(){return c_.empty();};
 
     // Unify the the elements of the current path with the set cover
-    void incorporate(){c_.insert(current_path_.cbegin(), current_path_.cend());}
+    void incorporate(bool verbose = true){
+        c_.insert(current_path_.cbegin(), current_path_.cend());
+        if (verbose) cout << "Inserted following novel elements ";
+        if (verbose) print_current();
+        if (verbose) cout << endl;
+    }
 
     void write_CSV(){
         ofstream csv_f("contigs.csv");
