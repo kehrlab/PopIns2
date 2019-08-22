@@ -6,7 +6,7 @@ Population-scale detection of non-reference sequence insertions using colored de
 | Requirement | Tested with |
 | --- | --- |
 | 64 bits POSIX-compliant operating system | Ubuntu 16.04 LTS, CentOS Linux 7.6 |
-| C++14 capable compiler | g++ vers. 5.5.0 |
+| C++14 capable compiler | g++ vers. 4.9.2, 5.5.0 |
 | [SeqAn](https://www.seqan.de/) | vers. 2.3.2 |
 | [Bifrost](https://github.com/pmelsted/bfgraph) | vers. 0.2-699bdcf |
 
