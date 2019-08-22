@@ -465,7 +465,7 @@ void ExtendedCCDBG::DFS_case_NEW(const UnitigColorMap<UnitigExtension> &ucm,
                 tb.join(returned_tb);
             }
             else{
-                sc.del();   // in case DFS jumps back without traceback, e.g. at loop
+                sc.del(ucm_ue->getID());   // in case DFS jumps back without traceback, e.g. at loop
             }
         }
         else{
@@ -495,7 +495,7 @@ void ExtendedCCDBG::DFS_case_NEW(const UnitigColorMap<UnitigExtension> &ucm,
                 tb.join(returned_tb);
             }
             else{
-                sc.del();   // in case DFS jumps back without traceback, e.g. at loop
+                sc.del(ucm_ue->getID());   // in case DFS jumps back without traceback, e.g. at loop
             }
         }
         else{

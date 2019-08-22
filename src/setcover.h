@@ -19,7 +19,7 @@
 * \brief    This class implements a setcover for the ccDBG's unitigs.
 */
 template <typename TSetcover     = std::unordered_set<unsigned>,
-          typename TCurrentPath  = std::vector<unsigned> >
+          typename TCurrentPath  = std::unordered_set<unsigned> >
 class Setcover{
 public:
     // Constructors
@@ -48,18 +48,18 @@ public:
             }
             ++cit;
         }
-        if (verbose) cout << novel_elements << " of " << current_path_.size() << "are in the SC" << endl;
+        if (verbose) cout << novel_elements << " of " << current_path_.size() << " are novel to the SC" << endl;
         return false;
     }
 
     // add/delete/clear functions for the current path container
-    void add(unsigned u){current_path_.push_back(u);}
+    void add(unsigned u){current_path_.insert(u);}
     void add(const UnitigColorMap<UnitigExtension> &ucm){
         DataAccessor<UnitigExtension>* ucm_da = ucm.getData();
         UnitigExtension* ucm_ue = ucm_da->getData(ucm);
-        current_path_.push_back(ucm_ue->getID());
+        current_path_.insert(ucm_ue->getID());
     }
-    void del(){current_path_.pop_back();}
+    void del(unsigned u){current_path_.erase(u);}
     void clear(){current_path_.clear();}
 
     bool empty(){return c_.empty();};
