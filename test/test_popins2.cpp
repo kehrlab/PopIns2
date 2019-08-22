@@ -168,11 +168,7 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBranching_singleThread){
 
 CCDBG_Build_opt opt2;
 ExtendedCCDBG g2(opt2.k, opt2.g);
-SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles_singleThread){
-    /* Reset graph and input files */
-    //ccdbg.clear();
-    //ccdbg_opt.filename_seq_in.clear();
-
+SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles){
     std::string path = "./testcases/simpleBubbles/";
     std::vector<std::string> infiles;
     SEQAN_ASSERT_EQ(getFastx(infiles, path), true);
@@ -197,27 +193,24 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles_singleThread){
 
     /* Truth set */
     StringSet<DnaString> simpleBubblesTruthSet;
-    DnaString str1 = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCCTGGAAAGAGAGAAGACACCAGCTGGACAATTCAGCAGTTATTTAAACCAGTCTGAGCCTCCCCCAGAGCCGTTCGCGCCGCCCCCGGTCCTCCGGCCCCCGGTCTGCCCCGCAGCGCCTGCCCGGCTTAATGTCAGAGACAGCCCACCCACTCCATAAATCCACTTGTGACAGGGCTGGGGACCTGGACTGTCCTCAGAGAGGCCCCCTGTGACCACTC";
-    DnaString str2 = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCCTGGAAAGAGAGAAGACACCAGCTGGACAATTCAGCAGTTATTTAAACCAGTCTGAGCCTCCCCCAGAGCCGTTCGCGCCGCCCCCGGTCCTCCGGCCCCCGGTCTGCCCCGCAGCGCCTGCCCGGCTTGTTTTGGTATTATTCATCGTGAGGTGAAGACCAAATTTCTCCTCAGAGATGCAAGGGCTACGT";
-    appendValue(simpleBubblesTruthSet, str1);
-    appendValue(simpleBubblesTruthSet, str2);
+    DnaString longPathWithTwoBubbles1   = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCCTGGAAAGAGAGAAGACACCAGCTGGACAATTCAGCAGTTATTTAAACCAGTCTGAGCCTCCCCCAGAGCCGTTCGCGCCGCCCCCGGTCCTCCGGCCCCCGGTCTGCCCCGCAGCGCCTGCCCGGCTTAATGTCAGAGACAGCCCACCCACTCCATAAATCCACTTGTGACAGGGCTGGGGACCTGGACTGTCCTCAGAGAGGCCCCCTGTGACCACTC";
+    DnaString longPathWithTwoBubbles1rc = "GAGTGGTCACAGGGGGCCTCTCTGAGGACAGTCCAGGTCCCCAGCCCTGTCACAAGTGGATTTATGGAGTGGGTGGGCTGTCTCTGACATTAAGCCGGGCAGGCGCTGCGGGGCAGACCGGGGGCCGGAGGACCGGGGGCGGCGCGAACGGCTCTGGGGGAGGCTCAGACTGGTTTAAATAACTGCTGAATTGTCCAGCTGGTGTCTTCTCTCTTTCCAGGATCAGGAGTTTGAGACCAGCCTGGCTAACATGATGAAACCCTGTCTTTACTAAAAATACAATGATTAGCTGGGTGTGGTGGCGGGCGCCTGTAATTCCAG";
+    DnaString longPathWithTwoBubbles2   = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCGTGGACCGAGAGAATACACCACCTGGACAATTCAGCAGTTATTTAAACCAGTCTGAGCCTCCCCCAGAGCCGTTCGCGCCGCCCCCGGTCCTCCGGCCCCCGGTCTGCCCCGCAGCGCCTGCCCGGCTTCTCCGACTCAAAGTGACCAGCACCTCATAAATCCACTTGTGACAGGGCTGGGGACCTGGACTGTCCTCAGAGAGGCCCCCTGTGACCACTC";
+    DnaString longPathWithTwoBubbles2rc = "GAGTGGTCACAGGGGGCCTCTCTGAGGACAGTCCAGGTCCCCAGCCCTGTCACAAGTGGATTTATGAGGTGCTGGTCACTTTGAGTCGGAGAAGCCGGGCAGGCGCTGCGGGGCAGACCGGGGGCCGGAGGACCGGGGGCGGCGCGAACGGCTCTGGGGGAGGCTCAGACTGGTTTAAATAACTGCTGAATTGTCCAGGTGGTGTATTCTCTCGGTCCACGATCAGGAGTTTGAGACCAGCCTGGCTAACATGATGAAACCCTGTCTTTACTAAAAATACAATGATTAGCTGGGTGTGGTGGCGGGCGCCTGTAATTCCAG";
+    appendValue(simpleBubblesTruthSet, longPathWithTwoBubbles1);
+    appendValue(simpleBubblesTruthSet, longPathWithTwoBubbles1rc);
+    appendValue(simpleBubblesTruthSet, longPathWithTwoBubbles2);
+    appendValue(simpleBubblesTruthSet, longPathWithTwoBubbles2rc);
 
     /* Test contig.fa for correctness */
     CharString seqFileName = "contigs.fa";
     StringSet<CharString> ids;
     StringSet<DnaString> seqs;
-
     SeqFileIn seqFileIn;
     if (!open(seqFileIn, toCString(seqFileName))) std::cerr << "ERROR: Could not open the file.\n";
-
-    try{
-        readRecords(ids, seqs, seqFileIn);
-    }
-    catch (Exception const & e){
-        std::cout << "ERROR: " << e.what() << std::endl;
-    }
+    try{readRecords(ids, seqs, seqFileIn);}
+    catch (Exception const & e){std::cout << "ERROR: " << e.what() << std::endl;}
     SEQAN_ASSERT_EQ(length(seqs), 2u);
-
     typedef Iterator<StringSet<DnaString> >::Type TStringSetIterator;
     for (TStringSetIterator seq = begin(seqs); seq != end(seqs); ++seq){
         unsigned c = 0;
@@ -226,11 +219,10 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles_singleThread){
                 ++c;
         SEQAN_ASSERT_EQ(c, 1u);
     }
-    
-    if(remove("contigs.fa") || remove("simpleBubbles.gfa") || remove("simpleBubbles.bfg_colors"))
-        perror("[test_ccdbg_simpleBubbles_singleThread] Error deleting meta files");
-    //else
-    //    puts("[test_ccdbg_simpleBubbles_singleThread] Meta files successfully deleted");
+
+    /*Clean up*/
+    if(remove("contigs.fa") || remove("simpleBubbles.gfa") || remove("simpleBubbles.bfg_colors") || remove("contigs.csv"))
+        perror("[test_ccdbg_simpleBubbles] Error deleting meta files");
 }
 
 // -------------
@@ -303,15 +295,33 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleColorTest){
 }
 
 
+CCDBG_Build_opt opt4;
+ExtendedCCDBG g4(opt4.k, opt4.g);
+SEQAN_DEFINE_TEST(test_ccdbg_new_traversal_scheme_v1){
+
+    std::string path = "./testcases/simpleColorTest/";
+    std::vector<std::string> infiles;
+    SEQAN_ASSERT_EQ(getFastx(infiles, path), true);
+
+    opt4.filename_seq_in = infiles;
+    opt4.deleteIsolated = true;
+    opt4.clipTips = true;
+    opt4.prefixFilenameOut = "simpleColorTest";
+    opt4.nb_threads = 1;
+    opt4.outputGFA = true;
+    opt4.verbose = false;
+}
+
+
 
 SEQAN_BEGIN_TESTSUITE(test_popins2){
 
-    SEQAN_CALL_TEST(test_ccdbg_opt);
-    SEQAN_CALL_TEST(test_ccdbg_build);
-    SEQAN_CALL_TEST(test_ccdbg_connected_components);
-    SEQAN_CALL_TEST(test_ccdbg_simpleBranching_singleThread);
-    SEQAN_CALL_TEST(test_ccdbg_simpleBubbles_singleThread);
-    SEQAN_CALL_TEST(test_ccdbg_simpleColorTest);
+    //SEQAN_CALL_TEST(test_ccdbg_opt);
+    //SEQAN_CALL_TEST(test_ccdbg_build);
+    //SEQAN_CALL_TEST(test_ccdbg_connected_components);
+    //SEQAN_CALL_TEST(test_ccdbg_simpleBranching_singleThread);
+    SEQAN_CALL_TEST(test_ccdbg_simpleBubbles);
+    //SEQAN_CALL_TEST(test_ccdbg_simpleColorTest);
 
 }
 SEQAN_END_TESTSUITE
