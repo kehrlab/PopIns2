@@ -186,14 +186,24 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
     if (!ofs.is_open()){cerr << "Error: Couldn't open ofstream for contig file." << endl; return false;}
 
     // DFS
+    neighborsContainer descendingSortedStartNodes;
+    sortStartnodes(descendingSortedStartNodes);
     Setcover<> sc;
     size_t sv_counter = 0;
-    for (auto &unitig : *this){
-            if (opt.verbose) cout << " -------------------------------- " << endl;
-            Traceback tb = DFS_Init_bidirectional(unitig, opt.verbose, sc);
-            if (tb.recursive_return_status)
-                if (!tb.write(ofs, opt.k, sv_counter))
-                    return false;
+    for (auto it = descendingSortedStartNodes.cbegin(); it != descendingSortedStartNodes.cend(); ++it){
+        for (auto &unitig : *this){
+            DataAccessor<UnitigExtension>* da = unitig.getData();
+            UnitigExtension* ue = da->getData(unitig);
+            if (it->second == ue->getID()){
+                if (opt.verbose) cout << " -------------------------------- " << endl;
+                if (opt.verbose) cout << " Startnode " << it->second << " with " << it->first << " kmers." << endl;
+                Traceback tb = DFS_Init_bidirectional(unitig, opt.verbose, sc);
+                if (tb.recursive_return_status)
+                    if (!tb.write(ofs, opt.k, sv_counter))
+                        return false;
+                break;      // once a startnode has been processed we can stop looking for it (start with next startnode)
+            }
+        }
     }
 
     // I/O
@@ -519,6 +529,17 @@ inline void ExtendedCCDBG::sortNeighbors(const UnitigColorMap<UnitigExtension> &
         unsigned neighbor_id = neighbor_ue->getID();
         unsigned cc_ = check_common_colors(ucm, neighbor);
         container.insert(std::pair<unsigned, unsigned>(cc_, neighbor_id));
+    }
+}
+
+
+inline void ExtendedCCDBG::sortStartnodes(neighborsContainer &container) const{
+    for (auto &neighbor : *this){
+        const DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
+        const UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
+        unsigned neighbor_id = neighbor_ue->getID();
+        unsigned nb_kmers = neighbor.len;
+        container.insert(std::pair<unsigned, unsigned>(nb_kmers, neighbor_id));
     }
 }
 

@@ -151,6 +151,13 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
                            neighborsContainer &container) const;
 
         /**
+         *          Funtion to sort (start)nodes v of the dBG according to their kmer length.
+         * @param   container is a data structure D to store and sort the pair (len(v), v.id) for every v in the dBG.
+         *          D has to be initialized with an appropiate Functor for a descending sort of the pairs.
+         */
+        void sortStartnodes(neighborsContainer &container) const;
+
+        /**
          *          Function to compute the number of common colors between two unitigs.
          * @details Every color is checked for at least one occurence (in any k-mer) in both unitigs.
          *          We count a color c as common if both unitigs have at least one k-mer with labelled with c.
