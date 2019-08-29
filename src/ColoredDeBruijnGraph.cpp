@@ -316,7 +316,7 @@ Traceback ExtendedCCDBG::DFS_Init_bidirectional(const UnitigColorMap<UnitigExten
             VSequences vseqs;
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
             tb.push_back(vseqs);
-            sc.add(ue->getID());
+            sc.add(ue->getID(), ucm.len);
             sc.incorporate();
         }
         else{
@@ -365,7 +365,7 @@ Traceback ExtendedCCDBG::DFS_Visit_NEW(const UnitigColorMap<UnitigExtension> &uc
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
             tb.push_back(vseqs);
             tb.recursive_return_status = true;
-            sc.add(ue->getID());
+            sc.add(ue->getID(), ucm.len);
             return tb;
         }
 
@@ -410,7 +410,7 @@ Traceback ExtendedCCDBG::DFS_Visit_NEW(const UnitigColorMap<UnitigExtension> &uc
             ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
             tb.push_back(vseqs);
             tb.recursive_return_status = true;
-            sc.add(ue->getID());
+            sc.add(ue->getID(), ucm.len);
             return tb;
         }
 
@@ -464,7 +464,7 @@ void ExtendedCCDBG::DFS_case_NEW(const UnitigColorMap<UnitigExtension> &ucm,
 
         if ( neighbor_ue->is_undiscovered_fw() ){
             if (verbose) cout << "Traversal at " << ucm_ue->getID() << " will go to " << neighbor_ue->getID() << endl;
-            sc.add(ucm_ue->getID());    // covers DFS_Init and DFS_Visit
+            sc.add(ucm_ue->getID(), ucm.len);    // covers DFS_Init and DFS_Visit
             Traceback returned_tb = DFS_Visit_NEW(neighbor, GO_BACKWARD, sc, verbose);
             if (verbose) cout << "Jumped back to " << ucm_ue->getID() << endl;
 
@@ -494,7 +494,7 @@ void ExtendedCCDBG::DFS_case_NEW(const UnitigColorMap<UnitigExtension> &ucm,
 
         if ( neighbor_ue->is_undiscovered_bw() ){
             if (verbose) cout << "Traversal at " << ucm_ue->getID() << " will go to " << neighbor_ue->getID() << endl;
-            sc.add(ucm_ue->getID());    // covers DFS_Init and DFS_Visit
+            sc.add(ucm_ue->getID(), ucm.len);    // covers DFS_Init and DFS_Visit
             Traceback returned_tb = DFS_Visit_NEW(neighbor, GO_FORWARD, sc, verbose);
             if (verbose) cout << "Jumped back to " << ucm_ue->getID() << endl;
 
