@@ -168,11 +168,7 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBranching_singleThread){
 
 CCDBG_Build_opt opt2;
 ExtendedCCDBG g2(opt2.k, opt2.g);
-SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles_singleThread){
-    /* Reset graph and input files */
-    //ccdbg.clear();
-    //ccdbg_opt.filename_seq_in.clear();
-
+SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles){
     std::string path = "./testcases/simpleBubbles/";
     std::vector<std::string> infiles;
     SEQAN_ASSERT_EQ(getFastx(infiles, path), true);
@@ -197,27 +193,24 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles_singleThread){
 
     /* Truth set */
     StringSet<DnaString> simpleBubblesTruthSet;
-    DnaString str1 = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCCTGGAAAGAGAGAAGACACCAGCTGGACAATTCAGCAGTTATTTAAACCAGTCTGAGCCTCCCCCAGAGCCGTTCGCGCCGCCCCCGGTCCTCCGGCCCCCGGTCTGCCCCGCAGCGCCTGCCCGGCTTAATGTCAGAGACAGCCCACCCACTCCATAAATCCACTTGTGACAGGGCTGGGGACCTGGACTGTCCTCAGAGAGGCCCCCTGTGACCACTC";
-    DnaString str2 = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCCTGGAAAGAGAGAAGACACCAGCTGGACAATTCAGCAGTTATTTAAACCAGTCTGAGCCTCCCCCAGAGCCGTTCGCGCCGCCCCCGGTCCTCCGGCCCCCGGTCTGCCCCGCAGCGCCTGCCCGGCTTGTTTTGGTATTATTCATCGTGAGGTGAAGACCAAATTTCTCCTCAGAGATGCAAGGGCTACGT";
-    appendValue(simpleBubblesTruthSet, str1);
-    appendValue(simpleBubblesTruthSet, str2);
+    DnaString longPathWithTwoBubbles1   = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCCTGGAAAGAGAGAAGACACCAGCTGGACAATTCAGCAGTTATTTAAACCAGTCTGAGCCTCCCCCAGAGCCGTTCGCGCCGCCCCCGGTCCTCCGGCCCCCGGTCTGCCCCGCAGCGCCTGCCCGGCTTAATGTCAGAGACAGCCCACCCACTCCATAAATCCACTTGTGACAGGGCTGGGGACCTGGACTGTCCTCAGAGAGGCCCCCTGTGACCACTC";
+    DnaString longPathWithTwoBubbles1rc = "GAGTGGTCACAGGGGGCCTCTCTGAGGACAGTCCAGGTCCCCAGCCCTGTCACAAGTGGATTTATGGAGTGGGTGGGCTGTCTCTGACATTAAGCCGGGCAGGCGCTGCGGGGCAGACCGGGGGCCGGAGGACCGGGGGCGGCGCGAACGGCTCTGGGGGAGGCTCAGACTGGTTTAAATAACTGCTGAATTGTCCAGCTGGTGTCTTCTCTCTTTCCAGGATCAGGAGTTTGAGACCAGCCTGGCTAACATGATGAAACCCTGTCTTTACTAAAAATACAATGATTAGCTGGGTGTGGTGGCGGGCGCCTGTAATTCCAG";
+    DnaString longPathWithTwoBubbles2   = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCGTGGACCGAGAGAATACACCACCTGGACAATTCAGCAGTTATTTAAACCAGTCTGAGCCTCCCCCAGAGCCGTTCGCGCCGCCCCCGGTCCTCCGGCCCCCGGTCTGCCCCGCAGCGCCTGCCCGGCTTCTCCGACTCAAAGTGACCAGCACCTCATAAATCCACTTGTGACAGGGCTGGGGACCTGGACTGTCCTCAGAGAGGCCCCCTGTGACCACTC";
+    DnaString longPathWithTwoBubbles2rc = "GAGTGGTCACAGGGGGCCTCTCTGAGGACAGTCCAGGTCCCCAGCCCTGTCACAAGTGGATTTATGAGGTGCTGGTCACTTTGAGTCGGAGAAGCCGGGCAGGCGCTGCGGGGCAGACCGGGGGCCGGAGGACCGGGGGCGGCGCGAACGGCTCTGGGGGAGGCTCAGACTGGTTTAAATAACTGCTGAATTGTCCAGGTGGTGTATTCTCTCGGTCCACGATCAGGAGTTTGAGACCAGCCTGGCTAACATGATGAAACCCTGTCTTTACTAAAAATACAATGATTAGCTGGGTGTGGTGGCGGGCGCCTGTAATTCCAG";
+    appendValue(simpleBubblesTruthSet, longPathWithTwoBubbles1);
+    appendValue(simpleBubblesTruthSet, longPathWithTwoBubbles1rc);
+    appendValue(simpleBubblesTruthSet, longPathWithTwoBubbles2);
+    appendValue(simpleBubblesTruthSet, longPathWithTwoBubbles2rc);
 
     /* Test contig.fa for correctness */
-    CharString seqFileName = "contigs.fa";
+    CharString seqFileName = "contigs.fa";      // intermediate result file
     StringSet<CharString> ids;
     StringSet<DnaString> seqs;
-
     SeqFileIn seqFileIn;
     if (!open(seqFileIn, toCString(seqFileName))) std::cerr << "ERROR: Could not open the file.\n";
-
-    try{
-        readRecords(ids, seqs, seqFileIn);
-    }
-    catch (Exception const & e){
-        std::cout << "ERROR: " << e.what() << std::endl;
-    }
-    SEQAN_ASSERT_EQ(length(seqs), 2u);
-
+    try{readRecords(ids, seqs, seqFileIn);}
+    catch (Exception const & e){std::cout << "ERROR: " << e.what() << std::endl;}
+    SEQAN_ASSERT_EQ(length(seqs), 2u);      // intermediate results have to contain two assembled strings
     typedef Iterator<StringSet<DnaString> >::Type TStringSetIterator;
     for (TStringSetIterator seq = begin(seqs); seq != end(seqs); ++seq){
         unsigned c = 0;
@@ -226,11 +219,10 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles_singleThread){
                 ++c;
         SEQAN_ASSERT_EQ(c, 1u);
     }
-    
-    if(remove("contigs.fa") || remove("simpleBubbles.gfa") || remove("simpleBubbles.bfg_colors"))
-        perror("[test_ccdbg_simpleBubbles_singleThread] Error deleting meta files");
-    //else
-    //    puts("[test_ccdbg_simpleBubbles_singleThread] Meta files successfully deleted");
+
+    /*Clean up*/
+    if(remove("contigs.fa") || remove("contigs.csv") || remove("simpleBubbles.gfa") || remove("simpleBubbles.bfg_colors"))
+        perror("[test_ccdbg_simpleBubbles] Error deleting meta files");
 }
 
 // -------------
@@ -295,7 +287,7 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleColorTest){
                 ++c;
         SEQAN_ASSERT_EQ(c, 1u);
     }
-    
+
     if(remove("contigs.fa") || remove("simpleColorTest.gfa") || remove("simpleColorTest.bfg_colors"))
         perror("[test_ccdbg_simpleColorTest] Error deleting meta files");
     //else
@@ -303,15 +295,81 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleColorTest){
 }
 
 
+CCDBG_Build_opt opt4;
+ExtendedCCDBG g4(opt4.k, opt4.g);
+SEQAN_DEFINE_TEST(test_ccdbg_rev_comp){
+
+    // *********************************************
+    // * This test only checks if Bifrost is using *
+    // * the right orientation for unitigs, not if *
+    // * the traversal is concatenating correctly. *
+    // *********************************************
+
+    std::string path = "./testcases/simpleReverseComplementAssembly/";
+    std::vector<std::string> infiles;
+    SEQAN_ASSERT_EQ(getFastx(infiles, path), true);
+
+    opt4.filename_seq_in = infiles;
+    opt4.deleteIsolated = true;
+    opt4.clipTips = true;
+    opt4.prefixFilenameOut = "simpleRevComp";
+    opt4.nb_threads = 1;
+    opt4.outputGFA = true;
+    opt4.verbose = true;
+
+    /* Build and prune graph */
+    SEQAN_ASSERT_EQ(g4.buildGraph(opt4), true);
+    SEQAN_ASSERT_EQ(g4.simplify(opt4.deleteIsolated, opt4.clipTips, opt4.verbose), true);
+    SEQAN_ASSERT_EQ(g4.buildColors(opt4), true);
+    SEQAN_ASSERT_EQ(g4.write(opt4.prefixFilenameOut, opt4.nb_threads, opt4.verbose), true);
+
+    /* Run merge */
+    g4.init_ids();
+    SEQAN_ASSERT_EQ(g4.merge(opt4), true);
+
+    /* Truth set */
+    StringSet<DnaString> simpleRevCompTruthSet;
+    DnaString trueAssembly    = "GAGATGGCAGCGACTAACTCACAGCGCACGTTTGGCTGACGCATATGCATTAGAATCGTCGACGAGCGAGATAGTCTCCGCTGTCGAGGGACTTGCAGAC";
+    DnaString trueAssembly_rc = "GTCTGCAAGTCCCTCGACAGCGGAGACTATCTCGCTCGTCGACGATTCTAATGCATATGCGTCAGCCAAACGTGCGCTGTGAGTTAGTCGCTGCCATCTC";
+    appendValue(simpleRevCompTruthSet, trueAssembly);
+    appendValue(simpleRevCompTruthSet, trueAssembly_rc);
+
+    /* Test contig.fa for correctness */
+    CharString seqFileName = "contigs.fa";      // intermediate result file
+    StringSet<CharString> ids;
+    StringSet<DnaString> seqs;
+    SeqFileIn seqFileIn;
+    if (!open(seqFileIn, toCString(seqFileName))) std::cerr << "ERROR: Could not open the file.\n";
+    try{readRecords(ids, seqs, seqFileIn);}
+    catch (Exception const & e){std::cout << "ERROR: " << e.what() << std::endl;}
+
+    SEQAN_ASSERT_EQ(length(seqs), 1u);      // intermediate result has to contain one assembled string
+
+    typedef Iterator<StringSet<DnaString> >::Type TStringSetIterator;
+    for (TStringSetIterator seq = begin(seqs); seq != end(seqs); ++seq){
+        unsigned c = 0;
+        for (TStringSetIterator true_seq = begin(simpleRevCompTruthSet); true_seq != end(simpleRevCompTruthSet); ++true_seq)
+            if (*seq == *true_seq)
+                ++c;
+        SEQAN_ASSERT_EQ(c, 1u);
+    }
+
+    /*Clean up*/
+    if(remove("contigs.fa") || remove("contigs.csv") || remove("simpleRevComp.gfa") || remove("simpleRevComp.bfg_colors"))
+        perror("[test_ccdbg_rev_comp] Error deleting meta files");
+}
+
+
 
 SEQAN_BEGIN_TESTSUITE(test_popins2){
 
-    SEQAN_CALL_TEST(test_ccdbg_opt);
-    SEQAN_CALL_TEST(test_ccdbg_build);
-    SEQAN_CALL_TEST(test_ccdbg_connected_components);
-    SEQAN_CALL_TEST(test_ccdbg_simpleBranching_singleThread);
-    SEQAN_CALL_TEST(test_ccdbg_simpleBubbles_singleThread);
-    SEQAN_CALL_TEST(test_ccdbg_simpleColorTest);
+    //SEQAN_CALL_TEST(test_ccdbg_opt);
+    //SEQAN_CALL_TEST(test_ccdbg_build);
+    //SEQAN_CALL_TEST(test_ccdbg_connected_components);
+    //SEQAN_CALL_TEST(test_ccdbg_simpleBranching_singleThread);
+    SEQAN_CALL_TEST(test_ccdbg_simpleBubbles);
+    //SEQAN_CALL_TEST(test_ccdbg_simpleColorTest);
+    SEQAN_CALL_TEST(test_ccdbg_rev_comp);
 
 }
 SEQAN_END_TESTSUITE
