@@ -11,8 +11,9 @@
 #include <seqan/misc/union_find.h>
 
 #include "UnitigExtension.h"
-#include "setcover.h"
 #include "Traceback.h"
+#include "Setcover.h"
+
 
 
 // TODO exclude prettyprint for release
