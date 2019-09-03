@@ -14,6 +14,9 @@ CXXFLAGS += -DSEQAN_HAS_ZLIB=1 -DSEQAN_DISABLE_VERSION_CHECK
 
 LDLIBS = -lbifrost -pthread -lz -lrt -rdynamic
 
+# if kmer size is non-default
+LDLIBS += -DMAX_KMER_SIZE=64
+
 # Date and version number from git
 DATE := on $(shell git log --pretty=format:"%cd" --date=iso | cut -f 1,2 -d " " | head -n 1)
 VERSION := 0.6.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
@@ -28,6 +31,9 @@ CXXFLAGS += -march=native
 
 # RELEASE build
 CXXFLAGS += -O3 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=0
+
+# if kmer size is non-default
+CXXFLAGS += -DMAX_KMER_SIZE=64
 
 all: $(TARGET)
 

@@ -25,7 +25,7 @@ struct MergeOptions {
 
     CCDBG_Build_opt* ccdbg_build_opt;
 
-    unsigned max_paths = 1;     // Default: only one (best) path per start node
+    unsigned min_kmers = 1;
 
     MergeOptions () :
         ccdbg_build_opt(nullptr)
@@ -33,9 +33,7 @@ struct MergeOptions {
 
     MergeOptions (CCDBG_Build_opt* g) :
         ccdbg_build_opt(g)
-    {
-        // outputColors was automatically set to true during construction time of g
-    }
+    {}
 };
 
 
@@ -72,7 +70,8 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
     if (seqan::isSet(parser, "del-isolated")) seqan::getOptionValue(options.ccdbg_build_opt->deleteIsolated, parser, "del-isolated");
     if (seqan::isSet(parser, "fasta"))
         options.ccdbg_build_opt->outputGFA = false;
-    if (seqan::isSet(parser, "max-paths")) seqan::getOptionValue(options.max_paths, parser, "max-paths");
+    if (seqan::isSet(parser, "min-kmers")) seqan::getOptionValue(options.min_kmers, parser, "min-kmers");
+    else {options.min_kmers = 255;} // default is set here
 
     return true;
 }
@@ -141,7 +140,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::addOption(parser, seqan::ArgParseOption("i", "clip-tips", "Clip tips shorter than k k-mers in length"));
     seqan::addOption(parser, seqan::ArgParseOption("d", "del-isolated", "Delete isolated contigs shorter than k k-mers in length"));
     seqan::addOption(parser, seqan::ArgParseOption("a", "fasta", "Output file is in FASTA format instead of GFA"));
-    seqan::addOption(parser, seqan::ArgParseOption("m", "max-paths", "Maximum amount of traceback attempts per DFS start node.", seqan::ArgParseArgument::INTEGER, "INT"));
+    seqan::addOption(parser, seqan::ArgParseOption("m", "min-kmers", "Minimum amount of novel k-mers to include a path into the set cover", seqan::ArgParseArgument::INTEGER, "INT"));
 
     seqan::addSection(parser, "Compute resource options");
     seqan::addOption(parser, seqan::ArgParseOption("t", "threads", "Amount of threads for parallel processing", seqan::ArgParseArgument::INTEGER, "INT"));
@@ -154,7 +153,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::setDefaultValue(parser, "k", "31");
     seqan::setDefaultValue(parser, "g", "23");
     seqan::setDefaultValue(parser, "threads", "1");
-    seqan::setDefaultValue(parser, "m", "1");
+    seqan::setDefaultValue(parser, "m", "255");
 
   //seqan::setMinValue(parser, "unique-kmers", "1");
   //seqan::setMinValue(parser, "non-unique-kmers", "1");

@@ -26,7 +26,7 @@ template <typename TSetcover     = std::unordered_set<unsigned>,
 class Setcover{
 public:
     // Constructors
-    Setcover() : t_(62) {}
+    Setcover() : t_(255) {}
     Setcover(unsigned t) : t_(t) {}
 
     /**

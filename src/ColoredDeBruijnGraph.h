@@ -10,10 +10,10 @@
 #include <seqan/seq_io.h>
 #include <seqan/misc/union_find.h>
 
+
 #include "UnitigExtension.h"
 #include "Traceback.h"
 #include "Setcover.h"
-
 
 
 // TODO exclude prettyprint for release
@@ -54,9 +54,10 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         /**
          *          Main function for the DFS procedure.
          * @param   opt is a wrapper object for the program input parameter.
+         * @param   min_kmers is the minimum number of novel kmers to accept a path for the set cover
          * @return  true if successful
          */
-        bool merge(const CCDBG_Build_opt &opt);
+        bool merge(const CCDBG_Build_opt &opt, const int min_kmer);
 
     private:
         // ----------

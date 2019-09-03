@@ -175,7 +175,7 @@ inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >&
 }
 
 
-bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
+bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt, const int min_kmer){
     // SANITY CHECK(S)
     if (!this->is_id_init())
         return false;
@@ -188,7 +188,8 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt){
     // DFS
     neighborsContainer descendingSortedStartNodes;
     sortStartnodes(descendingSortedStartNodes);
-    Setcover<> sc;
+    if (opt.verbose) cout << " Minimum number of novel kmers to accept path in set cover: " << min_kmer << endl;
+    Setcover<> sc(min_kmer);
     size_t sv_counter = 0;
     for (auto it = descendingSortedStartNodes.cbegin(); it != descendingSortedStartNodes.cend(); ++it){
         for (auto &unitig : *this){
