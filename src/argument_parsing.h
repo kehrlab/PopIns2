@@ -153,7 +153,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::setDefaultValue(parser, "k", "31");
     seqan::setDefaultValue(parser, "g", "23");
     seqan::setDefaultValue(parser, "threads", "1");
-    seqan::setDefaultValue(parser, "m", "255");
+    seqan::setDefaultValue(parser, "m", "255");     // only for the help print
 
   //seqan::setMinValue(parser, "unique-kmers", "1");
   //seqan::setMinValue(parser, "non-unique-kmers", "1");
