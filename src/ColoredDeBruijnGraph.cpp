@@ -175,21 +175,21 @@ inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >&
 }
 
 
-bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt, const int min_kmer){
+bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt, const int min_kmers, const std::string &outdir){
     // SANITY CHECK(S)
     if (!this->is_id_init())
         return false;
 
     // I/O
-    std::string sv_filename = "contigs.fa";
+    std::string sv_filename = (outdir == "") ? "supercontigs.fa" : outdir+"supercontigs.fa";
     ofstream ofs(sv_filename, std::ofstream::out);
     if (!ofs.is_open()){cerr << "Error: Couldn't open ofstream for contig file." << endl; return false;}
 
     // DFS
     neighborsContainer descendingSortedStartNodes;
     sortStartnodes(descendingSortedStartNodes);
-    if (opt.verbose) cout << " Minimum number of novel kmers to accept path in set cover: " << min_kmer << endl;
-    Setcover<> sc(min_kmer);
+    if (opt.verbose) cout << " Minimum number of novel kmers to accept path in set cover: " << min_kmers << endl;
+    Setcover<> sc(min_kmers);
     size_t sv_counter = 0;
     for (auto it = descendingSortedStartNodes.cbegin(); it != descendingSortedStartNodes.cend(); ++it){
         for (auto &unitig : *this){
@@ -209,7 +209,7 @@ bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt, const int min_kmer){
 
     // I/O
     ofs.close();
-    sc.write_CSV();     // OPTIONAL
+    sc.write_CSV(opt.prefixFilenameOut);     // OPTIONAL
 
     return true;
 }

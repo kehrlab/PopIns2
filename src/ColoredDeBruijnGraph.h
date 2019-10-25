@@ -11,6 +11,7 @@
 #include <seqan/misc/union_find.h>
 
 
+//#include "argument_parsing.h"           /* seqAn argument parser */
 #include "UnitigExtension.h"
 #include "Traceback.h"
 #include "Setcover.h"
@@ -53,11 +54,10 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
 
         /**
          *          Main function for the DFS procedure.
-         * @param   opt is a wrapper object for the program input parameter.
-         * @param   min_kmers is the minimum number of novel kmers to accept a path for the set cover
+         * @param   opt is a wrapper object for the program's input parameter.
          * @return  true if successful
          */
-        bool merge(const CCDBG_Build_opt &opt, const int min_kmer);
+        bool merge(const CCDBG_Build_opt &opt, const int min_kmers, const std::string &outdir);
 
     private:
         // ----------

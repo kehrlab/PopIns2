@@ -16,7 +16,6 @@ using namespace std;
 
 
 
-
 // =========================
 // Option wrapper classes
 // =========================
@@ -25,7 +24,8 @@ struct MergeOptions {
 
     CCDBG_Build_opt* ccdbg_build_opt;
 
-    unsigned min_kmers = 1;
+    string outdir = "";
+    unsigned min_kmers = -1;
 
     MergeOptions () :
         ccdbg_build_opt(nullptr)
@@ -42,9 +42,18 @@ struct MergeOptions {
 // =========================
 
 bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
-    // Setup graph object
+    // ---------- Setup merge parameter ----------
+    if (seqan::isSet(parser, "outdir")){
+        seqan::getOptionValue(options.outdir, parser, "outdir");
+        checkPathSyntax(options.outdir);
+    }
+    else {options.outdir = "";} // default is set here
+
+    if (seqan::isSet(parser, "min-kmers")) seqan::getOptionValue(options.min_kmers, parser, "min-kmers");
+    else {options.min_kmers = 64;} // default is set here
+
+    // ---------- Setup graph parameter ----------
     if (seqan::isSet(parser, "verbose")) seqan::getOptionValue(options.ccdbg_build_opt->verbose, parser, "verbose");
-    if (seqan::isSet(parser, "output-file")) seqan::getOptionValue(options.ccdbg_build_opt->prefixFilenameOut, parser, "output-file");
   //if (seqan::isSet(parser, "nb_unique_kmers")) seqan::getOptionValue(options.ccdbg_build_opt->nb_unique_kmers, parser, "nb_unique_kmers");
   //if (seqan::isSet(parser, "nb_non_unique_kmers")) seqan::getOptionValue(options.ccdbg_build_opt->nb_non_unique_kmers, parser, "nb_non_unique_kmers");
     if (seqan::isSet(parser, "kmer-length")) seqan::getOptionValue(options.ccdbg_build_opt->k, parser, "kmer-length");
@@ -53,13 +62,11 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
     if (seqan::isSet(parser, "input-seq-files")) {
         string indir;
         seqan::getOptionValue(indir, parser, "input-seq-files");
-        // IMPORTANT for debug build: have verbosity check before filename_seq_in assignment
         getFastx(options.ccdbg_build_opt->filename_seq_in, indir, options.ccdbg_build_opt->verbose);
     }
     if (seqan::isSet(parser, "input-ref-files")) {
         string indir;
         seqan::getOptionValue(indir, parser, "input-ref-files");
-        // IMPORTANT for debug build: have verbosity check before filename_ref_in assignment
         getFastx(options.ccdbg_build_opt->filename_ref_in, indir, options.ccdbg_build_opt->verbose);
     }
     if (!seqan::isSet(parser, "input-seq-files") && !seqan::isSet(parser, "input-ref-files")){
@@ -68,10 +75,14 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
     }
     if (seqan::isSet(parser, "clip-tips")) seqan::getOptionValue(options.ccdbg_build_opt->clipTips, parser, "clip-tips");
     if (seqan::isSet(parser, "del-isolated")) seqan::getOptionValue(options.ccdbg_build_opt->deleteIsolated, parser, "del-isolated");
-    if (seqan::isSet(parser, "fasta"))
-        options.ccdbg_build_opt->outputGFA = false;
-    if (seqan::isSet(parser, "min-kmers")) seqan::getOptionValue(options.min_kmers, parser, "min-kmers");
-    else {options.min_kmers = 255;} // default is set here
+
+    // This name defines the prefix for the GFA and bfg_colors file. It is currently not a parameter of the parser.
+    if (options.outdir == ""){
+        options.ccdbg_build_opt->prefixFilenameOut = "ccdbg";
+    }
+    else {
+        options.ccdbg_build_opt->prefixFilenameOut = options.outdir+"ccdbg";
+    }
 
     return true;
 }
@@ -84,6 +95,7 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
 void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MergeOptions &){
 
     seqan::hideOption(parser, "g", hide);
+    seqan::hideOption(parser, "m", hide);
   //seqan::hideOption(parser, "n", hide);
   //seqan::hideOption(parser, "N", hide);
 }
@@ -123,13 +135,13 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::setShortDescription(parser, "Build a colored and compacted de Bruijn Graph (CCDBG)");
     seqan::setVersion(parser, VERSION);
     seqan::setDate(parser, DATE);
-    seqan::addUsageLine(parser, "\\--input-{seq|ref}-files DIR \\--output-file STRING [OPTIONS] \\fP ");
+    seqan::addUsageLine(parser, "\\--input-{seq|ref}-files DIR [OPTIONS] \\fP ");
 
     // Setup options
     seqan::addSection(parser, "Input/output options");
-    seqan::addOption(parser, seqan::ArgParseOption("s", "input-seq-files", "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIRECTORY"));
-    seqan::addOption(parser, seqan::ArgParseOption("r", "input-ref-files", "Source directory with reference FASTA/Q files (will not be filtered)", seqan::ArgParseArgument::STRING, "DIRECTORY"));
-    seqan::addOption(parser, seqan::ArgParseOption("o", "output-file", "Prefix for the output file", seqan::ArgParseArgument::STRING, "TEXT"));
+    seqan::addOption(parser, seqan::ArgParseOption("s", "input-seq-files", "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("r", "input-ref-files", "Source directory with reference FASTA/Q files (will not be filtered)", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("o", "outdir", "Specify a directory for the output files. Default: current working directory.", seqan::ArgParseArgument::STRING, "DIR"));
 
     seqan::addSection(parser, "Algorithm options");
   //seqan::addOption(parser, seqan::ArgParseOption("n", "unique-kmers", "Amount of unique kmers.", seqan::ArgParseArgument::INTEGER, "INT"));
@@ -139,21 +151,20 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::addOption(parser, seqan::ArgParseOption("v", "verbose", "Print more output"));
     seqan::addOption(parser, seqan::ArgParseOption("i", "clip-tips", "Clip tips shorter than k k-mers in length"));
     seqan::addOption(parser, seqan::ArgParseOption("d", "del-isolated", "Delete isolated contigs shorter than k k-mers in length"));
-    seqan::addOption(parser, seqan::ArgParseOption("a", "fasta", "Output file is in FASTA format instead of GFA"));
     seqan::addOption(parser, seqan::ArgParseOption("m", "min-kmers", "Minimum amount of novel k-mers to include a path into the set cover", seqan::ArgParseArgument::INTEGER, "INT"));
 
     seqan::addSection(parser, "Compute resource options");
     seqan::addOption(parser, seqan::ArgParseOption("t", "threads", "Amount of threads for parallel processing", seqan::ArgParseArgument::INTEGER, "INT"));
 
     // Setup option constraints
-    // At least one argument of input-seq-files or input-ref-files has to be specified!
+    // input (-s/-r) is constrained at getOptionValues()
   //seqan::setRequired(parser, "input-seq-files", true);
-    seqan::setRequired(parser, "output-file", true);
+  //seqan::setRequired(parser, "output-file", true);
 
     seqan::setDefaultValue(parser, "k", "31");
     seqan::setDefaultValue(parser, "g", "23");
     seqan::setDefaultValue(parser, "threads", "1");
-    seqan::setDefaultValue(parser, "m", "255");     // only for the help print
+    seqan::setDefaultValue(parser, "m", "64");     // only for the help print
 
   //seqan::setMinValue(parser, "unique-kmers", "1");
   //seqan::setMinValue(parser, "non-unique-kmers", "1");

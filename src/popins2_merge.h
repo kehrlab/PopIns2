@@ -81,7 +81,7 @@ int popins2_merge(int argc, char const *argv[]){
     msg.str("");
     msg << "Traversing paths";
     printTimeStatus(msg);
-    exg.merge(ccdbg_build_opt, mo.min_kmers);
+    exg.merge(ccdbg_build_opt, mo.min_kmers, mo.outdir);
 
 
 

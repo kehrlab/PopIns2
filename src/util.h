@@ -15,6 +15,12 @@
 #include <cerrno>
 
 
+inline void checkPathSyntax(std::string &path){
+    if (path.substr(path.length()-1) != "/")
+        path += "/";
+}
+
+
 template <typename TType>
 inline float median(const std::vector<TType> &vec){
 
@@ -126,7 +132,7 @@ inline bool getFastx(std::vector<std::string> &v, std::string path, const bool v
         while ((ent = readdir(dir)) != NULL){
             std::string current_fastx = ent->d_name;
 
-            if      (current_fastx=="." || current_fastx==".." || current_fastx=="contigs.fa")  continue;
+            if      (current_fastx=="." || current_fastx=="..")                                 continue;
             else if (current_fastx.substr(current_fastx.length()-1) == "/")                     continue;    // NOTE: edit here for recursive directory search
             else{
                 // taken and adapted from: https://github.com/pmelsted/bifrost/blob/master/src/File_Parser.hpp
@@ -174,7 +180,7 @@ inline bool file_exist (const std::string &name){
         return true;
     } else {
         return false;
-    }   
+    }
 }
 
 

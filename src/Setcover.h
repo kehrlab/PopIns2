@@ -81,8 +81,9 @@ public:
         if (verbose) cout << endl;
     }
 
-    void write_CSV(){
-        ofstream csv_f("contigs.csv");
+    void write_CSV(const std::string s) const{
+        std::string csv_file_name = s+".csv";
+        ofstream csv_f(csv_file_name);
         csv_f << "ID,Colour" << endl;
         for (auto it=c_.cbegin(); it != c_.cend(); ++it) csv_f << *it << ",red" << endl;
         csv_f.close();
