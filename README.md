@@ -9,8 +9,14 @@ Population-scale detection of non-reference sequence insertions using colored de
 | C++14 capable compiler | g++ vers. 4.9.2, 5.5.0 |
 | [SeqAn](https://www.seqan.de/) | vers. 2.3.2, 2.4.1 |
 | [Bifrost](https://github.com/pmelsted/bfgraph) | vers. 0.2-699bdcf |
+| [bwa](https://github.com/lh3/bwa) | vers. 0.7.15-r1140 |
+| [samtools](https://github.com/samtools/samtools) | vers. 1.3, 1.5 |
+| [sickle](https://github.com/najoshi/sickle) |  |
+| [gatb-minia-pipeline](https://github.com/Krannich479/gatb-minia-pipeline) | (*The linked repository is recommended for now*) |
 
-## Build:
+Prior to the installation make sure your system meets all the requirements. The C++ libraries *SeqAn* and *Bifrost* have to be installed system-wide, i.e. they have to be in your systems `include` and `lib` folder. Ideally, for an easier installation of PopIns2, the executables of the software dependencies (bwa, samtools, sickle, gatb-minia-pipeline) are appended to your system `PATH`. Otherwise the full paths to the executables have to be written into a configfile (explained below). For downwards compatibility PopIns2 still offers to use the *Velvet assembler* (see [popins](https://github.com/bkehr/popins) for installation recommendation).
+
+## Installation:
 
 ```
 git clone https://github.com/kehrlab/PopIns2.git
@@ -19,9 +25,15 @@ mkdir build
 make
 ```
 
+If you didn't append the binaries to your system `PATH`, set the paths to the binaries within the *popins2.config* prior to executing `make`. After the compilation with `make` you should see the binary *popins2* in the main folder.
+
 ## Usage:
 
-PopIns2 is a tool consisting of many submodules. To display the help page of every module type _popins2 [command] --help_ as shown in the [help section](#help). 
+PopIns2 is a tool consisting of several submodules. To display the help page of every module type _popins2 [command] --help_ as shown in the [help section](#help). 
+
+#### The merge command
+
+*TODO*
 
 #### The merge command
 ```
