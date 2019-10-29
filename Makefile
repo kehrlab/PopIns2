@@ -9,17 +9,20 @@ OBJS := $(patsubst $(SRC_DIR)/%,$(BUILD_DIR)/%,$(SRCS:.cpp=.o))
 CXX = g++ -std=c++14
 CC = $(CXX)
 
-
 CXXFLAGS += -DSEQAN_HAS_ZLIB=1 -DSEQAN_DISABLE_VERSION_CHECK
 
 LDLIBS = -lbifrost -pthread -lz -lrt -rdynamic
+
+-include popins2.config
+TOOLS=-DSAMTOOLS=\"$(SAMTOOLS)\" -DBWA=\"$(BWA)\" -DSICKLE=\"$(SICKLE)\" -DVELVETH=\"$(VELVETH)\" -DVELVETG=\"$(VELVETG)\"
+#TOOLS=-DSAMTOOLS=\"SAMTOOLS\" -DBWA=\"BWA\" -DSICKLE=\"SICKLE\" -DVELVETH=\"VELVETH\" -DVELVETG=\"VELVETG\"
 
 # if kmer size is non-default
 LDLIBS += -DMAX_KMER_SIZE=64
 
 # Date and version number from git
 DATE := on $(shell git log --pretty=format:"%cd" --date=iso | cut -f 1,2 -d " " | head -n 1)
-VERSION := 0.6.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
+VERSION := 0.7.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
 CXXFLAGS += -DDATE=\""$(DATE)"\" -DVERSION=\""$(VERSION)"\"
 
 # Enable warnings
@@ -41,7 +44,7 @@ $(TARGET): $(OBJS)
 	$(CC) $(OBJS) -o $@ $(LDLIBS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/%.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(TOOLS) -c $< -o $@
 
 clean:
 	rm -f $(OBJS) $(TARGET)
