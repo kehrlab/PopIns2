@@ -20,12 +20,34 @@ using namespace std;
 // Option wrapper classes
 // =========================
 
+struct AssemblyOptions {
+    CharString mappingFile;
+    CharString matepairFile;
+    CharString referenceFile;
+
+    CharString prefix;
+    CharString sampleID;
+
+    unsigned kmerLength;
+    CharString adapters;
+    int humanSeqs;
+
+    unsigned threads;
+    CharString memory;
+
+    AssemblyOptions () :
+        matepairFile(""), referenceFile(""), prefix("."), sampleID(""),
+      kmerLength(47), humanSeqs(maxValue<int>()), threads(1), memory("768M")
+    {}
+};
+
+
 struct MergeOptions {
 
     CCDBG_Build_opt* ccdbg_build_opt;
 
     string outdir = "";
-    unsigned min_kmers = -1;
+    signed min_kmers = -1;
 
     MergeOptions () :
         ccdbg_build_opt(nullptr)
@@ -41,7 +63,38 @@ struct MergeOptions {
 // Option transfer functions
 // =========================
 
+bool getOptionValues(AssemblyOptions & options, ArgumentParser const & parser)
+{
+    getArgumentValue(options.mappingFile, parser, 0);
+
+    if (isSet(parser, "prefix"))
+       getOptionValue(options.prefix, parser, "prefix");
+    if (isSet(parser, "sample"))
+       getOptionValue(options.sampleID, parser, "sample");
+    if (isSet(parser, "matePair"))
+        getOptionValue(options.matepairFile, parser, "matePair");
+    if (isSet(parser, "adapters"))
+        getOptionValue(options.adapters, parser, "adapters");
+    if (isSet(parser, "reference"))
+        getOptionValue(options.referenceFile, parser, "reference");
+    if (isSet(parser, "filter"))
+        getOptionValue(options.humanSeqs, parser, "filter");
+    if (isSet(parser, "kmerLength"))
+        getOptionValue(options.kmerLength, parser, "kmerLength");
+    if (isSet(parser, "threads"))
+        getOptionValue(options.threads, parser, "threads");
+    if (isSet(parser, "memory"))
+        getOptionValue(options.memory, parser, "memory");
+
+    return true;
+}
+
+
 bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
+    // Transfer program arguments from command line object to Bifrost's graph options object.
+    /* This design recommendation by seqan is absolutely overengineered here, but it leaves the possibility to extend
+       the cmd line options object with variables that do not belong to the Bifrost graph. */
+
     // ---------- Setup merge parameter ----------
     if (seqan::isSet(parser, "outdir")){
         seqan::getOptionValue(options.outdir, parser, "outdir");
@@ -92,6 +145,14 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
 // Hide options functions
 // =========================
 
+void
+setHiddenOptions(ArgumentParser & parser, bool hide, AssemblyOptions &)
+{
+   hideOption(parser, "matePair", hide);
+   hideOption(parser, "kmerLength", hide);
+}
+
+
 void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MergeOptions &){
 
     seqan::hideOption(parser, "g", hide);
@@ -101,27 +162,56 @@ void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MergeOptions &){
 }
 
 
-// =========================
-// Parsing functions
-// =========================
+// ==========================================================================
+// Functions setupParser()
+// ==========================================================================
 
-void printHelp(char const * name)
+void setupParser(ArgumentParser & parser, AssemblyOptions & options)
 {
-    std::cerr << "Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs" << std::endl;
-    std::cerr << "================================================================" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "\033[1mSYNOPSIS\033[0m" << std::endl;
-    std::cerr << "    \033[1m" << name << " COMMAND\033[0m [\033[4mOPTIONS\033[0m]" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "\033[1mCOMMAND\033[0m" << std::endl;
-  //std::cerr << "    \033[1msingle\033[0m          Build a single sample compacted de Bruijn Graph." << std::endl;
-    std::cerr << "    \033[1mmerge\033[0m           Merge many samples into a colored compacted de Bruijn Graph." << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "\033[1mVERSION\033[0m" << std::endl;
-    std::cerr << "    " << VERSION << ", Date: " << DATE << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "Try `" << name << " COMMAND --help' for more information on each command." << std::endl;
-    std::cerr << std::endl;
+    setShortDescription(parser, "Assembly of unmapped reads.");
+    setVersion(parser, VERSION);
+    setDate(parser, DATE);
+
+    // Define usage line and long description.
+    addUsageLine(parser, "[\\fIOPTIONS\\fP] \\fIBAM_FILE\\fP");
+    addDescription(parser, "Finds reads without high-quality alignment in the \\fIBAM FILE\\fP, quality filters them "
+          "using SICKLE and assembles them into contigs using VELVET. If the option \'--reference \\fIFASTA FILE\\fP\' "
+          "is set, the reads are first remapped to this reference using BwA-MEM and only reads that remain without "
+          "high-quality alignment after remapping are quality-filtered and assembled.");
+
+    // Require a bam file as argument.
+    addArgument(parser, ArgParseArgument(ArgParseArgument::INPUT_FILE, "BAM_FILE"));
+
+    // Setup the options.
+    addSection(parser, "Input/output options");
+    addOption(parser, ArgParseOption("p", "prefix", "Path to the sample directories.", ArgParseArgument::STRING, "PATH"));
+    addOption(parser, ArgParseOption("s", "sample", "An ID for the sample.", ArgParseArgument::STRING, "SAMPLE_ID"));
+    addOption(parser, ArgParseOption("mp", "matePair", "", ArgParseArgument::INPUT_FILE, "BAM FILE"));
+
+    addSection(parser, "Algorithm options");
+    addOption(parser, ArgParseOption("a", "adapters", "Enable adapter removal for Illumina reads. Default: \\fIno adapter removal\\fP.", ArgParseArgument::STRING, "STR"));
+    addOption(parser, ArgParseOption("r", "reference", "Remap reads to this reference before assembly. Default: \\fIno remapping\\fP.", ArgParseArgument::INPUT_FILE, "FASTA_FILE"));
+    addOption(parser, ArgParseOption("f", "filter", "Treat reads aligned to all but the first INT reference sequences after remapping as high-quality aligned even if their alignment quality is low. "
+          "Recommended for non-human reference sequences.", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("k", "kmerLength", "The k-mer size for velvet assembly.", ArgParseArgument::INTEGER, "INT"));
+
+    addSection(parser, "Compute resource options");
+    addOption(parser, ArgParseOption("t", "threads", "Number of threads to use for BWA and samtools sort.", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("m", "memory", "Maximum memory per thread for samtools sort; suffix K/M/G recognized.", ArgParseArgument::STRING, "STR"));
+
+    // Set valid and default values.
+    setValidValues(parser, "adapters", "HiSeq HiSeqX");
+    setValidValues(parser, "reference", "fa fna fasta gz");
+    setMinValue(parser, "threads", "1");
+
+    setDefaultValue(parser, "prefix", "\'.\'");
+    setDefaultValue(parser, "sample", "retrieval from BAM file header");
+    setDefaultValue(parser, "kmerLength", options.kmerLength);
+    setDefaultValue(parser, "threads", options.threads);
+    setDefaultValue(parser, "memory", options.memory);
+
+    // Hide some options from default help.
+    setHiddenOptions(parser, true, options);
 }
 
 
@@ -180,6 +270,85 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
 }
 
 
+// ==========================================================================
+// Function parseCommandLine()
+// ==========================================================================
+
+ArgumentParser::ParseResult checkInput(AssemblyOptions & options)
+{
+    ArgumentParser::ParseResult res = ArgumentParser::PARSE_OK;
+
+    if (options.prefix != "." && !exists(options.prefix))
+    {
+        std::cerr << "ERROR: Path to sample direcotories \'" << options.prefix << "\' does not exist." << std::endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    if (!exists(options.mappingFile))
+    {
+        std::cerr << "ERROR: Input BAM file \'" << options.mappingFile << "\' does not exist." << std::endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    CharString baiFile = options.mappingFile;
+    baiFile += ".bai";
+    if (!exists(baiFile))
+    {
+        std::cerr << "ERROR: BAM index file \'" << baiFile << "\' does not exist." << std::endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    if (options.matepairFile != "" && !exists(options.matepairFile))
+    {
+        std::cerr << "ERROR: Input BAM file \'" << options.matepairFile << "\' does not exist." << std::endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    return res;
+}
+
+
+ArgumentParser::ParseResult checkInput(MergeOptions & options)
+{
+    ArgumentParser::ParseResult res = ArgumentParser::PARSE_OK;
+
+    if (options.min_kmers < 0){
+        std::cerr << "ERROR: Minimum amount of kmers \'-m/--min-kmers\' can not be less than zero." << std::endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    return res;
+}
+
+
+// =========================
+// Parsing functions
+// =========================
+
+void printHelp(char const * name)
+{
+    std::cerr << "Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs" << std::endl;
+    std::cerr << "================================================================" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "\033[1mSYNOPSIS\033[0m" << std::endl;
+    std::cerr << "    \033[1m" << name << " COMMAND\033[0m [\033[4mOPTIONS\033[0m]" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "\033[1mCOMMAND\033[0m" << std::endl;
+    std::cerr << "    \033[1massemble\033[0m        Crop unmapped reads from a bam file and assemble them." << std::endl;
+    std::cerr << "    \033[1mmerge\033[0m           Merge many samples into a colored compacted de Bruijn Graph." << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "\033[1mVERSION\033[0m" << std::endl;
+    std::cerr << "    " << VERSION << ", Date: " << DATE << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "Try `" << name << " COMMAND --help' for more information on each command." << std::endl;
+    std::cerr << std::endl;
+}
+
+
+// ==========================================================================
+// Function parseCommandLine()
+// ==========================================================================
+
 /*!
 * \fn       template<typename TOptions> seqan::ArgumentParser::ParseResult parseCommandLine(TOptions &options, int argc, char const ** argv)
 * \brief    Meta-function to setup module based option forwarding
@@ -215,11 +384,12 @@ seqan::ArgumentParser::ParseResult parseCommandLine(TOptions &options, int argc,
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res;
 
-    // Transfer program arguments from command line object to Bifrost's graph options object.
-    /* This design recommendation by seqan is absolutely overengineered here, but it leaves the possibility to extend
-       the cmd line options object with variables that do not belong to the Bifrost graph. */
+    // Collect the option values.
     if (getOptionValues(options, parser) == false)
         return seqan::ArgumentParser::PARSE_HELP;
+
+    // Check if input files exist.
+    res = checkInput(options);
 
     return res;
 }
