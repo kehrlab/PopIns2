@@ -35,9 +35,11 @@ struct AssemblyOptions {
     unsigned threads;
     CharString memory;
 
+    bool use_velvet;
+
     AssemblyOptions () :
         matepairFile(""), referenceFile(""), prefix("."), sampleID(""),
-      kmerLength(47), humanSeqs(maxValue<int>()), threads(1), memory("768M")
+        kmerLength(47), humanSeqs(maxValue<int>()), threads(1), memory("768M"), use_velvet(false)
     {}
 };
 
@@ -79,6 +81,8 @@ bool getOptionValues(AssemblyOptions & options, ArgumentParser const & parser)
         getOptionValue(options.referenceFile, parser, "reference");
     if (isSet(parser, "filter"))
         getOptionValue(options.humanSeqs, parser, "filter");
+    if (isSet(parser, "use-velvet"))
+        getOptionValue(options.use_velvet, parser, "use-velvet");
     if (isSet(parser, "kmerLength"))
         getOptionValue(options.kmerLength, parser, "kmerLength");
     if (isSet(parser, "threads"))
@@ -175,9 +179,9 @@ void setupParser(ArgumentParser & parser, AssemblyOptions & options)
     // Define usage line and long description.
     addUsageLine(parser, "[\\fIOPTIONS\\fP] \\fIBAM_FILE\\fP");
     addDescription(parser, "Finds reads without high-quality alignment in the \\fIBAM FILE\\fP, quality filters them "
-          "using SICKLE and assembles them into contigs using VELVET. If the option \'--reference \\fIFASTA FILE\\fP\' "
-          "is set, the reads are first remapped to this reference using BwA-MEM and only reads that remain without "
-          "high-quality alignment after remapping are quality-filtered and assembled.");
+          "using SICKLE and assembles them into contigs using MINIA (default) or VELVET. If the option "
+          "\'--reference \\fIFASTA FILE\\fP\' is set, the reads are first remapped to this reference using BWA-MEM and "
+          "only reads that remain without high-quality alignment after remapping are quality-filtered and assembled.");
 
     // Require a bam file as argument.
     addArgument(parser, ArgParseArgument(ArgParseArgument::INPUT_FILE, "BAM_FILE"));
@@ -186,14 +190,15 @@ void setupParser(ArgumentParser & parser, AssemblyOptions & options)
     addSection(parser, "Input/output options");
     addOption(parser, ArgParseOption("p", "prefix", "Path to the sample directories.", ArgParseArgument::STRING, "PATH"));
     addOption(parser, ArgParseOption("s", "sample", "An ID for the sample.", ArgParseArgument::STRING, "SAMPLE_ID"));
-    addOption(parser, ArgParseOption("mp", "matePair", "", ArgParseArgument::INPUT_FILE, "BAM FILE"));
+    addOption(parser, ArgParseOption("mp", "matePair", "(Currently only available for Velvet.)", ArgParseArgument::INPUT_FILE, "BAM FILE"));
 
     addSection(parser, "Algorithm options");
     addOption(parser, ArgParseOption("a", "adapters", "Enable adapter removal for Illumina reads. Default: \\fIno adapter removal\\fP.", ArgParseArgument::STRING, "STR"));
     addOption(parser, ArgParseOption("r", "reference", "Remap reads to this reference before assembly. Default: \\fIno remapping\\fP.", ArgParseArgument::INPUT_FILE, "FASTA_FILE"));
     addOption(parser, ArgParseOption("f", "filter", "Treat reads aligned to all but the first INT reference sequences after remapping as high-quality aligned even if their alignment quality is low. "
           "Recommended for non-human reference sequences.", ArgParseArgument::INTEGER, "INT"));
-    addOption(parser, ArgParseOption("k", "kmerLength", "The k-mer size for velvet assembly.", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("vel", "use-velvet", "Use the velvet assembler."));
+    addOption(parser, ArgParseOption("k", "kmerLength", "The k-mer size if the velvet assembler is used.", ArgParseArgument::INTEGER, "INT"));
 
     addSection(parser, "Compute resource options");
     addOption(parser, ArgParseOption("t", "threads", "Number of threads to use for BWA and samtools sort.", ArgParseArgument::INTEGER, "INT"));

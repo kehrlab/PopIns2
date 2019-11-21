@@ -299,7 +299,7 @@ void printStatus(const char * message)
         time_t now = time(0);
         struct tm tstruct;
         tstruct = *localtime(&now);
-        strftime(timestamp, sizeof(timestamp), "[PopIns %Y-%m-%d %X] ", &tstruct);
+        strftime(timestamp, sizeof(timestamp), "[popins2 %Y-%m-%d %X] ", &tstruct);
 
         // Print time and message.
         std::cerr << timestamp << message << std::endl;

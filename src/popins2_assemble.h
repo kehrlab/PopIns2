@@ -29,8 +29,7 @@ removeAssemblyDirectory(CharString & path)
     remove(toCString(path));
 }
 
-bool
-retrieveSampleID(CharString & sampleID, CharString & mappingBam)
+bool retrieveSampleID(CharString & sampleID, CharString & mappingBam)
 {
     BamFileIn inStream(toCString(mappingBam));
 
@@ -59,8 +58,7 @@ retrieveSampleID(CharString & sampleID, CharString & mappingBam)
 // Function remapping()
 // ==========================================================================
 
-inline int
-remapping(Triple<CharString> & fastqFilesTemp,
+inline int remapping(Triple<CharString> & fastqFilesTemp,
         Triple<CharString> & fastqFiles,
         CharString const & referenceFile,
         CharString const & workingDir,
@@ -183,9 +181,7 @@ remapping(Triple<CharString> & fastqFilesTemp,
 
 // ==========================================================================
 
-inline void
-setMates(BamAlignmentRecord & record1, BamAlignmentRecord & record2)
-{
+inline void setMates(BamAlignmentRecord & record1, BamAlignmentRecord & record2) {
     SEQAN_ASSERT(!hasFlagFirst(record1) || !hasFlagFirst(record2));
     SEQAN_ASSERT(!hasFlagLast(record1) || !hasFlagLast(record2));
 
@@ -224,11 +220,7 @@ setMates(BamAlignmentRecord & record1, BamAlignmentRecord & record2)
 
 // Correct the reference ids of a BamAlignmentRecord for the concatenated header.
 template<typename TNameStore>
-inline void
-readRecordAndCorrectRIds(BamAlignmentRecord & record,
-        BamFileIn & stream,
-        NameStoreCache<TNameStore> & nameStoreCache)
-{
+inline void readRecordAndCorrectRIds(BamAlignmentRecord & record, BamFileIn & stream, NameStoreCache<TNameStore> & nameStoreCache){
     readRecord(record, stream);
 
     if (record.rID != BamAlignmentRecord::INVALID_REFID)
@@ -245,12 +237,7 @@ readRecordAndCorrectRIds(BamAlignmentRecord & record,
 
 // ==========================================================================
 
-inline void
-mergeHeaders(BamHeader & header,
-        FormattedFileContext<BamFileOut, Owner<> >::Type & context,
-        BamFileIn & stream1,
-        BamFileIn & stream2)
-{
+inline void mergeHeaders(BamHeader & header, FormattedFileContext<BamFileOut, Owner<> >::Type & context, BamFileIn & stream1, BamFileIn & stream2){
     StringSet<CharString> contigNames;
     NameStoreCache<StringSet<CharString> > nameStoreCache;
     String<int32_t> contigLengths;
@@ -489,6 +476,35 @@ velvet_assembly(Triple<CharString> & filteredFiles, Triple<CharString> & filtere
     return 0;
 }
 
+
+// ==========================================================================
+// Function velvet_assembly()
+// ==========================================================================
+
+inline bool minia_assembly(Triple<CharString> & filteredFiles, CharString & assemblyDirectory, const unsigned threads) {
+    std::stringstream cmd;
+
+    std::ostringstream msg;
+    msg << "Preparing assembly of unmapped reads from filtered fastq files using " << MINIA;
+    printStatus(msg);
+
+    cmd.str("");
+    cmd << MINIA << " --nb-cores " << threads;
+    cmd << " -1 " << filteredFiles.i1 << " -2 " << filteredFiles.i2 << " -s " << filteredFiles.i3;
+    cmd << " -o " << assemblyDirectory << "/assembly";
+    cmd << " --no-scaffolding";
+
+    if (system(cmd.str().c_str()) != 0) // prepares minia assembly, k is automatically iteratively increased
+    {
+        std::cerr << "ERROR while preparing assembly with " << MINIA << " of ";
+        std::cerr << filteredFiles.i3 << ", " << filteredFiles.i1 << ", and " << filteredFiles.i2 << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
+
+
 // ==========================================================================
 // Function popins_assemble()
 // ==========================================================================
@@ -704,31 +720,60 @@ int popins2_assemble(int argc, char const ** argv)
             return 7;
     }
 
-    // Assembly with velvet.
     CharString assemblyDirectory = getFileName(workingDirectory, "assembly");
-    if (velvet_assembly(filteredFiles, filteredMPFiles, assemblyDirectory, options.kmerLength, options.matepairFile != "") != 0)
-        return 7;
+    if (options.use_velvet){
+        // Assembly with velvet.
+        if (velvet_assembly(filteredFiles, filteredMPFiles, assemblyDirectory, options.kmerLength, options.matepairFile != "") != 0)
+            return 7;
+
+        if (options.matepairFile == "")
+        {
+            remove(toCString(firstMPFiltered));
+            remove(toCString(secondMPFiltered));
+            remove(toCString(singleMPFiltered));
+        }
+
+        // Copy contigs file to workingDirectory and remove assembly directory.
+        CharString contigFileAssembly = getFileName(assemblyDirectory, "contigs.fa");
+        CharString contigFile = getFileName(workingDirectory, "contigs.fa");
+        std::ifstream src(toCString(contigFileAssembly), std::ios::binary);
+        std::ofstream dst(toCString(contigFile), std::ios::binary);
+        dst << src.rdbuf();
+        src.close();
+        dst.close();
+        removeAssemblyDirectory(assemblyDirectory);
+    }
+    else{
+        // Assembly with minia. (default)
+        if (mkdir(toCString(assemblyDirectory), 0755) == 0){    // in contrast to Velvet, minia does not create a missing directory at runtime
+            msg.str("");
+            msg << "Assembly directory created at " << workingDirectory;
+            printStatus(msg);
+        }
+        if (minia_assembly(filteredFiles, assemblyDirectory, options.threads) != 0)
+            return 7;
+
+        // Copy contigs file to workingDirectory
+        CharString contigFileAssembly = getFileName(assemblyDirectory, "assembly_final.contigs.fa");
+        CharString contigFile = getFileName(workingDirectory, "assembly_final.contigs.fa");
+        //cout << "assemblyDirectory: " << assemblyDirectory << endl;
+        //cout << "workingDirectory: " << workingDirectory << endl;
+        std::ifstream src(toCString(contigFileAssembly), std::ios::binary);
+        std::ofstream dst(toCString(contigFile), std::ios::binary);
+        dst << src.rdbuf();
+        src.close();
+        dst.close();
+
+        // remove assembly directory
+        std::stringstream cmd;
+        cmd.str("");
+        cmd << "rm -rf " << assemblyDirectory;
+        system(cmd.str().c_str());
+    }
 
     remove(toCString(firstFiltered));
     remove(toCString(secondFiltered));
     remove(toCString(singleFiltered));
-
-    if (options.matepairFile == "")
-    {
-        remove(toCString(firstMPFiltered));
-        remove(toCString(secondMPFiltered));
-        remove(toCString(singleMPFiltered));
-    }
-
-    // Copy contigs file to workingDirectory and remove assembly directory.
-    CharString contigFileAssembly = getFileName(assemblyDirectory, "contigs.fa");
-    CharString contigFile = getFileName(workingDirectory, "contigs.fa");
-    std::ifstream src(toCString(contigFileAssembly), std::ios::binary);
-    std::ofstream dst(toCString(contigFile), std::ios::binary);
-    dst << src.rdbuf();
-    src.close();
-    dst.close();
-    removeAssemblyDirectory(assemblyDirectory);
 
     return res;
 }

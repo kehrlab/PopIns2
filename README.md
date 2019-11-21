@@ -19,7 +19,7 @@ Prior to the installation make sure your system meets all the requirements. The 
 ## Installation:
 
 ```
-git clone https://github.com/kehrlab/PopIns2.git
+git clone --recursive https://github.com/kehrlab/PopIns2.git
 cd PopIns2
 mkdir build
 make

@@ -1,0 +1,3 @@
+[submodule "external/gatb-minia-pipeline"]
+	path = external/gatb-minia-pipeline
+	url = https://github.com/Krannich479/gatb-minia-pipeline
