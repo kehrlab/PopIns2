@@ -339,7 +339,7 @@ void printHelp(char const * name)
     std::cerr << "    \033[1m" << name << " COMMAND\033[0m [\033[4mOPTIONS\033[0m]" << std::endl;
     std::cerr << std::endl;
     std::cerr << "\033[1mCOMMAND\033[0m" << std::endl;
-    std::cerr << "    \033[1massemble\033[0m        Crop unmapped reads from a bam file and assemble them." << std::endl;
+    std::cerr << "    \033[1massemble\033[0m        Filter, clip and assemble unmapped reads from a sample." << std::endl;
     std::cerr << "    \033[1mmerge\033[0m           Merge many samples into a colored compacted de Bruijn Graph." << std::endl;
     std::cerr << std::endl;
     std::cerr << "\033[1mVERSION\033[0m" << std::endl;
