@@ -76,7 +76,7 @@ public:
     void incorporate(bool verbose = true){
         typename TCurrentPath::const_iterator cit = current_path_.cbegin();
         for ( ; cit != current_path_.cend(); ++cit) c_.insert(cit->first);
-        if (verbose) cout << "Inserted kmers of following novel elements ";
+        if (verbose) cout << "Inserted kmers of following novel elements " << endl;
         if (verbose) print_current();
         if (verbose) cout << endl;
     }

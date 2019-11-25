@@ -29,8 +29,9 @@ void Traceback::cutconcat(string &s, const VSequences &path, const size_t k) con
 bool Traceback::write(ofstream &ofs, const size_t k, size_t &counter) const{
     if (ofs.is_open()){
 
-        // TODO: delete after debug DEBUG
+#ifdef DEBUG
         prettyprint::print(pathseqs);
+#endif // DEBUG
 
         // loop through all traceback paths found in one node
         for (auto it=cbegin(); it!=cend(); ++it){
@@ -50,7 +51,7 @@ bool Traceback::write(ofstream &ofs, const size_t k, size_t &counter) const{
 
 
 void Traceback::rearrange(const Traceback &bw, const Traceback &fw){
-    cout << "__________________________" << endl;
+    //cout << "__________________________" << endl;
     VSequences tmp_v;
     Traceback::const_iterator bw_p = bw.cbegin();   // a valid solution should only contain one vector in VVSequences
     Traceback::const_iterator fw_p = fw.cbegin();   // a valid solution should only contain one vector in VVSequences
@@ -59,5 +60,5 @@ void Traceback::rearrange(const Traceback &bw, const Traceback &fw){
     this->push_back(tmp_v);     // tmp_v is actually reverse now but cutconcat() traverses backwards later
 
     //prettyprint::print(tmp_v);
-    cout << "__________________________" << endl;
+    //cout << "__________________________" << endl;
 }

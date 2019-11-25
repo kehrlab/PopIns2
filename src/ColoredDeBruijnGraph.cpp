@@ -321,11 +321,11 @@ Traceback ExtendedCCDBG::DFS_Init_bidirectional(const UnitigColorMap<UnitigExten
             sc.incorporate();
         }
         else{
-            cout << ue->getID() << " was rejected by the Setcover." << endl;
+            if (verbose) cout << ue->getID() << " was rejected by the Setcover." << endl;
         }
     }
     else{
-        cout << "At least one DFS traversal (bw/fw) was not successful." << endl;
+        if (verbose) cout << "At least one DFS traversal (bw/fw) was not successful." << endl;
     }
 
     if (verbose) cout << "Done with " << ue->getID() << endl;
