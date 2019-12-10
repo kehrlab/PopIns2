@@ -1,71 +1,86 @@
 /*!
-* \file     src/ColorTracker.h
-* \brief    This file contains the class ColorTracker
+* \file     src/PathTracker.h
+* \brief    This file contains the class PathTracker
 */
-#ifndef COLORTRACKER_
-#define COLORTRACKER_
+#ifndef PATHTRACKER_
+#define PATHTRACKER_
 
 #include "UnitigExtension.h"
 #include "prettyprint.h"        // NOTE: delete at release
 
 
 
-class ColorTracker{
+class PathTracker{
 public:
-    ColorTracker(size_t s) : nb_samples(s) {kmer_counts_.resize(s, 0);}
+    //============
+    // FUNCTIONS
+    //============
+    PathTracker(size_t s) : nb_samples(s) {kmers_per_color_.resize(s, 0);}
 
     void clear(){
-        total_kmers_ = 0;
-        reset();
+        nb_path_kmers_ = 0;
+        nb_unitigs_ = 0;
+        avg_entropy_ = 0;
+        reset_kmer_counter_vector();
     }
 
     /*!
-     * \fn      ColorTracker.update()
-     * \brief   update() incorporates the kmer colors of a new UnitigColorMap into the reference color counts
+     * \fn      PathTracker.insert()
+     * \brief   incorporates the color and sequence information of a new UnitigColorMap into the PathTracker instance
      */
-    void update(const const_UnitigColorMap<UnitigExtension> &ucm){
-        total_kmers_ += ucm.len;
+    void insert(const const_UnitigColorMap<UnitigExtension> &ucm);
 
-        const UnitigColors* unitig_colors = ucm.getData()->getUnitigColors(ucm);
-        size_t max_color_index = unitig_colors->colorMax(ucm);
-
-        // sum up #kmers per color
-        for (auto color_id=0; color_id<=max_color_index; ++color_id){
-            size_t nb_kmers = unitig_colors->size(ucm, color_id);
-            kmer_counts_[color_id] += nb_kmers;
-        }
-    }
-
-    float maxRatio() const{
-        float maxRatio = 0;
-        for (auto i : kmer_counts_)
-            if (i/(float)total_kmers_ > maxRatio)
-                maxRatio = i/(float)total_kmers_;
-        return maxRatio;
-    }
-
-    float minRatio() const{
-        float minRatio = 1;
-        for (auto i : kmer_counts_)
-            if (i/(float)total_kmers_ < minRatio && i/(float)total_kmers_ > 0)
-                minRatio = i/(float)total_kmers_;
-        return minRatio;
-    }
+    float getEntropy() const {return avg_entropy_;}
 
 private:
+    //============
+    // MEMBER
+    //============
     // this vector stores for all colors the relative amount of kmers in the current path
-    std::vector<unsigned> kmer_counts_;
+    std::vector<unsigned> kmers_per_color_;
 
-    // this is the sum of kmers of all unitigs in the current path
-    unsigned total_kmers_ = 0;
+    unsigned nb_path_kmers_ = 0;
 
     size_t nb_samples;
 
-    void reset(){for (auto i : kmer_counts_) i=0; }
+    float avg_entropy_ = 0;
+
+    unsigned nb_unitigs_ = 0;
+
+    //============
+    // FUNCTIONS
+    //============
+    void reset_kmer_counter_vector(){for (auto &i : kmers_per_color_) i=0; }
+
+    /*!
+     * \fn      PathTracker.maxColorRatio()
+     * \brief   highest color ratio (most present color in path)
+     */
+    float maxColorRatio() const{
+        float maxRatio = 0;
+        for (auto i : kmers_per_color_)
+            if (i/(float)nb_path_kmers_ > maxRatio)
+                maxRatio = i/(float)nb_path_kmers_;
+        return maxRatio;
+    }
+
+    /*!
+     * \fn      PathTracker.minColorRatio()
+     * \brief   lowest non-zero color ratio (lowest present color in path)
+     */
+    float minColorRatio() const{
+        float minRatio = 1;
+        for (auto i : kmers_per_color_)
+            if (i/(float)nb_path_kmers_ < minRatio && i/(float)nb_path_kmers_ > 0)
+                minRatio = i/(float)nb_path_kmers_;
+        return minRatio;
+    }
+
+    unsigned nb_colorsInPath() const {unsigned counter=0; for (auto &i : kmers_per_color_) if (i!=0) ++counter; return counter;}
 };
 
 
 
 
 
-#endif /*COLORTRACKER_*/
+#endif /*PATHTRACKER_*/
