@@ -11,10 +11,10 @@
 #include <seqan/misc/union_find.h>
 
 
-//#include "argument_parsing.h"           /* seqAn argument parser */
 #include "UnitigExtension.h"
 #include "Traceback.h"
 #include "Setcover.h"
+#include "PathTracker.h"
 
 
 // TODO exclude prettyprint for release
@@ -39,6 +39,8 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         void print_ids();
         bool is_id_init() const {return id_init_status;}
 
+        void init_entropy();
+
         /**
          *          Compute the connected component for every node.
          * @ref     seqan/include/seqan/misc/union_find.h
@@ -58,6 +60,13 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
          * @return  true if successful
          */
         bool merge(const CCDBG_Build_opt &opt, const int min_kmers, const std::string &outdir);
+
+        /**
+         *          This function removes every unitig with low entropy from the graph.
+         * @param   threshold is the minimum entropy a unitig must have to remain in the graph
+         * @return  true if successful
+         */
+        bool remove_low_entropy(const float threshold);
 
     private:
         // ----------
@@ -84,13 +93,6 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
 
-        /**
-         *          Computes the entropy for a given string.
-         *          If all dimers are equaly distributed, the entropy is high (highly chaotic system),
-         *          if certain dimers are prevalent, the entropy is low (highly ordered system).
-         * @ref     Function taken from PopIns.
-         * @return  The entropy [0,1] of bi-nucleotides
-         */
         float entropy(const std::string &sequence);
 
         /**

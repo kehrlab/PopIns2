@@ -46,6 +46,86 @@ void ExtendedCCDBG::print_ids(){
 }
 
 
+/**
+ * @brief   Computes the entropy for all unitigs in this graph.
+ */
+void ExtendedCCDBG::init_entropy(){
+    std::cout << "Start init entropy." << std::endl;
+    for (auto &unitig : *this){
+        // calculate entropy from unitig string
+        const std::string unitig_s = unitig.referenceUnitigToString();
+        const float entropy = this->entropy(unitig_s);
+
+        // set entropy in unitig object
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+        ue->setEntropy(entropy);
+    }
+    std::cout << "Done init entropy." << std::endl;
+}
+
+
+/**
+ * @brief   Computes the entropy for a given string.
+ *          If all dimers are equaly distributed, the entropy is high (highly chaotic system),
+ *          if certain dimers are prevalent, the entropy is low (highly ordered system).
+ * @return  The entropy [0,1] of bi-nucleotides
+ */
+inline float ExtendedCCDBG::entropy(const std::string &sequence){
+    // create a dictionary counting the occurrence of all dinucleotides
+    std::unordered_map<std::string, unsigned> diCounts(16);
+    unsigned counted = 0;
+    for (unsigned i = 0; i < sequence.length()-1; ++i){
+        std::string dimer = sequence.substr(i,2);
+        if (sequence[i]!='N' && sequence[i+1]!='N'){
+            // set if dimer not in counter table yet
+            if(diCounts.find(dimer) == diCounts.end()){
+                diCounts[dimer] = 1;
+                counted++;
+            }
+            // otherwise increase
+            else{
+                diCounts[dimer] += 1;
+                counted++;
+            }
+        }
+    }
+
+    // calculate the entropy for dinucleotide counts
+    float entropy = 0;
+    for(std::unordered_map<std::string,unsigned>::const_iterator it = diCounts.cbegin(); it != diCounts.cend(); ++it){
+        if (it->second == 0) continue;
+        float p = float(it->second) / counted;
+        entropy -= p * seqan::log(p) / seqan::log(2);
+    }
+
+    return entropy / 4;
+}
+
+
+bool ExtendedCCDBG::remove_low_entropy(const float threshold){
+    bool ret = true;
+    bool del = false;
+    for (auto &unitig : *this){
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+
+        const float e = ue->getEntropy();
+        if (e < threshold){
+            bool b = this->remove(unitig);
+            std::cout << "Deleted." << std::endl;
+            ret = b;
+            del = true;
+            break;
+        }
+    }
+    if (del == true){
+        ret = remove_low_entropy(threshold);
+    }
+    return ret;
+}
+
+
 size_t ExtendedCCDBG::count_connected_components(){
     std::unordered_set<unsigned> unique_set;
     for (auto &unitig : *this){
@@ -101,38 +181,6 @@ bool ExtendedCCDBG::connected_components(const CCDBG_Build_opt &graph_options){
     }
 
     return true;
-}
-
-
-inline float ExtendedCCDBG::entropy(const std::string &sequence){
-    // create a dictionary counting the occurrence of all dinucleotides
-    unordered_map<std::string, unsigned> diCounts(16);
-    unsigned counted = 0;
-    for (unsigned i = 0; i < sequence.length()-1; ++i){
-        std::string dimer = sequence.substr(i,2);
-        if (sequence[i]!='N' && sequence[i+1]!='N'){
-            // set if dimer not in counter table yet
-            if(diCounts.find(dimer) == diCounts.end()){
-                diCounts[dimer] = 1;
-                counted++;
-            }
-            // otherwise increase
-            else{
-                diCounts[dimer] += 1;
-                counted++;
-            }
-        }
-    }
-
-    // calculate the entropy for dinucleotide counts
-    unsigned entropy = 0;
-    for(unordered_map<std::string,unsigned>::const_iterator it = diCounts.cbegin(); it != diCounts.cend(); ++it){
-        if (it->second == 0) continue;
-        float p = float(it->second) / counted;
-        entropy -= p * log(p) / log(2);
-    }
-
-    return entropy / 4;
 }
 
 

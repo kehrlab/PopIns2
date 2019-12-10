@@ -57,10 +57,22 @@ int popins2_merge(int argc, char const *argv[]){
     printTimeStatus(msg);
     exg.simplify(ccdbg_build_opt.deleteIsolated, ccdbg_build_opt.clipTips, ccdbg_build_opt.verbose);
 
+    // ==============================
+    // Bifrost
+    // ==============================
     msg.str("");
     msg << "ColorMapping CCDBG";
     printTimeStatus(msg);
     exg.buildColors(ccdbg_build_opt);
+
+    // ==============================
+    // ~~~ experimental ~~~
+    // ==============================
+    msg.str("");
+    msg << "Deleting low entropy unitigs from CCDBG";
+    printTimeStatus(msg);
+    exg.init_entropy();
+    exg.remove_low_entropy(0.7f);
 
     // ==============================
     // Bifrost
@@ -71,8 +83,9 @@ int popins2_merge(int argc, char const *argv[]){
     exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
 
     // ==============================
-    // Merge specific functions
+    // Popins2 merge
     // ==============================
+    /*
     msg.str("");
     msg << "Assigning unitig IDs";
     printTimeStatus(msg);
@@ -82,7 +95,7 @@ int popins2_merge(int argc, char const *argv[]){
     msg << "Traversing paths";
     printTimeStatus(msg);
     exg.merge(ccdbg_build_opt, mo.min_kmers, mo.outdir);
-
+    */
 
 
     return 0;
