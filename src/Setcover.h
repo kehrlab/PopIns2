@@ -33,7 +33,7 @@ public:
      *          Checks if the cumulative sum of unseen kmers of the current path p is LEQ a threshold.
      * @return  true if cumsum(p) is larger than or equal threshold t_
      */
-    bool hasMinContribution(bool verbose = true) const{
+    bool hasMinContribution(bool verbose = false) const{
         unsigned novel_kmers = 0;
         auto cit = current_path_.cbegin();
         while (cit != current_path_.cend()){
@@ -73,7 +73,7 @@ public:
     bool empty(){return c_.empty();}
 
     // Unify the the elements of the current path with the set cover
-    void incorporate(bool verbose = true){
+    void incorporate(bool verbose = false){
         typename TCurrentPath::const_iterator cit = current_path_.cbegin();
         for ( ; cit != current_path_.cend(); ++cit) c_.insert(cit->first);
         if (verbose) cout << "Inserted kmers of following novel elements " << endl;

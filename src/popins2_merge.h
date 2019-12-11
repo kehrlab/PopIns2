@@ -57,9 +57,6 @@ int popins2_merge(int argc, char const *argv[]){
     printTimeStatus(msg);
     exg.simplify(ccdbg_build_opt.deleteIsolated, ccdbg_build_opt.clipTips, ccdbg_build_opt.verbose);
 
-    // ==============================
-    // Bifrost
-    // ==============================
     msg.str("");
     msg << "ColorMapping CCDBG";
     printTimeStatus(msg);

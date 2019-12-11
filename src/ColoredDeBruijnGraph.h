@@ -42,6 +42,13 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         void init_entropy();
 
         /**
+         *          This function removes every unitig with low entropy from the graph.
+         * @param   threshold is the minimum entropy a unitig must have to remain in the graph
+         * @return  true if successful
+         */
+        bool remove_low_entropy(const float threshold);
+
+        /**
          *          Compute the connected component for every node.
          * @ref     seqan/include/seqan/misc/union_find.h
          * @return  true if successful
@@ -60,13 +67,6 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
          * @return  true if successful
          */
         bool merge(const CCDBG_Build_opt &opt, const int min_kmers, const std::string &outdir);
-
-        /**
-         *          This function removes every unitig with low entropy from the graph.
-         * @param   threshold is the minimum entropy a unitig must have to remain in the graph
-         * @return  true if successful
-         */
-        bool remove_low_entropy(const float threshold);
 
     private:
         // ----------
@@ -93,6 +93,9 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         void DFS_cleaner();
         void DFS_cleaner_seen_only();
 
+        /**
+        *           Function to determine the entropy of a UnitigColorMap based on the dinucleotide distribution.
+        */
         float entropy(const std::string &sequence);
 
         /**

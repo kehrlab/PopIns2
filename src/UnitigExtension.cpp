@@ -33,7 +33,7 @@ string UnitigExtension::serialize(const const_UnitigColorMap< UnitigExtension >&
     const DataAccessor<UnitigExtension>* da = um_src.getData();
     const UnitigExtension* ue = da->getData(um_src);
 
-    string field = "ID:i:" + std::to_string(ue->getID());
+    string field = "ID:i:" + std::to_string(ue->getID()) + "\tEN:f:" + std::to_string(ue->getEntropy());
 
     return field;
 }
