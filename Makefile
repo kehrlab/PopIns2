@@ -51,4 +51,3 @@ clean:
 
 purge:
 	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors contigs.fa
-
