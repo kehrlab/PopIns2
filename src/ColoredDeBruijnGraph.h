@@ -40,6 +40,8 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         bool is_id_init() const {return id_init_status;}
 
         void init_entropy();
+        bool is_entropy_init() const {return this->entropy_init_status;}
+
 
         /**
          *          This function removes every unitig with low entropy from the graph.
@@ -80,6 +82,7 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         typedef std::multimap<unsigned, unsigned, GreaterThan> neighborsContainer;
 
         bool id_init_status;
+        bool entropy_init_status;
 
         seqan::UnionFind<unsigned> UF;
 

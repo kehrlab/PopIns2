@@ -9,6 +9,7 @@
 
 #include "argument_parsing.h"           /* seqAn argument parser */
 #include "ColoredDeBruijnGraph.h"
+#include "LECC_Finder.h"
 
 
 
@@ -66,10 +67,29 @@ int popins2_merge(int argc, char const *argv[]){
     // ~~~ experimental ~~~
     // ==============================
     msg.str("");
-    msg << "Deleting low entropy unitigs from CCDBG";
+    msg << "Assigning unitig IDs";
+    printTimeStatus(msg);
+    exg.init_ids();
+
+    msg.str("");
+    msg << "Assigning entropy in each UnitigExtention";
     printTimeStatus(msg);
     exg.init_entropy();
+
+    msg.str("");
+    msg << "Computing LECCs";
+    printTimeStatus(msg);
+    ExtendedCCDBG* exg_p = &exg;
+    LECC_Finder F(exg_p, 0.7f);
+    unsigned nb_lecc = F.annotate();
+    std::cout << "Found " << nb_lecc << " LECCs." << std::endl;
+
+    /*
+    msg.str("");
+    msg << "Deleting low entropy unitigs from CCDBG";
+    printTimeStatus(msg);
     exg.remove_low_entropy(0.7f);
+    */
 
     // ==============================
     // Bifrost
@@ -83,11 +103,6 @@ int popins2_merge(int argc, char const *argv[]){
     // Popins2 merge
     // ==============================
     /*
-    msg.str("");
-    msg << "Assigning unitig IDs";
-    printTimeStatus(msg);
-    exg.init_ids();
-
     msg.str("");
     msg << "Traversing paths";
     printTimeStatus(msg);

@@ -11,8 +11,9 @@
 
 // default constructor
 ExtendedCCDBG::ExtendedCCDBG(int kmer_length, int minimizer_length) :   ColoredCDBG<UnitigExtension> (kmer_length, minimizer_length),
-                                                                        id_init_status(false) {
-    /* 1) IDs are not initiated at construction time (see init_ids())
+                                                                        id_init_status(false),
+                                                                        entropy_init_status(false) {
+    /* 1) IDs and entropies are not initiated at construction time (see init_ids())
      * 2) The UnionFind vector will be empty an construction time, will be resized at use.
      */
 }
@@ -61,6 +62,7 @@ void ExtendedCCDBG::init_entropy(){
         UnitigExtension* ue = da->getData(unitig);
         ue->setEntropy(entropy);
     }
+    this->entropy_init_status = true;
     std::cout << "Done init entropy." << std::endl;
 }
 
@@ -609,18 +611,3 @@ unsigned ExtendedCCDBG::check_common_colors(const UnitigColorMap <UnitigExtensio
 
     return counter;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
