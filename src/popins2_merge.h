@@ -84,6 +84,13 @@ int popins2_merge(int argc, char const *argv[]){
     unsigned nb_lecc = F.annotate();
     std::cout << "Found " << nb_lecc << " LECCs." << std::endl;
 
+    F.write();
+
+    //unsigned c = F.create_random_color();
+    //std::string s("000000");
+    //F.u2hex(s, c);
+    //cout << "Hex: " << s << endl;
+
     /*
     msg.str("");
     msg << "Deleting low entropy unitigs from CCDBG";

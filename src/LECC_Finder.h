@@ -7,12 +7,17 @@
 #ifndef LECCFINDER_
 #define LECCFINDER_
 
+#include <stdlib.h>
+#include <time.h>
+#include <unordered_map>
 #include "ColoredDeBruijnGraph.h"
 
 
 
 class LECC_Finder{
 
+    typedef std::pair<unsigned,unsigned> map_element;
+    typedef std::unordered_map<unsigned,unsigned> color_map;
 
 public:
     LECC_Finder(ExtendedCCDBG* exg, const float threshold) :    g_(exg),
@@ -30,10 +35,20 @@ public:
     */
     unsigned annotate();
 
+    /**
+    *               write()
+    *   @brief      This function writes a CSV file with unitigs of LECCs.
+    *               Every LECC has most likely a unique color.
+    *   @return     true if successful
+    */
+    bool write(const std::string ofname = "ccdbg.lecc.csv");
+
 private:
     ExtendedCCDBG *g_;
 
     const float threshold_;
+
+    static char const * const hex_characters;
 
     bool isGraphInit() const {return g_->is_entropy_init() and g_->is_id_init();}
 
@@ -42,6 +57,11 @@ private:
     *       This function is the recursive part of the DFS in annotate().
     */
     void annotate_recursion(UnitigColorMap<UnitigExtension> &ucm, const unsigned LECC__);
+
+    unsigned create_random_color();
+
+    void u2hex(std::string &hex, unsigned dec, const unsigned length=6);
+
 };
 
 
