@@ -16,7 +16,7 @@
 
 class LECC_Finder{
 
-    typedef std::pair<unsigned,unsigned> map_element;
+    typedef std::pair<unsigned,unsigned> color_map_element;
     typedef std::unordered_map<unsigned,unsigned> color_map;
 
 public:

@@ -123,7 +123,7 @@ bool LECC_Finder::write(const std::string ofname){
                 this->u2hex(col_hex, col);
                 ofile << id << ",#" << col_hex << endl;
                 // remember color
-                CM.insert(map_element(lecc,col));
+                CM.insert(color_map_element(lecc,col));
             }
             // if lecc was seen before and therefore already has a color
             else{

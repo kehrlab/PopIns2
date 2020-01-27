@@ -8,6 +8,11 @@
 
 using namespace seqan;
 
+typedef std::vector<std::string> strings_v;
+typedef uint8_t direction_t;
+
+const static direction_t VISIT_SUCCESSOR   = 0x0;
+const static direction_t VISIT_PREDECESSOR = 0x1;
 
 template <typename TType>
 inline void print(std::vector<TType> &v){
@@ -22,6 +27,211 @@ inline void print(std::vector<TType> &v){
 }
 
 
+/** Get the color overlap of two neighbor unitig.
+* The function isolates the kmers that face each other with respect to the unititgs. Then, it retrieves
+* the color vectors of both kmers,does an AND operation and counts the intersecton.
+* @param ucm_to_get_head_from is the unitig to get the head kmer from
+* @param ucm_to_get_tail_from is the unitig to get the tail kmer from
+* @param nb_colors is the number of samples in the graph (NOTE: might be obsolete in non-test code, use CCDBG->getNbColors())
+**/
+inline unsigned get_neighbor_overlap(const UnitigColorMap<UnitigExtension> &ucm_to_get_head_from, const UnitigColorMap<UnitigExtension> &ucm_to_get_tail_from, const unsigned nb_colors){
+        size_t len = ucm_to_get_tail_from.len;   // I assume this gets me the past-last-kmer index
+        //std::cout << len << std::endl;
+
+        const UnitigColorMap<UnitigExtension> k_first = ucm_to_get_head_from.getKmerMapping(0);
+        const UnitigColorMap<UnitigExtension> k_last  = ucm_to_get_tail_from.getKmerMapping(len-1);
+
+        const UnitigColors* k_first_colors = k_first.getData()->getUnitigColors(k_first);
+        const UnitigColors* k_last_colors  =  k_last.getData()->getUnitigColors(k_last);
+
+        std::vector<bool> k_first_color_bits(nb_colors, false);
+        std::vector<bool> k_last_color_bits(nb_colors, false);
+
+        // get color IDs of unitig's first kmer
+        UnitigColors::const_iterator cit = k_first_colors->begin(k_first);
+        for (; cit != k_first_colors->end(); ++cit)
+            k_first_color_bits[cit.getColorID()] = true;
+
+        // get color IDs of unitig's last kmer
+        cit = k_last_colors->begin(k_last);
+        for (; cit != k_last_colors->end(); ++cit)
+            k_last_color_bits[cit.getColorID()] = true;
+
+        // PRINT
+        //std::string first_seq = k_first.mappedSequenceToString();
+        //std::string last_seq  =  k_last.mappedSequenceToString();
+        //std::cout << "START COLORS (" << first_seq << "): " ; print(k_first_color_ids);
+        //std::cout << "END COLORS ("   << last_seq  << "): " ; print(k_last_color_ids);
+
+        // sum of intersection
+        unsigned count = 0;
+        for (unsigned i=0; i < k_first_color_bits.size(); ++i)                  // NOTE: IMPROVEMENT: comparisons can be reduced by using UnitigColors::colorMax(ucm)
+            if (k_first_color_bits[i] && k_last_color_bits[i])
+                ++count;
+
+        return count;
+}
+
+
+/** Get the ID of the best fitting neighbor.
+* This function iterates over all neighbors with respect to the traversal direction. It then applies
+* the function get_neighbor_overlap() to determine the neighbor that has the highest color match.
+* @param ucm ist the unitig to compare to
+* @param neighbors is a ForwardCDBG or BackwardCDBG, its unitigs will be compared to ucm
+* @param direction is the traversal direction
+* @param nb_colors is the number of samples in the graph (NOTE: might be obsolete in non-test code, use CCDBG->getNbColors())
+**/
+template <typename TNeighbors>
+inline unsigned get_best_neighbor_ID(const UnitigColorMap<UnitigExtension> &ucm, const TNeighbors &neighbors, const direction_t direction, const unsigned nb_colors){
+
+    unsigned best_neighbor_id = 0; // default
+    unsigned best_overlap = 0;
+
+    if (direction==VISIT_PREDECESSOR){
+
+        for (auto &pre : neighbors){
+
+            unsigned overlap = get_neighbor_overlap(ucm, pre, nb_colors);
+
+            if (overlap > best_overlap){
+
+                DataAccessor<UnitigExtension>* da = pre.getData();              // NOTE: can I avoid recreating these pointer over and over again?
+                UnitigExtension* data = da->getData(pre);
+                best_neighbor_id = data->getID();
+            }
+        }
+    }
+    else{   // direction==VISIT_SUCCESSOR
+
+        for (auto &suc : neighbors){
+
+            unsigned overlap = get_neighbor_overlap(suc, ucm, nb_colors);
+
+            if (overlap > best_overlap){
+
+                DataAccessor<UnitigExtension>* da = suc.getData();              // NOTE: can I avoid recreating these pointer over and over again?
+                UnitigExtension* data = da->getData(suc);
+                best_neighbor_id = data->getID();
+            }
+        }
+    }
+
+    return best_neighbor_id;
+}
+
+
+inline bool is_startnode(const UnitigColorMap<UnitigExtension> &ucm){
+    return
+        ucm.len>2 &&                                                                                    // be longer than 2 kmers and
+        (( ucm.getPredecessors().hasPredecessors() && !ucm.getSuccessors().hasSuccessors() ) ||         // have only predecessors or
+         (!ucm.getPredecessors().hasPredecessors() &&  ucm.getSuccessors().hasSuccessors() ) );         // have only successors
+}
+
+
+/**
+* @return 1 for further traversal, 0 for jump back into parent recursion level
+**/
+inline uint8_t DFS(UnitigColorMap<UnitigExtension> &ucm, const direction_t direction){
+
+    DataAccessor<UnitigExtension>* da = ucm.getData();
+    UnitigExtension* data = da->getData(ucm);
+
+    if(direction==VISIT_PREDECESSOR){
+
+        if(data->is_undiscovered_bw()){
+
+            data->set_seen_bw();
+
+            BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> predecessors = ucm.getPredecessors();
+
+            if (!predecessors.hasPredecessors()){       // sink node
+
+                return 0;
+            }
+        }
+    }
+    else{   // if direction==VISIT_SUCCESSOR
+
+        if(data->is_undiscovered_fw()){
+
+            data->set_seen_fw();
+
+            ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> successors = ucm.getSuccessors();
+
+            if (!successors.hasSuccessors()){       // sink node
+
+                return 0;
+            }
+        }
+    }
+}
+
+
+/** This function traverses the graph.
+* @return 1 for successful execution
+**/
+inline uint8_t traverse(ExtendedCCDBG &g){
+
+    if (!g.is_id_init()) return 0;      // sanity check
+
+    for (auto &ucm : g){
+
+        if (is_startnode(ucm)){             // NOTE: improvement: receive traversal direction from is_startnode() s.t. traverse() doesn't have to find out again
+
+            if (ucm.getPredecessors().hasPredecessors()){
+
+                DFS(ucm, VISIT_PREDECESSOR);
+            }
+            else{ //ucm.getSuccessors().hasSuccessors()
+
+                DFS(ucm, VISIT_SUCCESSOR);
+            }
+        }
+    }
+}
+
+
+// -----------------
+// | LECC UNITTEST |
+// -----------------
+CCDBG_Build_opt opt_lecc_unittest;
+
+SEQAN_DEFINE_TEST(setup_lecc_unittest){
+    strings_v i_files;
+    getFastx(i_files, "./testcases/lecc_unittest/");
+
+    opt_lecc_unittest.filename_ref_in = i_files;
+    opt_lecc_unittest.deleteIsolated = true;
+    opt_lecc_unittest.clipTips = true;
+    opt_lecc_unittest.prefixFilenameOut = "lecc_unittest";
+    opt_lecc_unittest.nb_threads = 1;
+    opt_lecc_unittest.outputGFA = true;
+    opt_lecc_unittest.verbose = false;
+    opt_lecc_unittest.k = 63;
+}
+
+ExtendedCCDBG ccdbg_lecc_unittest(opt_lecc_unittest.k, opt_lecc_unittest.g);
+
+SEQAN_DEFINE_TEST(test_lecc_unittest){
+    SEQAN_ASSERT_EQ(ccdbg_lecc_unittest.buildGraph(opt_lecc_unittest),true);
+
+    SEQAN_ASSERT_EQ(ccdbg_lecc_unittest.simplify(opt_lecc_unittest.deleteIsolated, opt_lecc_unittest.clipTips, opt_lecc_unittest.verbose),true);
+
+    SEQAN_ASSERT_EQ(ccdbg_lecc_unittest.buildColors(opt_lecc_unittest),true);
+
+
+
+    SEQAN_ASSERT_EQ(ccdbg_lecc_unittest.write(opt_lecc_unittest.prefixFilenameOut, opt_lecc_unittest.nb_threads, opt_lecc_unittest.verbose), true);
+}
+
+
+
+
+
+
+
+// =========== legacy content ==============
+/*
 CCDBG_Build_opt ccdbg_opt;
 SEQAN_DEFINE_TEST(test_ccdbg_opt){
 
@@ -60,12 +270,12 @@ SEQAN_DEFINE_TEST(test_ccdbg_build){
         true
     );
 
-    /*
-    SEQAN_ASSERT_EQ(
-        ccdbg.write(ccdbg_opt.prefixFilenameOut, ccdbg_opt.nb_threads, ccdbg_opt.verbose),
-        true
-    );
-    */
+
+    //SEQAN_ASSERT_EQ(
+    //    ccdbg.write(ccdbg_opt.prefixFilenameOut, ccdbg_opt.nb_threads, ccdbg_opt.verbose),
+    //    true
+    //);
+
 }
 
 SEQAN_DEFINE_TEST(test_ccdbg_connected_components){
@@ -90,11 +300,10 @@ SEQAN_DEFINE_TEST(test_ccdbg_connected_components){
 // -------------
 // | NEW GRAPH |
 // -------------
-
-CCDBG_Build_opt opt;
-ExtendedCCDBG g(opt.k, opt.g);
+//CCDBG_Build_opt opt;
+//ExtendedCCDBG g(opt.k, opt.g);
 SEQAN_DEFINE_TEST(test_ccdbg_simpleBranching_singleThread){
-    /* Reset graph and input files */
+    // Reset graph and input files
     //ccdbg.clear();
     //ccdbg_opt.filename_seq_in.clear();
 
@@ -110,17 +319,17 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBranching_singleThread){
     opt.outputGFA = true;
     opt.verbose = false;
 
-    /* Build and prune graph */
+    // Build and prune graph
     SEQAN_ASSERT_EQ(g.buildGraph(opt), true);
     SEQAN_ASSERT_EQ(g.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose), true);
     SEQAN_ASSERT_EQ(g.buildColors(opt), true);
     SEQAN_ASSERT_EQ(g.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose), true);
 
-    /* Run merge */
+    // Run merge
     g.init_ids();
     SEQAN_ASSERT_EQ(g.merge(opt), true);
 
-    /* Truth set */
+    // Truth set
     StringSet<DnaString> simpleBranchingTruthSet;
     DnaString str1 = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCACGATCGCTCTAGCATGCACGGATGTCAGCATGCACATGCGCTTCTTCACGCCCCCCCCA";
     DnaString str2 = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCCTGGAAAGAGAGAAGACACCAGCTGGACAATTCAGCAGCCATTTAAACCACTCTGGGCCTCAGTTTGCATTAGCCCCCCCTAGTTCGAGCCACACGTGTGTACGTACCGCTAATGCTGGG";
@@ -131,7 +340,7 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBranching_singleThread){
     appendValue(simpleBranchingTruthSet, str3);
     appendValue(simpleBranchingTruthSet, str4);
 
-    /* Test contig.fa for correctness */
+    // Test contig.fa for correctness
     CharString seqFileName = "contigs.fa";
     StringSet<CharString> ids;
     StringSet<DnaString> seqs;
@@ -155,7 +364,7 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBranching_singleThread){
                 ++c;
         SEQAN_ASSERT_EQ(c, 1u);
     }
-    
+
     if(remove("contigs.fa") || remove("simpleBranching.gfa") || remove("simpleBranching.bfg_colors"))
         perror("[test_ccdbg_simpleBranching_singleThread] Error deleting meta files");
     //else
@@ -181,17 +390,17 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles){
     opt2.outputGFA = true;
     opt2.verbose = false;
 
-    /* Build and prune graph */
+    // Build and prune graph
     SEQAN_ASSERT_EQ(g2.buildGraph(opt2), true);
     SEQAN_ASSERT_EQ(g2.simplify(opt2.deleteIsolated, opt2.clipTips, opt2.verbose), true);
     SEQAN_ASSERT_EQ(g2.buildColors(opt2), true);
     SEQAN_ASSERT_EQ(g2.write(opt2.prefixFilenameOut, opt2.nb_threads, opt2.verbose), true);
 
-    /* Run merge */
+    // Run merge
     g2.init_ids();
     SEQAN_ASSERT_EQ(g2.merge(opt2), true);
 
-    /* Truth set */
+    // Truth set
     StringSet<DnaString> simpleBubblesTruthSet;
     DnaString longPathWithTwoBubbles1   = "CTGGAATTACAGGCGCCCGCCACCACACCCAGCTAATCATTGTATTTTTAGTAAAGACAGGGTTTCATCATGTTAGCCAGGCTGGTCTCAAACTCCTGATCCTGGAAAGAGAGAAGACACCAGCTGGACAATTCAGCAGTTATTTAAACCAGTCTGAGCCTCCCCCAGAGCCGTTCGCGCCGCCCCCGGTCCTCCGGCCCCCGGTCTGCCCCGCAGCGCCTGCCCGGCTTAATGTCAGAGACAGCCCACCCACTCCATAAATCCACTTGTGACAGGGCTGGGGACCTGGACTGTCCTCAGAGAGGCCCCCTGTGACCACTC";
     DnaString longPathWithTwoBubbles1rc = "GAGTGGTCACAGGGGGCCTCTCTGAGGACAGTCCAGGTCCCCAGCCCTGTCACAAGTGGATTTATGGAGTGGGTGGGCTGTCTCTGACATTAAGCCGGGCAGGCGCTGCGGGGCAGACCGGGGGCCGGAGGACCGGGGGCGGCGCGAACGGCTCTGGGGGAGGCTCAGACTGGTTTAAATAACTGCTGAATTGTCCAGCTGGTGTCTTCTCTCTTTCCAGGATCAGGAGTTTGAGACCAGCCTGGCTAACATGATGAAACCCTGTCTTTACTAAAAATACAATGATTAGCTGGGTGTGGTGGCGGGCGCCTGTAATTCCAG";
@@ -202,7 +411,7 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles){
     appendValue(simpleBubblesTruthSet, longPathWithTwoBubbles2);
     appendValue(simpleBubblesTruthSet, longPathWithTwoBubbles2rc);
 
-    /* Test contig.fa for correctness */
+    // Test contig.fa for correctness //
     CharString seqFileName = "contigs.fa";      // intermediate result file
     StringSet<CharString> ids;
     StringSet<DnaString> seqs;
@@ -220,7 +429,7 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleBubbles){
         SEQAN_ASSERT_EQ(c, 1u);
     }
 
-    /*Clean up*/
+    //Clean up//
     if(remove("contigs.fa") || remove("contigs.csv") || remove("simpleBubbles.gfa") || remove("simpleBubbles.bfg_colors"))
         perror("[test_ccdbg_simpleBubbles] Error deleting meta files");
 }
@@ -251,18 +460,18 @@ SEQAN_DEFINE_TEST(test_ccdbg_simpleColorTest){
     SEQAN_ASSERT_EQ(g3.buildColors(opt3), true);
     SEQAN_ASSERT_EQ(g3.write(opt3.prefixFilenameOut, opt3.nb_threads, opt3.verbose), true);
 
-    /* Run merge */
+    //Run merge //
     g3.init_ids();
     SEQAN_ASSERT_EQ(g3.merge(opt3), true);
 
-    /* Truth set */
+    // Truth set //
     StringSet<DnaString> simpleColorTestTruthSet;
     DnaString str1 = "TTACCTCTACAAAAAGCGACTGCCAGTGTAACCCCACGAGGATCCGAAAAGGCGAACCGGCCCAGACGACCCGGGGGCACGGGCCTCAAAGCCGCGACACGACGGCTGTCGGCCGGTAACAGTAACCCCGGAGTGAACTCCTATGGGGCTGGATAGAACAGCCCTGGTGGGCCCCATCAGCAACCCGAATACGTGGCTCTTCGGGAGGCGGCCGGAGGGGCGATGTCTTCCACTATTCGAGGCCGTTCGTTAATACTTGTTGCGTTCCTAGCCGCTATATTTGTCTCTTTGCCGACTAATGTGGACAAGCACACCATAGCCATTTGTCGGGGCGCCTCGGAATACGGTATGAGCAGGCGCCTCGTGAGGCCATCGCGAATACCAGGTGTCCTGTAAGCAGCGAAGGCCCGCACGCGAGATAAACTGCTAGGGAACCGCGTGTCCACGACCGGTGGTGGATTTAATCTCGCCGACGTGTAGACATTCCAGGCAGTGCGTCT";
     DnaString str2 = "GCCGCCGGGCCCCTCTGGTGACTGGGTAGCTGGACTTGCCCTTGGAAGACATAGCAAGACCCTGCCTCTCTATTGATGTCACGGCGAATGTCGGGGAGACAGCAGCGGCTGCAGACATCAGATAACCCCGGAGTGAACTCCTATGGGGCTGGATAGAACAGCCCTGGTGGGCCCCATCAGCAACCCGAATACGTGGCTCTTCGGGAGGCGGCCGGAGGGGCGATGTCTTCCACTATTCGAGGCCGTTCGTTAATACTTGTTGCGTTCCTAGCCGCTATATTTGTCTCTTTGCCGACTAATGTGGACAAGCACACCATAGCCATTTGTCGGGGCGCCTCGGAATACGGTATGAGCAGGCGCCTCGTGCGTTACCGCCATAAGATGGGAGCATGACTCCTTCTCCGCTGCGCCCACGCCAGTAGTGATTACTCCTATGACCCTTCCGAGAGTCCGGAGGCGGAAATCCGCCACGAATGAGAATGTATTTCCCCGACAGTCAT";
     appendValue(simpleColorTestTruthSet, str1);
     appendValue(simpleColorTestTruthSet, str2);
 
-    /* Test contig.fa for correctness */
+    // Test contig.fa for correctness //
     CharString seqFileName = "contigs.fa";
     StringSet<CharString> ids;
     StringSet<DnaString> seqs;
@@ -317,24 +526,24 @@ SEQAN_DEFINE_TEST(test_ccdbg_rev_comp){
     opt4.outputGFA = true;
     opt4.verbose = true;
 
-    /* Build and prune graph */
+    // Build and prune graph //
     SEQAN_ASSERT_EQ(g4.buildGraph(opt4), true);
     SEQAN_ASSERT_EQ(g4.simplify(opt4.deleteIsolated, opt4.clipTips, opt4.verbose), true);
     SEQAN_ASSERT_EQ(g4.buildColors(opt4), true);
     SEQAN_ASSERT_EQ(g4.write(opt4.prefixFilenameOut, opt4.nb_threads, opt4.verbose), true);
 
-    /* Run merge */
+    // Run merge //
     g4.init_ids();
     SEQAN_ASSERT_EQ(g4.merge(opt4), true);
 
-    /* Truth set */
+    // Truth set //
     StringSet<DnaString> simpleRevCompTruthSet;
     DnaString trueAssembly    = "GAGATGGCAGCGACTAACTCACAGCGCACGTTTGGCTGACGCATATGCATTAGAATCGTCGACGAGCGAGATAGTCTCCGCTGTCGAGGGACTTGCAGAC";
     DnaString trueAssembly_rc = "GTCTGCAAGTCCCTCGACAGCGGAGACTATCTCGCTCGTCGACGATTCTAATGCATATGCGTCAGCCAAACGTGCGCTGTGAGTTAGTCGCTGCCATCTC";
     appendValue(simpleRevCompTruthSet, trueAssembly);
     appendValue(simpleRevCompTruthSet, trueAssembly_rc);
 
-    /* Test contig.fa for correctness */
+    // Test contig.fa for correctness //
     CharString seqFileName = "contigs.fa";      // intermediate result file
     StringSet<CharString> ids;
     StringSet<DnaString> seqs;
@@ -354,11 +563,11 @@ SEQAN_DEFINE_TEST(test_ccdbg_rev_comp){
         SEQAN_ASSERT_EQ(c, 1u);
     }
 
-    /*Clean up*/
+    //Clean up//
     if(remove("contigs.fa") || remove("contigs.csv") || remove("simpleRevComp.gfa") || remove("simpleRevComp.bfg_colors"))
         perror("[test_ccdbg_rev_comp] Error deleting meta files");
 }
-
+*/
 
 
 SEQAN_BEGIN_TESTSUITE(test_popins2){
@@ -367,9 +576,11 @@ SEQAN_BEGIN_TESTSUITE(test_popins2){
     //SEQAN_CALL_TEST(test_ccdbg_build);
     //SEQAN_CALL_TEST(test_ccdbg_connected_components);
     //SEQAN_CALL_TEST(test_ccdbg_simpleBranching_singleThread);
-    SEQAN_CALL_TEST(test_ccdbg_simpleBubbles);
+    //SEQAN_CALL_TEST(test_ccdbg_simpleBubbles);
     //SEQAN_CALL_TEST(test_ccdbg_simpleColorTest);
-    SEQAN_CALL_TEST(test_ccdbg_rev_comp);
+    //SEQAN_CALL_TEST(test_ccdbg_rev_comp);
 
+    SEQAN_CALL_TEST(setup_lecc_unittest);
+    SEQAN_CALL_TEST(test_lecc_unittest);
 }
 SEQAN_END_TESTSUITE
