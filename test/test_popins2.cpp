@@ -2,17 +2,15 @@
 #define SEQAN_ENABLE_TESTING 1
 
 
-
-#include "../src/ColoredDeBruijnGraph.h"
-#include "../src/util.h"
+//#include "../src/ColoredDeBruijnGraph.h"
+#include <seqan/arg_parse.h>
+#include <seqan/seq_io.h>
+#include <bifrost/ColoredCDBG.hpp>      /* has the CCDBG_Data_t template */
 
 using namespace seqan;
 
 typedef std::vector<std::string> strings_v;
-typedef uint8_t direction_t;
 
-const static direction_t VISIT_SUCCESSOR   = 0x0;
-const static direction_t VISIT_PREDECESSOR = 0x1;
 
 template <typename TType>
 inline void print(std::vector<TType> &v){
@@ -26,169 +24,82 @@ inline void print(std::vector<TType> &v){
     std::cout << "]" << std::endl;
 }
 
-
-/** Get the color overlap of two neighbor unitig.
-* The function isolates the kmers that face each other with respect to the unititgs. Then, it retrieves
-* the color vectors of both kmers,does an AND operation and counts the intersecton.
-* @param ucm_to_get_head_from is the unitig to get the head kmer from
-* @param ucm_to_get_tail_from is the unitig to get the tail kmer from
-* @param nb_colors is the number of samples in the graph (NOTE: might be obsolete in non-test code, use CCDBG->getNbColors())
+/**
+ * For every unitig in a CCDBG, print the color vector of the leading and trailing kmer - VERSION 2
+ * This functions works. However it seems to work on 31 nucleotides even though I specified k=63
 **/
-inline unsigned get_neighbor_overlap(const UnitigColorMap<UnitigExtension> &ucm_to_get_head_from, const UnitigColorMap<UnitigExtension> &ucm_to_get_tail_from, const unsigned nb_colors){
-        size_t len = ucm_to_get_tail_from.len;   // I assume this gets me the past-last-kmer index
-        //std::cout << len << std::endl;
+/*
+inline void print_unitig_ends2(ExtendedCCDBG &g){
+    for (auto &ucm : g){
 
-        const UnitigColorMap<UnitigExtension> k_first = ucm_to_get_head_from.getKmerMapping(0);
-        const UnitigColorMap<UnitigExtension> k_last  = ucm_to_get_tail_from.getKmerMapping(len-1);
+        size_t len = ucm.len;   // I assume this gets me the past-last-kmer index
+        std::cout << len << std::endl;
+
+        UnitigColorMap<UnitigExtension> k_first = ucm.getKmerMapping(0);    // seems to be 31 bp long, expected 63 bp
+        UnitigColorMap<UnitigExtension> k_last  = ucm.getKmerMapping(len-1);    // seems to be 31 bp long, expected 63 bp
 
         const UnitigColors* k_first_colors = k_first.getData()->getUnitigColors(k_first);
         const UnitigColors* k_last_colors  =  k_last.getData()->getUnitigColors(k_last);
 
-        std::vector<bool> k_first_color_bits(nb_colors, false);
-        std::vector<bool> k_last_color_bits(nb_colors, false);
+        std::vector<size_t> k_first_color_ids;
+        std::vector<size_t> k_last_color_ids;
 
         // get color IDs of unitig's first kmer
         UnitigColors::const_iterator cit = k_first_colors->begin(k_first);
-        for (; cit != k_first_colors->end(); ++cit)
-            k_first_color_bits[cit.getColorID()] = true;
+        for (; cit != k_first_colors->end(); ++cit){
+            k_first_color_ids.push_back(cit.getColorID());
+        }
 
         // get color IDs of unitig's last kmer
         cit = k_last_colors->begin(k_last);
-        for (; cit != k_last_colors->end(); ++cit)
-            k_last_color_bits[cit.getColorID()] = true;
+        for (; cit != k_last_colors->end(); ++cit){
+            k_last_color_ids.push_back(cit.getColorID());
+        }
 
         // PRINT
-        //std::string first_seq = k_first.mappedSequenceToString();
-        //std::string last_seq  =  k_last.mappedSequenceToString();
-        //std::cout << "START COLORS (" << first_seq << "): " ; print(k_first_color_ids);
-        //std::cout << "END COLORS ("   << last_seq  << "): " ; print(k_last_color_ids);
-
-        // sum of intersection
-        unsigned count = 0;
-        for (unsigned i=0; i < k_first_color_bits.size(); ++i)                  // NOTE: IMPROVEMENT: comparisons can be reduced by using UnitigColors::colorMax(ucm)
-            if (k_first_color_bits[i] && k_last_color_bits[i])
-                ++count;
-
-        return count;
-}
-
-
-/** Get the ID of the best fitting neighbor.
-* This function iterates over all neighbors with respect to the traversal direction. It then applies
-* the function get_neighbor_overlap() to determine the neighbor that has the highest color match.
-* @param ucm ist the unitig to compare to
-* @param neighbors is a ForwardCDBG or BackwardCDBG, its unitigs will be compared to ucm
-* @param direction is the traversal direction
-* @param nb_colors is the number of samples in the graph (NOTE: might be obsolete in non-test code, use CCDBG->getNbColors())
-**/
-template <typename TNeighbors>
-inline unsigned get_best_neighbor_ID(const UnitigColorMap<UnitigExtension> &ucm, const TNeighbors &neighbors, const direction_t direction, const unsigned nb_colors){
-
-    unsigned best_neighbor_id = 0; // default
-    unsigned best_overlap = 0;
-
-    if (direction==VISIT_PREDECESSOR){
-
-        for (auto &pre : neighbors){
-
-            unsigned overlap = get_neighbor_overlap(ucm, pre, nb_colors);
-
-            if (overlap > best_overlap){
-
-                DataAccessor<UnitigExtension>* da = pre.getData();              // NOTE: can I avoid recreating these pointer over and over again?
-                UnitigExtension* data = da->getData(pre);
-                best_neighbor_id = data->getID();
-            }
-        }
-    }
-    else{   // direction==VISIT_SUCCESSOR
-
-        for (auto &suc : neighbors){
-
-            unsigned overlap = get_neighbor_overlap(suc, ucm, nb_colors);
-
-            if (overlap > best_overlap){
-
-                DataAccessor<UnitigExtension>* da = suc.getData();              // NOTE: can I avoid recreating these pointer over and over again?
-                UnitigExtension* data = da->getData(suc);
-                best_neighbor_id = data->getID();
-            }
-        }
-    }
-
-    return best_neighbor_id;
-}
-
-
-inline bool is_startnode(const UnitigColorMap<UnitigExtension> &ucm){
-    return
-        ucm.len>2 &&                                                                                    // be longer than 2 kmers and
-        (( ucm.getPredecessors().hasPredecessors() && !ucm.getSuccessors().hasSuccessors() ) ||         // have only predecessors or
-         (!ucm.getPredecessors().hasPredecessors() &&  ucm.getSuccessors().hasSuccessors() ) );         // have only successors
-}
-
-
-/**
-* @return 1 for further traversal, 0 for jump back into parent recursion level
-**/
-inline uint8_t DFS(UnitigColorMap<UnitigExtension> &ucm, const direction_t direction){
-
-    DataAccessor<UnitigExtension>* da = ucm.getData();
-    UnitigExtension* data = da->getData(ucm);
-
-    if(direction==VISIT_PREDECESSOR){
-
-        if(data->is_undiscovered_bw()){
-
-            data->set_seen_bw();
-
-            BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> predecessors = ucm.getPredecessors();
-
-            if (!predecessors.hasPredecessors()){       // sink node
-
-                return 0;
-            }
-        }
-    }
-    else{   // if direction==VISIT_SUCCESSOR
-
-        if(data->is_undiscovered_fw()){
-
-            data->set_seen_fw();
-
-            ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> successors = ucm.getSuccessors();
-
-            if (!successors.hasSuccessors()){       // sink node
-
-                return 0;
-            }
-        }
+        std::string first_seq = k_first.mappedSequenceToString();
+        std::string last_seq  =  k_last.mappedSequenceToString();
+        std::cout << "START COLORS (" << first_seq << "): " ; print(k_first_color_ids);
+        std::cout << "END COLORS ("   << last_seq  << "): " ; print(k_last_color_ids);
     }
 }
+*/
 
-
-/** This function traverses the graph.
-* @return 1 for successful execution
-**/
-inline uint8_t traverse(ExtendedCCDBG &g){
-
-    if (!g.is_id_init()) return 0;      // sanity check
-
+inline void print_unitig_ends3(ColoredCDBG<> &g){
     for (auto &ucm : g){
 
-        if (is_startnode(ucm)){             // NOTE: improvement: receive traversal direction from is_startnode() s.t. traverse() doesn't have to find out again
+        size_t len = ucm.len;   // I assume this gets me the past-last-kmer index
+        std::cout << len << std::endl;
 
-            if (ucm.getPredecessors().hasPredecessors()){
+        UnitigColorMap<void> k_first = ucm.getKmerMapping(0);    // seems to be 31 bp long, expected 63 bp
+        UnitigColorMap<void> k_last  = ucm.getKmerMapping(len-1);    // seems to be 31 bp long, expected 63 bp
 
-                DFS(ucm, VISIT_PREDECESSOR);
-            }
-            else{ //ucm.getSuccessors().hasSuccessors()
+        const UnitigColors* k_first_colors = k_first.getData()->getUnitigColors(k_first);
+        const UnitigColors* k_last_colors  =  k_last.getData()->getUnitigColors(k_last);
 
-                DFS(ucm, VISIT_SUCCESSOR);
-            }
+        std::vector<size_t> k_first_color_ids;
+        std::vector<size_t> k_last_color_ids;
+
+        // get color IDs of unitig's first kmer
+        UnitigColors::const_iterator cit = k_first_colors->begin(k_first);
+        for (; cit != k_first_colors->end(); ++cit){
+            k_first_color_ids.push_back(cit.getColorID());
         }
+
+        // get color IDs of unitig's last kmer
+        cit = k_last_colors->begin(k_last);
+        for (; cit != k_last_colors->end(); ++cit){
+            k_last_color_ids.push_back(cit.getColorID());
+        }
+
+        // PRINT
+        std::string first_seq = k_first.mappedSequenceToString();
+        std::string last_seq  =  k_last.mappedSequenceToString();
+        std::cout << "START COLORS (" << first_seq << "): " ; print(k_first_color_ids);
+        std::cout << "END COLORS ("   << last_seq  << "): " ; print(k_last_color_ids);
     }
 }
+
 
 
 // -----------------
@@ -198,7 +109,7 @@ CCDBG_Build_opt opt_lecc_unittest;
 
 SEQAN_DEFINE_TEST(setup_lecc_unittest){
     strings_v i_files;
-    getFastx(i_files, "./testcases/lecc_unittest/");
+    getFastx(i_files, "./data/lecc_unittest/");
 
     opt_lecc_unittest.filename_ref_in = i_files;
     opt_lecc_unittest.deleteIsolated = true;
@@ -210,6 +121,7 @@ SEQAN_DEFINE_TEST(setup_lecc_unittest){
     opt_lecc_unittest.k = 63;
 }
 
+/*
 ExtendedCCDBG ccdbg_lecc_unittest(opt_lecc_unittest.k, opt_lecc_unittest.g);
 
 SEQAN_DEFINE_TEST(test_lecc_unittest){
@@ -219,13 +131,42 @@ SEQAN_DEFINE_TEST(test_lecc_unittest){
 
     SEQAN_ASSERT_EQ(ccdbg_lecc_unittest.buildColors(opt_lecc_unittest),true);
 
+    ccdbg_lecc_unittest.init_ids();
 
+    std::cout << "MAX_KMER_SIZE=" << MAX_KMER_SIZE << std::endl;
+    std::cout << "ColoredCDBG::getK()=" << ccdbg_lecc_unittest.getK() << std::endl;
+    print_unitig_ends2(ccdbg_lecc_unittest);
+
+    SEQAN_ASSERT_EQ(ccdbg_lecc_unittest.traverse(), true);
 
     SEQAN_ASSERT_EQ(ccdbg_lecc_unittest.write(opt_lecc_unittest.prefixFilenameOut, opt_lecc_unittest.nb_threads, opt_lecc_unittest.verbose), true);
 }
 
+*/
 
 
+// -----------------
+// | CCDBG UNITTEST |
+// -----------------
+SEQAN_DEFINE_TEST(basic_test){
+
+    ColoredCDBG<> ccdbg;
+    /* DEBUG */ std::cout << "ColoredCDBG::getK() when empty is " << ccdbg.getK() << std::endl;
+
+    SEQAN_ASSERT_EQ(ccdbg.buildGraph(opt_lecc_unittest),true);
+    /* DEBUG */ std::cout << "ColoredCDBG::getK() after build is " << ccdbg.getK() << std::endl;
+
+    SEQAN_ASSERT_EQ(ccdbg.simplify(opt_lecc_unittest.deleteIsolated, opt_lecc_unittest.clipTips, opt_lecc_unittest.verbose),true);
+    /* DEBUG */ std::cout << "ColoredCDBG::getK() after simplification is " << ccdbg.getK() << std::endl;
+
+    SEQAN_ASSERT_EQ(ccdbg.buildColors(opt_lecc_unittest),true);
+    /* DEBUG */ std::cout << "ColoredCDBG::getK() after build colors is " << ccdbg.getK() << std::endl;
+
+    /* DEBUG */ //print_unitig_ends3(ccdbg);
+    /* DEBUG */ std::cout << "ColoredCDBG::getK() after print_unitig_ends3 is " << ccdbg.getK() << std::endl;
+
+    SEQAN_ASSERT_EQ(ccdbg.write(opt_lecc_unittest.prefixFilenameOut, opt_lecc_unittest.nb_threads, opt_lecc_unittest.verbose), true);
+}
 
 
 
@@ -581,6 +522,8 @@ SEQAN_BEGIN_TESTSUITE(test_popins2){
     //SEQAN_CALL_TEST(test_ccdbg_rev_comp);
 
     SEQAN_CALL_TEST(setup_lecc_unittest);
-    SEQAN_CALL_TEST(test_lecc_unittest);
+    //SEQAN_CALL_TEST(test_lecc_unittest);
+
+    SEQAN_CALL_TEST(basic_test);
 }
 SEQAN_END_TESTSUITE
