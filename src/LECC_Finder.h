@@ -20,6 +20,11 @@ class LECC_Finder{
     typedef std::unordered_map<unsigned,unsigned> color_map;
 
 public:
+    /**
+    *               Constructor
+    *   @param      exg is a pointer to a CCDBG
+    *   @param      threshold is the upper bound in [0.25,1] to mask unitigs as low entropy
+    */
     LECC_Finder(ExtendedCCDBG* exg, const float threshold) :    g_(exg),
                                                                 threshold_(threshold) {}
 

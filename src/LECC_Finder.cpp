@@ -15,12 +15,12 @@ unsigned LECC_Finder::annotate(){
         DataAccessor<UnitigExtension>* da = ucm.getData();
         UnitigExtension* ue = da->getData(ucm);
 
-        // skip high entropy unitigs
-        if(ue->getEntropy() >= this->threshold_)
-            continue;
-
         // skip if already LECC-annotated (0 is default LECC identifier)
         if(ue->getLECC() != 0)
+            continue;
+
+        // skip high entropy unitigs
+        if(ue->getEntropy() >= this->threshold_)
             continue;
 
         // found new LECC
@@ -47,12 +47,12 @@ void LECC_Finder::annotate_recursion(UnitigColorMap<UnitigExtension> &ucm, const
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);
 
-    // skip high entropy unitigs
-    if(ue->getEntropy() >= this->threshold_)
-        return;
-
     // skip if already LECC-annotated (0 is default LECC identifier)
     if(ue->getLECC() != 0)
+        return;
+
+    // skip high entropy unitigs
+    if(ue->getEntropy() >= this->threshold_)
         return;
 
     // found new LECC

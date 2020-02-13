@@ -1,21 +1,11 @@
 #include "ColoredDeBruijnGraph.h"
 
-#include <unordered_set>
-#include <unordered_map>
-#include <vector>
-#include <queue>
-#include <fstream>
-#include <map>
 
 
-
-// default constructor
-ExtendedCCDBG::ExtendedCCDBG(int kmer_length, int minimizer_length) :   ColoredCDBG<UnitigExtension> (kmer_length, minimizer_length),
-                                                                        id_init_status(false),
-                                                                        entropy_init_status(false) {
-    /* 1) IDs and entropies are not initiated at construction time (see init_ids())
-     * 2) The UnionFind vector will be empty an construction time, will be resized at use.
-     */
+ExtendedCCDBG::ExtendedCCDBG(int kmer_length, int minimizer_length) :
+    ColoredCDBG<UnitigExtension> (kmer_length, minimizer_length),
+    id_init_status(false),
+    entropy_init_status(false) {
 }
 
 
@@ -27,166 +17,217 @@ void ExtendedCCDBG::init_ids(){
         ue->setID(i);
         ++i;
     }
-    id_init_status = true;
+    this->id_init_status = true;
 }
 
 
 void ExtendedCCDBG::print_ids(){
-    if (is_id_init() == true){
-        std::cout << "[PRINT] ";
-        for (auto &unitig : *this){
-            DataAccessor<UnitigExtension>* da = unitig.getData();
-            UnitigExtension* ue = da->getData(unitig);
-            unsigned id = ue->getID();
-            std::cout << id << ", ";
-        }
-        std::cout << std::endl;
-    }
-    else
+    if (!is_id_init()){
         cerr << "[WARNING] Unitig IDs were not printed because they are not initialized." << endl;
-}
+        return;
+    }
 
-
-/**
- * @brief   Computes the entropy for all unitigs in this graph.
- */
-void ExtendedCCDBG::init_entropy(){
-    std::cout << "Start init entropy." << std::endl;
+    std::cout << "[PRINT] ";
     for (auto &unitig : *this){
-        // calculate entropy from unitig string
-        const std::string unitig_s = unitig.referenceUnitigToString();
-        const float entropy = this->entropy(unitig_s);
-
-        // set entropy in unitig object
         DataAccessor<UnitigExtension>* da = unitig.getData();
         UnitigExtension* ue = da->getData(unitig);
-        ue->setEntropy(entropy);
+        unsigned id = ue->getID();
+        std::cout << id << ", ";
     }
-    this->entropy_init_status = true;
-    std::cout << "Done init entropy." << std::endl;
+    std::cout << std::endl;
 }
 
 
-/**
- * @brief   Computes the entropy for a given string.
- *          If all dimers are equaly distributed, the entropy is high (highly chaotic system),
- *          if certain dimers are prevalent, the entropy is low (highly ordered system).
- * @return  The entropy [0,1] of bi-nucleotides
- */
-inline float ExtendedCCDBG::entropy(const std::string &sequence){
-    // create a dictionary counting the occurrence of all dinucleotides
-    std::unordered_map<std::string, unsigned> diCounts(16);
-    unsigned counted = 0;
-    for (unsigned i = 0; i < sequence.length()-1; ++i){
-        std::string dimer = sequence.substr(i,2);
-        if (sequence[i]!='N' && sequence[i+1]!='N'){
-            // set if dimer not in counter table yet
-            if(diCounts.find(dimer) == diCounts.end()){
-                diCounts[dimer] = 1;
-                counted++;
+uint8_t ExtendedCCDBG::traverse(){
+
+    if (!is_id_init()){     // sanity check
+        cerr << "[ExtendedCCDBG::traverse] Traversal didn't start because unitig IDs were not initialized." << endl;
+        return 0;
+    }
+
+    for (auto &ucm : *this){
+
+        if (!is_startnode(ucm)) continue;                       // NOTE: improvement: receive traversal direction from is_startnode() s.t. traverse() doesn't have to find out again
+
+        std::cout << get_unitig_id(ucm) << ": I am a startnode." << std::endl; // DEBUG
+
+        if (ucm.getPredecessors().hasPredecessors()){
+
+            std::cout << get_unitig_id(ucm) << ": I jump to my predecessors." << std::endl; // DEBUG
+
+            Traceback tb(VISIT_PREDECESSOR, this->getK());
+
+            if(!DFS(ucm, VISIT_PREDECESSOR, tb)){
+
+                tb.add(ucm.mappedSequenceToString(), true);     // add startnode to final contig
+
+                std::cout << get_unitig_id(ucm) << ": Added start kmer to TB." << std::endl; // DEBUG
+
             }
-            // otherwise increase
-            else{
-                diCounts[dimer] += 1;
-                counted++;
+
+            tb.print();
+        }
+        else{ //ucm.getSuccessors().hasSuccessors()
+
+            std::cout << get_unitig_id(ucm) << ": I jump to my successors." << std::endl; // DEBUG
+
+            Traceback tb(VISIT_SUCCESSOR, this->getK());
+
+            if(!DFS(ucm, VISIT_SUCCESSOR, tb)){
+
+                tb.add(ucm.mappedSequenceToString(), true);     // add startnode to final contig
+
+                std::cout << get_unitig_id(ucm) << ": Added start kmer to TB." << std::endl; // DEBUG
+
+            }
+
+            tb.print();
+
+        }
+
+        reset_dfs_states();
+
+        /*DEBUG*/ std::cout << "" << std::endl;
+
+    }   // end for all unitigs
+
+    return 1;
+}
+
+
+uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const direction_t direction, Traceback &tb){
+
+    std::cout << get_unitig_id(ucm) << ": I am a neighbor." << std::endl; // DEBUG
+
+    DataAccessor<UnitigExtension>* da = ucm.getData();
+    UnitigExtension* data = da->getData(ucm);
+
+    if(direction==VISIT_PREDECESSOR){
+
+        if(data->is_undiscovered_bw()){
+
+            data->set_seen_bw();
+
+            std::cout << get_unitig_id(ucm) << ": [PRE] Now I am the current state." << std::endl; // DEBUG
+
+            BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> predecessors = ucm.getPredecessors();
+
+            if (!predecessors.hasPredecessors()){       // sink node
+
+                std::cout << get_unitig_id(ucm) << ": I am a sink." << std::endl; // DEBUG
+
+                print_unitig_id(ucm);
+                print_unitig_seq(ucm);
+
+                std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
+
+                tb.add(ucm.mappedSequenceToString());       // add unitig to final contig
+
+                std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+
+                return 0;
+            }
+
+            ordered_multimap ranked_predecessors;
+            rank_neighbors(ranked_predecessors, ucm, predecessors, VISIT_PREDECESSOR);
+
+            for (auto it = ranked_predecessors.cbegin(); it != ranked_predecessors.cend(); ++it){           // check all ranked neighbors starting from the best color fit
+
+                for (auto &pre : predecessors){             // traverse further
+
+                    DataAccessor<UnitigExtension>* pre_da = pre.getData();
+                    UnitigExtension* pre_data = pre_da->getData(pre);
+                    unsigned pre_id = pre_data->getID();
+
+                    unsigned ranked_pre_id = it->second;
+
+                    if(pre_id==ranked_pre_id){
+
+                        if(!DFS(pre, VISIT_PREDECESSOR, tb)){       // if deeper recursion level retuns 0, then stop further traversal here
+
+                            print_unitig_id(ucm);
+                            print_unitig_seq(ucm);
+
+                            std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
+
+                            tb.add(ucm.mappedSequenceToString());       // add unitig to final contig
+
+                            std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+
+                            return 0;
+                        }
+                        break;                                  // once the n-th best neighbor was found, (pre_id==ranked_pre_id) won't ever evaluate to true again
+                    }
+                }
+            }
+        }
+    }
+    else{   // if direction==VISIT_SUCCESSOR
+
+        if(data->is_undiscovered_fw()){
+
+            data->set_seen_fw();
+
+            std::cout << get_unitig_id(ucm) << ": [SUC] Now I am the current state." << std::endl; // DEBUG
+
+            ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> successors = ucm.getSuccessors();
+
+            if (!successors.hasSuccessors()){           // sink node
+
+                std::cout << get_unitig_id(ucm) << ": I am a sink." << std::endl; // DEBUG
+
+                print_unitig_id(ucm);
+                print_unitig_seq(ucm);
+
+                std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
+
+                tb.add(ucm.mappedSequenceToString());       // add unitig to final contig
+
+                std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+
+                return 0;
+            }
+
+            ordered_multimap ranked_successors;
+            rank_neighbors(ranked_successors, ucm, successors, VISIT_SUCCESSOR);
+
+            for (auto it = ranked_successors.cbegin(); it != ranked_successors.cend(); ++it){           // check all ranked neighbors starting from the best color fit
+
+                for (auto &suc : successors){             // traverse further
+
+                    DataAccessor<UnitigExtension>* suc_da = suc.getData();
+                    UnitigExtension* suc_data = suc_da->getData(suc);
+                    unsigned suc_id = suc_data->getID();
+
+                    unsigned ranked_suc_id = it->second;
+
+                    if(suc_id==ranked_suc_id){
+
+                        if(!DFS(suc, VISIT_SUCCESSOR, tb)){         // if deeper recursion level retuns 0, then stop further traversal here
+
+                            print_unitig_id(ucm);
+                            print_unitig_seq(ucm);
+
+                            std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
+
+                            tb.add(ucm.mappedSequenceToString());       // add unitig to final contig
+
+                            std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+
+                            return 0;
+                        }
+                        break;                                  // once the n-th best neighbor was found, (suc_id==ranked_suc_id) won't ever evaluate to true again
+                    }
+                }
             }
         }
     }
 
-    // calculate the entropy for dinucleotide counts
-    float entropy = 0;
-    for(std::unordered_map<std::string,unsigned>::const_iterator it = diCounts.cbegin(); it != diCounts.cend(); ++it){
-        if (it->second == 0) continue;
-        float p = float(it->second) / counted;
-        entropy -= p * seqan::log(p) / seqan::log(2);
-    }
-
-    return entropy / 4;
+    return 1;                                           // let higher recursion level keep on searching (just jump back)
 }
 
 
-bool ExtendedCCDBG::remove_low_entropy(const float threshold){
-    bool ret = true;
-    bool del = false;
-    for (auto &unitig : *this){
-        DataAccessor<UnitigExtension>* da = unitig.getData();
-        UnitigExtension* ue = da->getData(unitig);
-
-        const float e = ue->getEntropy();
-        if (e < threshold){
-            bool b = this->remove(unitig);
-            std::cout << "Deleted." << std::endl;
-            ret = b;
-            del = true;
-            break;
-        }
-    }
-    if (del == true){
-        ret = remove_low_entropy(threshold);
-    }
-    return ret;
-}
-
-
-size_t ExtendedCCDBG::count_connected_components(){
-    std::unordered_set<unsigned> unique_set;
-    for (auto &unitig : *this){
-        DataAccessor<UnitigExtension>* da = unitig.getData();
-        UnitigExtension* ue = da->getData(unitig);
-        unique_set.insert(seqan::findSet(UF, ue->getID()));
-    }
-    return unique_set.size();
-}
-
-
-bool ExtendedCCDBG::connected_components(const CCDBG_Build_opt &graph_options){
-    // initiate UF structure
-    if (graph_options.verbose) std::cout << "[VERBOSE] Initiating UNION-FIND" << std::endl;
-    resize(UF, (*this).size()+1);   // however, UF needs to be +1 bigger than the graph size. Probably due to start index 1 of IDs
-
-#ifdef DEBUG
-    std::cout << "UF size " << seqan::length(UF._values) << std::endl;
-#endif // DEBUG
-
-    // run UF joining
-    if (graph_options.verbose) std::cout << "[VERBOSE] Running UNION-FIND" << std::endl;
-    for (auto &unitig : *this){
-        // TODO: progress indicator here
-
-        /*  Get all predecessors AND successors of a node (unitig).
-         *  I need to iterate through both since either one of them could miss
-         *  links, and therefore split components, where both unitigs
-         *  "face each other", e.g.:
-         *        u1 ----------->
-         *                 <-------------- u2
-         * which is in GFA:
-         *      L   u1  +   u2  -
-         *      L   u2  +   u1  -
-         */
-        DataAccessor<UnitigExtension>* da = unitig.getData();
-        UnitigExtension* ue = da->getData(unitig);
-        size_t unitig_id = ue->getID();
-
-        for (auto &it_pre : unitig.getPredecessors()){
-            DataAccessor<UnitigExtension>* da = it_pre.getData();
-            UnitigExtension* ue = da->getData(it_pre);
-            unsigned pre_id = ue->getID();
-            seqan::joinSets(UF, seqan::findSet(UF, unitig_id), seqan::findSet(UF, pre_id));
-        }
-
-        for (auto &it_suc : unitig.getSuccessors()){
-            DataAccessor<UnitigExtension>* da = it_suc.getData();
-            UnitigExtension* ue = da->getData(it_suc);
-            unsigned suc_id = ue->getID();
-            seqan::joinSets(UF, seqan::findSet(UF, unitig_id), seqan::findSet(UF, suc_id));
-        }
-    }
-
-    return true;
-}
-
-
-inline void ExtendedCCDBG::DFS_cleaner(){
+inline void ExtendedCCDBG::reset_dfs_states(){
     for (auto &ucm : *this){
         DataAccessor<UnitigExtension>* da = ucm.getData();
         UnitigExtension* ue = da->getData(ucm);
@@ -197,417 +238,137 @@ inline void ExtendedCCDBG::DFS_cleaner(){
 }
 
 
-inline void ExtendedCCDBG::DFS_cleaner_seen_only(){
-    for (auto &ucm : *this){
-        DataAccessor<UnitigExtension>* da = ucm.getData();
-        UnitigExtension* ue = da->getData(ucm);
+inline bool ExtendedCCDBG::is_startnode(const UnitigColorMap<UnitigExtension> &ucm){
+    return
+        ucm.len>2 &&                                                                                    // be longer than 2 kmers and
+        (( ucm.getPredecessors().hasPredecessors() && !ucm.getSuccessors().hasSuccessors() ) ||         // have only predecessors or
+         (!ucm.getPredecessors().hasPredecessors() &&  ucm.getSuccessors().hasSuccessors() ) );         // have only successors
+}
 
-        // reset only internal nodes
-        if (ue->is_seen_fw())
-            ue->set_undiscovered_fw();
-        if (ue->is_seen_bw())
-            ue->set_undiscovered_bw();
+
+template <typename TNeighbors>
+inline void ExtendedCCDBG::rank_neighbors(ordered_multimap &omm, const UnitigColorMap<UnitigExtension> &ucm, const TNeighbors &neighbors, const direction_t direction) const{
+
+    if (direction==VISIT_PREDECESSOR){
+
+        for (auto &pre : neighbors){
+
+            unsigned overlap = get_neighbor_overlap(ucm, pre);              // Mind the orientation of the parameter!
+
+            DataAccessor<UnitigExtension>* da = pre.getData();              // NOTE: can I avoid recreating these pointer over and over again?
+            UnitigExtension* data = da->getData(pre);
+
+            omm.insert(std::pair<unsigned, unsigned>(overlap, data->getID()));
+        }
+    }
+    else{   // direction==VISIT_SUCCESSOR
+
+        for (auto &suc : neighbors){
+
+            unsigned overlap = get_neighbor_overlap(suc, ucm);              // Mind the orientation of the parameter!
+
+            DataAccessor<UnitigExtension>* da = suc.getData();              // NOTE: can I avoid recreating these pointer over and over again?
+            UnitigExtension* data = da->getData(suc);
+
+            omm.insert(std::pair<unsigned, unsigned>(overlap, data->getID()));
+        }
     }
 }
 
 
-inline uint8_t ExtendedCCDBG::whereToGo(const UnitigColorMap< UnitigExtension >& um, const UnitigColorMap< UnitigExtension >& src) const{
-    uint8_t ret = GO_BACKWARD;
-    for (auto &predecessor : um.getPredecessors())
-         if (predecessor == src)    /* NOTE: If traversal is within a small-loop, it will always evaluate to true. Therefore loop cases have to be catched during traversal.*/
-             ret = GO_FORWARD;
-    return ret;
+inline unsigned ExtendedCCDBG::get_neighbor_overlap(const UnitigColorMap<UnitigExtension> &ucm_to_get_head_from, const UnitigColorMap<UnitigExtension> &ucm_to_get_tail_from) const{
+        size_t len = ucm_to_get_tail_from.len;   // I assume this gets me the past-last-kmer index
+        //std::cout << len << std::endl;
+
+        const UnitigColorMap<UnitigExtension> k_first = ucm_to_get_head_from.getKmerMapping(0);
+        const UnitigColorMap<UnitigExtension> k_last  = ucm_to_get_tail_from.getKmerMapping(len-1);
+
+        const UnitigColors* k_first_colors = k_first.getData()->getUnitigColors(k_first);
+        const UnitigColors* k_last_colors  =  k_last.getData()->getUnitigColors(k_last);
+
+        std::vector<bool> k_first_color_bits(this->getNbColors(), false);
+        std::vector<bool> k_last_color_bits(this->getNbColors(), false);
+
+        // get color IDs of unitig's first kmer
+        UnitigColors::const_iterator cit = k_first_colors->begin(k_first);
+        for (; cit != k_first_colors->end(); ++cit)
+            k_first_color_bits[cit.getColorID()] = true;
+
+        // get color IDs of unitig's last kmer
+        cit = k_last_colors->begin(k_last);
+        for (; cit != k_last_colors->end(); ++cit)
+            k_last_color_bits[cit.getColorID()] = true;
+
+        // PRINT
+        //std::string first_seq = k_first.mappedSequenceToString();
+        //std::string last_seq  =  k_last.mappedSequenceToString();
+        //std::cout << "START COLORS (" << first_seq << "): " ; print(k_first_color_ids);
+        //std::cout << "END COLORS ("   << last_seq  << "): " ; print(k_last_color_ids);
+
+        // sum of intersection
+        unsigned count = 0;
+        for (unsigned i=0; i < k_first_color_bits.size(); ++i)                  // NOTE: IMPROVEMENT: comparisons can be reduced by using UnitigColors::colorMax(ucm)
+            if (k_first_color_bits[i] && k_last_color_bits[i])
+                ++count;
+
+        return count;
 }
 
 
-inline uint8_t ExtendedCCDBG::whereFrom(const UnitigColorMap< UnitigExtension >& um, const UnitigColorMap< UnitigExtension >& src) const{
-    return (whereToGo(um, src) == GO_FORWARD) ? GO_BACKWARD : GO_FORWARD;
+void ExtendedCCDBG::init_entropy(){
+
+    for (auto &unitig : *this){
+
+        const std::string unitig_s = unitig.referenceUnitigToString();
+
+        const float entropy = this->entropy(unitig_s);
+
+        DataAccessor<UnitigExtension>* da = unitig.getData();
+        UnitigExtension* ue = da->getData(unitig);
+        ue->setEntropy(entropy);
+    }
+
+    this->entropy_init_status = true;
 }
 
 
-bool ExtendedCCDBG::merge(const CCDBG_Build_opt &opt, const int min_kmers, const std::string &outdir){
-    // SANITY CHECK(S)
-    if (!this->is_id_init())
-        return false;
+inline float ExtendedCCDBG::entropy(const std::string &sequence){
+    // create a dictionary counting the occurrence of all dinucleotides
+    std::unordered_map<std::string, unsigned> diCounts(16);
 
-    // I/O
-    std::string sv_filename = (outdir == "") ? "supercontigs.fa" : outdir+"supercontigs.fa";
-    ofstream ofs(sv_filename, std::ofstream::out);
-    if (!ofs.is_open()){cerr << "Error: Couldn't open ofstream for contig file." << endl; return false;}
+    unsigned counted = 0;
 
-    // DFS
-    neighborsContainer descendingSortedStartNodes;
-    sortStartnodes(descendingSortedStartNodes);
-    if (opt.verbose) cout << " Minimum number of novel kmers to accept path in set cover: " << min_kmers << endl;
-    Setcover<> sc(min_kmers);
-    size_t sv_counter = 0;
-    for (auto it = descendingSortedStartNodes.cbegin(); it != descendingSortedStartNodes.cend(); ++it){
-        for (auto &unitig : *this){
-            DataAccessor<UnitigExtension>* da = unitig.getData();
-            UnitigExtension* ue = da->getData(unitig);
-            if (it->second == ue->getID()){
-                if (opt.verbose) cout << " -------------------------------- " << endl;
-                if (opt.verbose) cout << " Startnode " << it->second << " with " << it->first << " kmers." << endl;
-                Traceback tb = DFS_Init_bidirectional(unitig, opt.verbose, sc);
-                if (tb.recursive_return_status)
-                    if (!tb.write(ofs, opt.k, sv_counter))
-                        return false;
-                break;      // once a startnode has been processed we can stop looking for it (start with next startnode)
+    for (unsigned i = 0; i < sequence.length()-1; ++i){
+
+        std::string dimer = sequence.substr(i,2);
+
+        if (sequence[i]!='N' && sequence[i+1]!='N'){
+
+            // set if dimer not in counter table yet
+            if(diCounts.find(dimer) == diCounts.end()){
+                diCounts[dimer] = 1;
+                counted++;
             }
-        }
-    }
 
-    // I/O
-    ofs.close();
-    sc.write_CSV(opt.prefixFilenameOut);     // OPTIONAL
-
-    return true;
-}
-
-
-Traceback ExtendedCCDBG::DFS_Init_bidirectional(const UnitigColorMap<UnitigExtension> &ucm,
-                                                const bool verbose,
-                                                Setcover<std::unordered_set<unsigned int> > &sc){
-    Traceback tb_bw;
-    Traceback tb_fw;
-
-    DataAccessor<UnitigExtension>* da = ucm.getData();
-    UnitigExtension* ue = da->getData(ucm);
-
-    if (verbose) cout << "Starting at " << ue->getID() << endl;
-
-    BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
-    ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
-
-    // ----------------
-    // | go backward  |
-    // ----------------
-    if (!bw_neighbors.hasPredecessors()){
-        tb_bw.recursive_return_status = true;
-    }
-    else{
-        if (verbose) cout << "Setting " << ue->getID() << " to seen (bw)" << endl;
-        ue->set_seen_bw();
-
-        neighborsContainer descendingSortedNeighbors;
-        sortNeighbors(ucm, bw_neighbors, descendingSortedNeighbors);
-
-        for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
-            if (tb_bw.recursive_return_status == false){    //restriction to only one successful path search
-                for (auto &neighbor : bw_neighbors){
-                    DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
-                    UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
-                    unsigned ue_id = neighbor_ue->getID();
-                    unsigned neighbor_id = it->second;
-
-                    if (ue_id == neighbor_id){
-                        DFS_case_NEW(ucm, neighbor, tb_bw, sc, verbose);
-                        break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
-                    }
-                }
-            }
-            else {break;}
-        }
-    }
-
-    // ---------------
-    // | go forward  |
-    // ---------------
-    if (!fw_neighbors.hasSuccessors()){
-        tb_fw.recursive_return_status = true;
-    }
-    else{
-        if (verbose) cout << "Setting " << ue->getID() << " to seen (fw)" << endl;
-        ue->set_seen_fw();
-
-        neighborsContainer descendingSortedNeighbors;
-        sortNeighbors(ucm, fw_neighbors, descendingSortedNeighbors);
-
-        for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
-            if (tb_fw.recursive_return_status == false){    //restriction to only one successful path search
-                for (auto &neighbor : fw_neighbors){
-                    DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
-                    UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
-                    unsigned ue_id = neighbor_ue->getID();
-                    unsigned neighbor_id = it->second;
-
-                    if (ue_id == neighbor_id){
-                        DFS_case_NEW(ucm, neighbor, tb_fw, sc, verbose);
-                        break;  // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
-                    }
-                }
-            }
-            else{break;}
-        }
-    }
-
-    // ----------
-    // | return |
-    // ----------
-    Traceback tb;
-
-    if (tb_bw.recursive_return_status && tb_fw.recursive_return_status){                                                // both directions had successful DFS
-        if (bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors() && sc.hasMinContribution()){                 // started at internal node
-            tb.recursive_return_status = true;
-            tb.rearrange(tb_bw, tb_fw);
-            sc.incorporate();
-        }
-        else if (bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors() && sc.hasMinContribution()){           // start node was an end node
-            tb.recursive_return_status = true;
-            tb.join(tb_bw);
-            sc.incorporate();
-        }
-        else if (!bw_neighbors.hasPredecessors() && fw_neighbors.hasSuccessors() && sc.hasMinContribution()){           // start node was an end node
-            tb.recursive_return_status = true;
-            tb.join(tb_fw);
-            sc.incorporate();
-        }
-        else if (!bw_neighbors.hasPredecessors() && !fw_neighbors.hasSuccessors()){                                     // start node is a singleton
-            tb.recursive_return_status = true;
-            VSequences vseqs;
-            ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
-            tb.push_back(vseqs);
-            sc.add(ue->getID(), ucm.len);
-            sc.incorporate();
-        }
-        else{
-            if (verbose) cout << ue->getID() << " was rejected by the Setcover." << endl;
-        }
-    }
-    else{
-        if (verbose) cout << "At least one DFS traversal (bw/fw) was not successful." << endl;
-    }
-
-    if (verbose) cout << "Done with " << ue->getID() << endl;
-
-    sc.clear();
-    DFS_cleaner_seen_only();
-
-    return tb;
-}
-
-
-Traceback ExtendedCCDBG::DFS_Visit_NEW(const UnitigColorMap<UnitigExtension> &ucm,
-                                       const uint8_t src_direction,
-                                       Setcover<> &sc,
-                                       const bool verbose){
-    Traceback tb;
-
-    DataAccessor<UnitigExtension>* da = ucm.getData();
-    UnitigExtension* ue = da->getData(ucm);
-
-    uint8_t traversal_direction = (src_direction==GO_BACKWARD) ? GO_FORWARD : GO_BACKWARD;  // NOTE: this could be avoided if I'd pass traversal direction directly in DFS_case
-
-    // --------------
-    // |  backward  |
-    // --------------
-    if (traversal_direction==GO_BACKWARD){
-        if (verbose) cout << "Setting " << ue->getID() << " seen (bw)." << endl;
-        ue->set_seen_bw();
-
-        // ------------------
-        // |  if sink node  |
-        // ------------------
-        BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> bw_neighbors = ucm.getPredecessors();
-
-        if (!bw_neighbors.hasPredecessors()){
-            if (verbose) cout << "Node " << ue->getID() << " is a sink. Start traceback." << endl;
-            VSequences vseqs;
-            ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
-            tb.push_back(vseqs);
-            tb.recursive_return_status = true;
-            sc.add(ue->getID(), ucm.len);
-            return tb;
-        }
-
-        // -------------------------
-        // |  if traverse further  |
-        // -------------------------
-        neighborsContainer descendingSortedNeighbors;
-        sortNeighbors(ucm, bw_neighbors, descendingSortedNeighbors);
-
-        for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
-            if (tb.recursive_return_status == false){
-                for (auto &neighbor : bw_neighbors){
-                    DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
-                    UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
-                    unsigned ue_id = neighbor_ue->getID();
-                    unsigned neighbor_id = it->second;
-                    if (ue_id == neighbor_id){
-                        DFS_case_NEW(ucm, neighbor, tb, sc, verbose);
-                        break;      // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
-                    }
-                }
-            }
-            else{break;}
-        }
-    }
-
-    // -------------
-    // |  forward  |
-    // -------------
-    else{   // traversal_direction==GO_FORWARD
-        if (verbose) cout << "Setting " << ue->getID() << " seen (fw)." << endl;
-        ue->set_seen_fw();
-
-        // ------------------
-        // |  if sink node  |
-        // ------------------
-        ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> fw_neighbors = ucm.getSuccessors();
-
-        if (!fw_neighbors.hasSuccessors()){
-            if (verbose) cout << "Node " << ue->getID() << " is a sink. Start traceback." << endl;
-            VSequences vseqs;
-            ucm.strand ? vseqs.push_back(ucm.referenceUnitigToString()) : vseqs.push_back(reverse_complement(ucm.referenceUnitigToString()));
-            tb.push_back(vseqs);
-            tb.recursive_return_status = true;
-            sc.add(ue->getID(), ucm.len);
-            return tb;
-        }
-
-        // -------------------------
-        // |  if traverse further  |
-        // -------------------------
-        neighborsContainer descendingSortedNeighbors;
-        sortNeighbors(ucm, fw_neighbors, descendingSortedNeighbors);
-
-        for (auto it = descendingSortedNeighbors.cbegin(); it != descendingSortedNeighbors.cend(); ++it){
-            if (tb.recursive_return_status == false){
-                for (auto &neighbor : fw_neighbors){
-                    DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
-                    UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
-                    unsigned ue_id = neighbor_ue->getID();
-                    unsigned neighbor_id = it->second;
-                    if (ue_id == neighbor_id){
-                        DFS_case_NEW(ucm, neighbor, tb, sc, verbose);
-                        break;    // since only one neighbor ucm will match the n-th best neighbor ID, we can break after we found it
-                    }
-                }
-            }
-            else{break;}
-        }
-    }
-
-    return tb;
-}
-
-
-void ExtendedCCDBG::DFS_case_NEW(const UnitigColorMap<UnitigExtension> &ucm,
-                                 const UnitigColorMap<UnitigExtension> &neighbor,
-                                 Traceback &tb,
-                                 Setcover<> &sc,
-                                 const bool verbose){
-
-    DataAccessor<UnitigExtension>* ucm_da = ucm.getData();
-    UnitigExtension* ucm_ue = ucm_da->getData(ucm);
-
-    DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
-    UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
-
-    // ----------------
-    // |   Case 1+3   |
-    // ----------------
-    if (whereFrom(neighbor, ucm)==GO_BACKWARD){
-        /*  Case 3:                             Case 1:
-        *   SRC ------->                OR              -------> SRC
-        *           -------> SUC                PRE <--------
-        */
-
-        if ( neighbor_ue->is_undiscovered_fw() ){
-            if (verbose) cout << "Traversal at " << ucm_ue->getID() << " will go to " << neighbor_ue->getID() << endl;
-            sc.add(ucm_ue->getID(), ucm.len);    // covers DFS_Init and DFS_Visit
-            Traceback returned_tb = DFS_Visit_NEW(neighbor, GO_BACKWARD, sc, verbose);
-            if (verbose) cout << "Jumped back to " << ucm_ue->getID() << endl;
-
-            if (returned_tb.recursive_return_status){
-                for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
-                    ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
-                tb.recursive_return_status = true;
-                tb.join(returned_tb);
-            }
+            // otherwise increase
             else{
-                sc.del(ucm_ue->getID());   // in case DFS jumps back without traceback, e.g. at loop
+                diCounts[dimer] += 1;
+                counted++;
             }
         }
-        else{
-            // Unitig was seen before, happens e.g. at loops.
-            if (verbose) cout << "Neighbor node " << neighbor_ue->getID() << " was seen before. Jump back without traceback." << endl;
-        }
-    }
-    // ----------------
-    // |   Case 2+4   |
-    // ----------------
-    else{   // whereFrom(neighbor, ucm)==GO_FORWARD
-        /*  Case 4:                             Case 2:
-        *   SRC ------->                OR              -------> SRC
-        *           <------- SUC                PRE ------->
-        */
-
-        if ( neighbor_ue->is_undiscovered_bw() ){
-            if (verbose) cout << "Traversal at " << ucm_ue->getID() << " will go to " << neighbor_ue->getID() << endl;
-            sc.add(ucm_ue->getID(), ucm.len);    // covers DFS_Init and DFS_Visit
-            Traceback returned_tb = DFS_Visit_NEW(neighbor, GO_FORWARD, sc, verbose);
-            if (verbose) cout << "Jumped back to " << ucm_ue->getID() << endl;
-
-            if (returned_tb.recursive_return_status){
-                for (auto it = returned_tb.begin(); it != returned_tb.end(); ++it)
-                    ucm.strand ? it->push_back(ucm.referenceUnitigToString()) : it->push_back(reverse_complement(ucm.referenceUnitigToString()));
-                tb.recursive_return_status = true;
-                tb.join(returned_tb);
-            }
-            else{
-                sc.del(ucm_ue->getID());   // in case DFS jumps back without traceback, e.g. at loop
-            }
-        }
-        else{
-            // Unitig was seen before, happens e.g. at loops.
-            if (verbose) cout << "Neighbor node " << neighbor_ue->getID() << " was seen before. Jump back without traceback." << endl;
-        }
     }
 
-}
+    // calculate the entropy for dinucleotide counts
+    float entropy = 0;
 
+    for(std::unordered_map<std::string,unsigned>::const_iterator it = diCounts.cbegin(); it != diCounts.cend(); ++it){
 
-template <class TNeighborCDBG>
-inline void ExtendedCCDBG::sortNeighbors(const UnitigColorMap<UnitigExtension> &ucm,
-                                         const TNeighborCDBG &neighbors,
-                                         neighborsContainer &container) const{
-    //TODO: [Improvement] if cardinality of neighbor object is 1, check_common_colors() doesn't need to be called
+        if (it->second == 0) continue;
 
-    for (auto &neighbor : neighbors){
-        DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
-        UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
-        unsigned neighbor_id = neighbor_ue->getID();
-        unsigned cc_ = check_common_colors(ucm, neighbor);
-        container.insert(std::pair<unsigned, unsigned>(cc_, neighbor_id));
-    }
-}
+        float p = float(it->second) / counted;
 
-
-inline void ExtendedCCDBG::sortStartnodes(neighborsContainer &container) const{
-    for (auto &neighbor : *this){
-        const DataAccessor<UnitigExtension>* neighbor_da = neighbor.getData();
-        const UnitigExtension* neighbor_ue = neighbor_da->getData(neighbor);
-        unsigned neighbor_id = neighbor_ue->getID();
-        unsigned nb_kmers = neighbor.len;
-        container.insert(std::pair<unsigned, unsigned>(nb_kmers, neighbor_id));
-    }
-}
-
-
-unsigned ExtendedCCDBG::check_common_colors(const UnitigColorMap <UnitigExtension> &ucm, const UnitigColorMap <UnitigExtension> &neighbor) const{
-    const UnitigColors*      ucm_unitig_colors =      ucm.getData()->getUnitigColors(ucm);
-    const UnitigColors* neighbor_unitig_colors = neighbor.getData()->getUnitigColors(ucm);
-
-    size_t ucm_max_color_index = ucm_unitig_colors->colorMax(ucm);      //NOTE: min(colorMax(ucm),colorMax(neighbor)) for more efficiency?
-
-    // compute #common colors in ucm and neighbor
-    unsigned counter = 0;
-    for (unsigned color_id=0; color_id<=ucm_max_color_index; ++color_id){
-        if ((ucm_unitig_colors->size(ucm, color_id)!=0) && (neighbor_unitig_colors->size(neighbor, color_id!=0))){
-            counter++;
-        }
+        entropy -= p * seqan::log(p) / seqan::log(2);
     }
 
-    return counter;
+    return entropy / 4;
 }
