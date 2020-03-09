@@ -6,15 +6,15 @@ Population-scale detection of non-reference sequence insertions using colored de
 | Requirement | Tested with |
 | --- | --- |
 | 64 bits POSIX-compliant operating system | Ubuntu 16.04 LTS, CentOS Linux 7.6 |
-| C++14 capable compiler | g++ vers. 4.9.2, 5.5.0 |
-| [SeqAn](https://www.seqan.de/) | vers. 2.3.2, 2.4.1 |
+| C++14 capable compiler | g++ vers. 4.9.2, 5.5.0, 7.2.0 |
+| [SeqAn](https://www.seqan.de/) | vers. 2.2.0 |
 | [Bifrost](https://github.com/pmelsted/bfgraph) | vers. 0.2-699bdcf |
 | [bwa](https://github.com/lh3/bwa) | vers. 0.7.15-r1140 |
 | [samtools](https://github.com/samtools/samtools) | vers. 1.3, 1.5 |
 | [sickle](https://github.com/najoshi/sickle) |  |
 | [gatb-minia-pipeline](https://github.com/Krannich479/gatb-minia-pipeline) | (*submodule; no need to install*) |
 
-Prior to the installation make sure your system meets all the requirements. The C++ libraries *SeqAn* and *Bifrost* have to be installed system-wide, i.e. they have to be in your system's `local/include` and `local/lib` folder. Ideally, for an easier installation of PopIns2, the executables of the software dependencies (bwa, samtools, sickle) are appended to your system `PATH`. Otherwise the full paths to the executables have to be written into a configfile (explained below). Submodules (gatb-minia-pipeline) come with the download by default, there is no need for a manual installation. For downwards compatibility PopIns2 still offers to use the *Velvet assembler* (see [popins](https://github.com/bkehr/popins) for installation recommendation).
+Prior to the installation make sure your system meets all the requirements. The C++ libraries *SeqAn* and *Bifrost* have to be installed system-wide, i.e. they have to be in your system's `local/include` and `local/lib` folder. For the default parameters of PopIns2 a *Bifrost* installation with a maximal kmer size of 64 is required. Ideally, for an easier installation of PopIns2, the executables of the software dependencies (bwa, samtools, sickle) are appended to your system `PATH`. Otherwise the full paths to the executables have to be written into a configfile (explained below). Submodules (gatb-minia-pipeline) come with the download by default, there is no need for a manual installation. For downwards compatibility PopIns2 still offers to use the *Velvet assembler* (see [popins](https://github.com/bkehr/popins) for installation recommendation).
 
 ## Installation:
 

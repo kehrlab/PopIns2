@@ -9,6 +9,7 @@
 
 #include "argument_parsing.h"           /* seqAn argument parser */
 #include "ColoredDeBruijnGraph.h"
+#include "LECC_Finder.h"
 
 
 
@@ -63,6 +64,41 @@ int popins2_merge(int argc, char const *argv[]){
     exg.buildColors(ccdbg_build_opt);
 
     // ==============================
+    // ~~~ experimental ~~~
+    // ==============================
+    msg.str("");
+    msg << "Assigning unitig IDs";
+    printTimeStatus(msg);
+    exg.init_ids();
+
+    msg.str("");
+    msg << "Assigning entropy in each UnitigExtention";
+    printTimeStatus(msg);
+    exg.init_entropy();
+
+    msg.str("");
+    msg << "Computing LECCs";
+    printTimeStatus(msg);
+    ExtendedCCDBG* exg_p = &exg;
+    LECC_Finder F(exg_p, 0.7f);
+    unsigned nb_lecc = F.annotate();
+    std::cout << "Found " << nb_lecc << " LECCs." << std::endl;
+
+    F.write();
+
+    //unsigned c = F.create_random_color();
+    //std::string s("000000");
+    //F.u2hex(s, c);
+    //cout << "Hex: " << s << endl;
+
+    /*
+    msg.str("");
+    msg << "Deleting low entropy unitigs from CCDBG";
+    printTimeStatus(msg);
+    exg.remove_low_entropy(0.7f);
+    */
+
+    // ==============================
     // Bifrost
     // ==============================
     msg.str("");
@@ -71,18 +107,14 @@ int popins2_merge(int argc, char const *argv[]){
     exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
 
     // ==============================
-    // Merge specific functions
+    // Popins2 merge
     // ==============================
-    msg.str("");
-    msg << "Assigning unitig IDs";
-    printTimeStatus(msg);
-    exg.init_ids();
-
+    /*
     msg.str("");
     msg << "Traversing paths";
     printTimeStatus(msg);
     exg.merge(ccdbg_build_opt, mo.min_kmers, mo.outdir);
-
+    */
 
 
     return 0;

@@ -1,18 +1,16 @@
 /*!
-* \file    src/Traceback.h
-* \brief   Container class for managing the traceback of the dBG traversal
+* @file    src/Traceback.h
+* @brief   Container class for managing the traceback of the dBG traversal
 *
 */
 #ifndef TRACEBACK_
 #define TRACEBACK_
 
-#include <vector>
-#include "prettyprint.h"    // TODO: delete at release
+#include <iostream>
+#include <fstream>
 
 using namespace std;
 
-typedef std::vector<std::vector<std::string> >VVSequences;
-typedef std::vector<std::string> VSequences;
 
 
 // =========================
@@ -20,38 +18,52 @@ typedef std::vector<std::string> VSequences;
 // =========================
 
 /*!
-* \class        Traceback
-* \headerfile   src/ColoredDeBruijnGraph.h
-* \brief        Struct to manage the metadata for the DFS traceback.
+* @class        Traceback
+* @headerfile   src/Traceback.h
+* @brief        Class to manage the metadata for the DFS traceback.
 */
 class Traceback{
 
-private:
-    void cutconcat(string &s, const VSequences &path, const size_t k) const;
+    typedef uint8_t direction_t;
 
-    VVSequences pathseqs;
+private:
+    // ----------
+    // | member |
+    // ----------
+
+    string _contig;                         // string vectors for paths
+
+    const direction_t _d;                   // direction of the traversal
+
+    const size_t _k;                        // kmer length of the dBG
+
 
 public:
-    using iterator               = VVSequences::iterator;
-    using const_iterator         = VVSequences::const_iterator;
-    using const_reverse_iterator = VVSequences::const_reverse_iterator;
+    // ---------------
+    // | constructor |
+    // ---------------
 
-    bool recursive_return_status = false;
+    Traceback(const direction_t d, const size_t k) : _d(d), _k(k) {}
 
-    bool write(ofstream &ofs, const size_t k, size_t &counter) const;
+    // -------------
+    // | functions |
+    // -------------
 
-    void join(const Traceback &t);
+    /**
+     *  Function to trim and concatenate the current unitig with the final contig
+     *  @param  unitig is a the string to be concatenated with the final contig
+     *  @param  startnode is an indicator whether unitig was the first node of the traversal
+     *          and therefore should not be trimmed.
+    **/
+    void add(const string &unitig, const bool startnode = false);
 
-    void rearrange(const Traceback &bw, const Traceback &fw);
+    /**
+     *  Function to write the current contig
+     *  @param  of is a file stream to write the contig into
+    **/
+    void write(ofstream &of, const size_t counter) const;
 
-    bool empty() const {return pathseqs.empty();}
-    void push_back(const VSequences &ps) {pathseqs.push_back(ps);}
-    const_iterator cbegin() const { return pathseqs.cbegin(); }
-    const_iterator cend() const { return pathseqs.cend(); }
-    iterator begin() { return pathseqs.begin(); }
-    iterator end() { return pathseqs.end(); }
-    const_reverse_iterator crbegin() const {return pathseqs.crbegin();}
-    const_reverse_iterator crend() const {return pathseqs.crend();}
+    string print(){cout << _contig << endl; return _contig;}    // DEBUG
 };
 
 

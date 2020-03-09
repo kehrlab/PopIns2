@@ -256,7 +256,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
   //seqan::setRequired(parser, "input-seq-files", true);
   //seqan::setRequired(parser, "output-file", true);
 
-    seqan::setDefaultValue(parser, "k", "31");
+    seqan::setDefaultValue(parser, "k", "63");
     seqan::setDefaultValue(parser, "g", "23");
     seqan::setDefaultValue(parser, "threads", "1");
     seqan::setDefaultValue(parser, "m", "64");     // only for the help print
