@@ -43,19 +43,21 @@ unsigned LECC_Finder::annotate(){
 }
 
 
-void LECC_Finder::annotate_recursion(UnitigColorMap<UnitigExtension> &ucm, const unsigned LECC__){
+void LECC_Finder::annotate_recursion(UnitigColorMap<UnitigExtension> &ucm,
+                                     const unsigned LECC__){
+
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);
 
-    // skip if already LECC-annotated (0 is default LECC identifier)
+    // skip if already LECC-annotated (0 is default LECC identifier), happens in LECC loops
     if(ue->getLECC() != 0)
         return;
 
-    // skip high entropy unitigs
+    // traversal jumped out of the LECC
     if(ue->getEntropy() >= this->threshold_)
         return;
 
-    // found new LECC
+    // still inside newly discovered LECC
     ue->setLECC(LECC__);
 
     // traverse predecessors
