@@ -16,10 +16,17 @@
 
 class LECC_Finder{
 
-    typedef std::pair<unsigned,unsigned> color_map_element;
-    typedef std::unordered_map<unsigned,unsigned> color_map;
+    typedef uint8_t direction_t;
+
+    typedef std::pair<unsigned,unsigned> color_map_element;     // only used for writing a LECC color file
+    typedef std::unordered_map<unsigned,unsigned> color_map;    // only used for writing a LECC color file
+
 
 public:
+    // --------------------
+    // | Member functions |
+    // --------------------
+
     /**
     *               Constructor
     *   @param      exg is a pointer to a CCDBG
@@ -43,25 +50,38 @@ public:
     /**
     *               write()
     *   @brief      This function writes a CSV file with unitigs of LECCs.
-    *               Every LECC has most likely a unique color.
+    *               Every LECC has (most likely) a unique color.
     *   @return     true if successful
     */
     bool write(const std::string ofname = "ccdbg.lecc.csv");
 
 private:
+    // --------------------
+    // | Member variables |
+    // --------------------
+
     ExtendedCCDBG *g_;
 
     const float threshold_;
 
     static char const * const hex_characters;
 
+    // --------------------
+    // | Member functions |
+    // --------------------
+
     bool isGraphInit() const {return g_->is_entropy_init() and g_->is_id_init();}
 
     /**
-    *       annotate_recursion(...)
-    *       This function is the recursive part of the DFS in annotate().
+    *       annotate_recursion()
+    *       This function is the recursive part of the bidirectional DFS in annotate().
+    *       @param  ucm is the current node
+    *       @param  LECC__ is the counter of overall LECCs
+    *       @param  d is the direction of the traversal
     */
-    void annotate_recursion(UnitigColorMap<UnitigExtension> &ucm, const unsigned LECC__);
+    void annotate_recursion(UnitigColorMap<UnitigExtension> &ucm,
+                            const unsigned LECC__,
+                            const direction_t d);
 
     unsigned create_random_color();
 
