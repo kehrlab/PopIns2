@@ -55,6 +55,15 @@ public:
     */
     bool write(const std::string ofname = "ccdbg.lecc.csv");
 
+    /**
+    *       get_borders()
+    *       This function detects the bordering unitigs of a LECC
+    *       @param  lecc_id is a LECC identifier to compare to
+    *       @param  border_kmers is a container to store the bordering Kmers in (the unitig's kmer facing towards the LECC)
+    *       @return true if LECC has borders, false otherwise (happens if LECC is a singleton)
+    */
+    bool get_borders(const unsigned lecc_id, std::vector<Kmer> &border_kmers) const;
+
 private:
     // --------------------
     // | Member variables |
@@ -80,8 +89,7 @@ private:
     *       @param  d is the direction of the traversal
     */
     void annotate_recursion(UnitigColorMap<UnitigExtension> &ucm,
-                            const unsigned LECC__,
-                            const direction_t d);
+                            const unsigned LECC__);
 
     unsigned create_random_color();
 

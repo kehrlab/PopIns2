@@ -12,11 +12,11 @@ CXXFLAGS+= -g -O0 -DDEBUG -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
 
 all: test_popins2
 
-test_popins2:test_popins2.o ../build/ColoredDeBruijnGraph.o ../build/UnitigExtension.o ../build/Traceback.o
+test_popins2:test_popins2.o ../build/ColoredDeBruijnGraph.o ../build/UnitigExtension.o ../build/Traceback.o ../build/LECC_Finder.o
 test_popins2.o: test_popins2.cpp $(HEADERS)
 
 clean:
 	rm -f *.o test_popins2
 
 purge:
-	rm -f *.o test_popins2 *.gfa *.bfg_colors
+	rm -f *.o test_popins2 *.gfa *.bfg_colors *.csv

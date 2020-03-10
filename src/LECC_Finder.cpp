@@ -144,3 +144,42 @@ bool LECC_Finder::write(const std::string ofname){
 
     return 1;
 }
+
+
+bool LECC_Finder::get_borders(const unsigned lecc_id, std::vector<Kmer> &border_kmers) const{
+
+    for (auto &ucm : *g_){
+
+        DataAccessor<UnitigExtension>* da = ucm.getData();
+        UnitigExtension* ue = da->getData(ucm);
+
+        // only look for unitigs with given LECC ID
+        if (ue->getLECC() != lecc_id)
+            continue;
+
+        // check if predecessors are borders
+        for (auto pre : ucm.getPredecessors()){
+
+            DataAccessor<UnitigExtension>* da_pre = pre.getData();
+            UnitigExtension* ue_pre = da_pre->getData(pre);
+
+            if (ue_pre->getLECC() == 0)
+                border_kmers.push_back(pre.getMappedTail());
+        }
+
+        // check if successors are borders
+        for (auto suc : ucm.getSuccessors()){
+
+            DataAccessor<UnitigExtension>* da_suc = suc.getData();
+            UnitigExtension* ue_suc = da_suc->getData(suc);
+
+            if (ue_suc->getLECC() == 0)
+                border_kmers.push_back(suc.getMappedHead());
+        }
+    }
+
+    if (border_kmers.empty())
+        return false;
+
+    return true;
+}

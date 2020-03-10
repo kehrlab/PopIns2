@@ -51,6 +51,8 @@ uint8_t ExtendedCCDBG::traverse(){
 
         std::cout << get_unitig_id(ucm) << ": I am a startnode." << std::endl; // DEBUG
 
+        // I think there is no need to color startnodes, since by definition they cannot be part of a cycle.
+
         if (ucm.getPredecessors().hasPredecessors()){
 
             std::cout << get_unitig_id(ucm) << ": I jump to my predecessors." << std::endl; // DEBUG

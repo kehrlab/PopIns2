@@ -5,6 +5,7 @@
 
 #include <bifrost/ColoredCDBG.hpp>
 #include <../src/ColoredDeBruijnGraph.h>
+#include <../src/LECC_Finder.h>
 
 using namespace seqan;
 
@@ -20,6 +21,17 @@ inline void print(std::vector<TType> &v){
         std::cout << *it << ", ";
     }
     std::cout << "]" << std::endl;
+}
+
+
+inline void print_border_kmers(const std::vector<Kmer> &border_kmers){
+    for (auto &kmer : border_kmers){
+
+        std::string s = kmer.toString();
+
+        std::cout << s << std::endl;
+
+    }
 }
 
 
@@ -104,7 +116,7 @@ inline void init_ids_as_in_schematic(ExtendedCCDBG &xg){
 }
 
 
-inline bool simple_lecc_unittest_truthset(/*TODO*/){
+inline void simple_lecc_unittest_truthset(/*TODO*/){
 
     std::string t1 = "ACTCCGTGAATTGATCTGTTTGTCGAATACCCATGGTGTAAAGTGGAGGGTCCTACCCGCAATAAAGTACCCTATCGCTAAATACCTATTGACGTGTTTTGACGGAATTTAAACTACAACGGCGGTGACATTAATGAGCTGAAGCCCGACCGCCCGCTGGGCGCGCCTCCTTGGGCAAGTTTTTTTTTTTTTTTTTTTTTGCTTTTAGGCCACATTCGGGTGGCGTCAACAGAAACGGTATATATACATTTATAAATTTATATAAATATATATATTTATATATATATTTATCTTTATATTTCCGGAGTTCAAATGAAAGATGCACAGCATTCACTCTATTTTTTTTTTTTTTTTTTTTTGCAACTGAATGCACCGATATAGTGCGTACCGCGTTGTATTCTTCTTGACAGTAAGTAATCCGTTCCATCGGTCAAGCTAGACCACTCGAACGTTTGAAGTGCTTTTGGTACCCTTTCACGGAGTTCACAAGATGGGCGCCTGGTTCGTTTGTGTTTGGGAAGGGCGGTGTCCATAGGCCA";
 
@@ -159,9 +171,21 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
 
     init_ids_as_in_schematic(xg);
 
-    /* DEBUG */ print_unitig_ends(xg);
+    //print_unitig_ends(xg);
 
-    xg.traverse();
+    //xg.traverse();
+
+    xg.init_entropy();
+
+    ExtendedCCDBG* xg_p = &xg;
+    LECC_Finder F(xg_p, 0.7f);
+
+    SEQAN_ASSERT_EQ(F.annotate(), 1u);
+
+    std::vector<Kmer> border_kmers;
+    SEQAN_ASSERT_EQ(F.get_borders(1u, border_kmers), true);
+
+    //print_border_kmers(border_kmers);     // Checked that get_borders() is taking the correct Kmers. Approved.
 
     SEQAN_ASSERT_EQ(xg.write(opt_lecc_unittest.prefixFilenameOut, opt_lecc_unittest.nb_threads, opt_lecc_unittest.verbose), true);
 }
