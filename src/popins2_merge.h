@@ -12,6 +12,8 @@
 #include "LECC_Finder.h"
 
 
+typedef std::unordered_map<uint64_t, Kmer> jump_map_t;
+
 
 /*!
 * \fn       int popins2_merge(int argc, char const ** argv)
@@ -76,27 +78,22 @@ int popins2_merge(int argc, char const *argv[]){
     printTimeStatus(msg);
     exg.init_entropy();
 
+    ExtendedCCDBG* exg_p = &exg;
+    LECC_Finder F(exg_p, 0.7f);
+
     msg.str("");
     msg << "Computing LECCs";
     printTimeStatus(msg);
-    ExtendedCCDBG* exg_p = &exg;
-    LECC_Finder F(exg_p, 0.7f);
     unsigned nb_lecc = F.annotate();
-    std::cout << "Found " << nb_lecc << " LECCs." << std::endl;
 
-    F.write();
+    jump_map_t jump_map;
 
-    //unsigned c = F.create_random_color();
-    //std::string s("000000");
-    //F.u2hex(s, c);
-    //cout << "Hex: " << s << endl;
-
-    /*
     msg.str("");
-    msg << "Deleting low entropy unitigs from CCDBG";
+    msg << "Computing jumps though LECCs";
     printTimeStatus(msg);
-    exg.remove_low_entropy(0.7f);
-    */
+    bool FIND_JUMP_SUCCESSFUL = F.find_jumps(jump_map, nb_lecc);
+
+    //F.write();
 
     // ==============================
     // Bifrost

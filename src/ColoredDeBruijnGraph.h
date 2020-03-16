@@ -44,6 +44,7 @@ public:
     void init_entropy();
     bool is_entropy_init() const {return this->entropy_init_status;}
 
+
     /**         This function traverses the graph.
     * @return   1 for successful execution
     **/
@@ -71,9 +72,12 @@ private:
     **/
     uint8_t DFS(const UnitigColorMap<UnitigExtension> &ucm, const direction_t direction, Traceback &tb);
 
+
     void reset_dfs_states();
 
+
     bool is_startnode(const UnitigColorMap<UnitigExtension> &ucm);
+
 
     /**         Get a ranking of the neighbors.
     * @brief    This function iterates over all neighbors with respect to the traversal direction. It then applies
@@ -87,6 +91,7 @@ private:
     template <typename TNeighbors>
     void rank_neighbors(ordered_multimap &omm, const UnitigColorMap<UnitigExtension> &ucm, const TNeighbors &neighbors, const direction_t direction) const;
 
+
     /**         Get the color overlap of two neighbor unitig.
     * @brief    The function isolates the kmers that face each other with respect to the unititgs. Then, it retrieves
     *           the color vectors of both kmers,does an AND operation and counts the intersecton.
@@ -95,12 +100,28 @@ private:
     **/
     unsigned get_neighbor_overlap(const UnitigColorMap<UnitigExtension> &ucm_to_get_head_from, const UnitigColorMap<UnitigExtension> &ucm_to_get_tail_from) const;
 
+
     /**         Computes the entropy for a given string.
      * @brief   If all dimers are equaly distributed, the entropy is high (highly chaotic system),
      *          if certain dimers are prevalent, the entropy is low (highly ordered system).
      * @return  The entropy [0,1] of bi-nucleotides
      */
     float entropy(const std::string &sequence);
+
+
+    /**         Determines the direction to continue after a jump over a LECC
+     * @brief   After the traversal jumped over a LECC, this function determines in which
+     *          direction (w.r.t. the current unitig) the traversal has to continue.
+     *          NOTE: This function *might* be redundant since the traversal could just continue
+     *          in the same direction as before the jump. But I am not sure if e.g. a palindromic
+     *          self-loop can inverse the traversal direction. This function introduces only a
+     *          neglectable computational overhead though.
+     * @param   partner is the LECC border Kmer that the traversal jumped to
+     * @param   lecc_id is the LECC ID which is to avoid for the following traversal
+     * @return  a traversal direction (VISIT_SUCCESSOR or VISIT_PREDECESSOR) or 0x2 (ERROR STATE)
+     */
+    uint8_t post_jump_continue_direction(const Kmer &parter, const unsigned lecc_id) const;
+
 
     /* DEBUG functions */
     inline void print_unitig_id(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); std::cout << data->getID() << std::endl;}

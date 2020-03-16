@@ -7,6 +7,15 @@
 #include <../src/ColoredDeBruijnGraph.h>
 #include <../src/LECC_Finder.h>
 
+typedef std::unordered_map<Kmer, bool, KmerHash> border_map_t;
+
+typedef uint8_t direction_t;
+
+typedef std::unordered_map<uint64_t, Kmer> jump_map_t;
+
+const direction_t VISIT_SUCCESSOR   = 0x0;
+const direction_t VISIT_PREDECESSOR = 0x1;
+
 using namespace seqan;
 
 
@@ -24,21 +33,37 @@ inline void print(std::vector<TType> &v){
 }
 
 
-inline void print_border_kmers(const std::vector<Kmer> &border_kmers){
-    for (auto &kmer : border_kmers){
+inline void print_borders(const border_map_t &border_kmers, ExtendedCCDBG &xg){
 
-        std::string s = kmer.toString();
+    // the loop double-checks the right Kmers with corresponding colors
+    for (border_map_t::const_iterator cit = border_kmers.cbegin(); cit != border_kmers.cend(); ++cit){
 
-        std::cout << s << std::endl;
+        UnitigColorMap<UnitigExtension> ucm = xg.find(cit->first, true);
 
+        const UnitigColors* kmer_colors = ucm.getData()->getUnitigColors(ucm);
+
+        std::vector<size_t> color_ids;
+
+        UnitigColors::const_iterator cit_ = kmer_colors->begin(ucm);
+        for (; cit_ != kmer_colors->end(); ++cit_)
+            color_ids.push_back(cit_.getColorID());
+
+        std::string kmer_seq = cit->first.toString();
+        bool accessibility_bit = cit->second;
+        //std::string ucm_seq  =  ucm.mappedSequenceToString();     // should be the same output as the line before
+        std::cout << "BORDER [" << kmer_seq << " : " << accessibility_bit << "] OF COLORS "; print(color_ids);
     }
+
 }
 
 
-/**
- * VERSION 2
- * This functions works. However it seems to work on 31 nucleotides even though I specified k=63
-**/
+inline void print_jump_map(const jump_map_t &m){
+    for (jump_map_t::const_iterator cit = m.cbegin(); cit != m.cend(); ++cit)
+        cout << cit->first << " -> " << cit->second.toString() << endl;
+    cout << endl;
+}
+
+
 inline void print_unitig_ends(ExtendedCCDBG &g){
     for (auto &ucm : g){
 
@@ -159,7 +184,7 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
     ExtendedCCDBG xg(opt_lecc_unittest.k, opt_lecc_unittest.g);
 
     /* DEBUG */ std::cout << "MAX_KMER_SIZE=" << MAX_KMER_SIZE << std::endl;
-    /* DEBUG */ std::cout << "ExtendedCCDBG::getK()=" << xg.getK() << std::endl;
+    /* DEBUG */ std::cout << "ExtendedCCDBG::getK()=" << xg.getK() << std::endl << std::endl;
 
     SEQAN_ASSERT_EQ(xg.buildGraph(opt_lecc_unittest),true);
 
@@ -171,21 +196,68 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
 
     init_ids_as_in_schematic(xg);
 
-    //print_unitig_ends(xg);
+    std::cout << "---------- ALL UNITIG ENDS ----------" << std::endl;
+    print_unitig_ends(xg); std::cout << std::endl;
 
     //xg.traverse();
 
     xg.init_entropy();
 
-    ExtendedCCDBG* xg_p = &xg;
-    LECC_Finder F(xg_p, 0.7f);
+    LECC_Finder F(&xg, 0.7f);
 
-    SEQAN_ASSERT_EQ(F.annotate(), 1u);
+    unsigned nb_leccs = F.annotate();
 
-    std::vector<Kmer> border_kmers;
-    SEQAN_ASSERT_EQ(F.get_borders(1u, border_kmers), true);
+    SEQAN_ASSERT_EQ(nb_leccs, 1u);      // simple_lecc_unittest has only one LECC
 
-    //print_border_kmers(border_kmers);     // Checked that get_borders() is taking the correct Kmers. Approved.
+    //border_map_t border_kmers;
+    //SEQAN_ASSERT_EQ(F.get_borders(border_kmers, 1u), true);     // to test this, the LECC::get_borders() needs to be public
+
+    //std::cout << "---------- ALL LECC BORDERS ----------" << std::endl;
+    //print_borders(border_kmers, xg); std::cout << std::endl;    // Checked that get_borders() is taking the correct Kmers. Approved.
+
+    // DEBUG
+    /*
+    for (auto &border : border_kmers){
+
+        UnitigColorMap<UnitigExtension> ucm = xg.find(border.first, true);       // unitig of the border Kmer
+
+        for (auto &pre : ucm.getPredecessors()){
+
+            DataAccessor<UnitigExtension>* da_pre = pre.getData();
+            UnitigExtension* ue_pre = da_pre->getData(pre);
+
+            if(ue_pre->getLECC() == 1u){
+                F.DFS(border_kmers, pre, VISIT_PREDECESSOR);
+                F.reset_dfs_states();
+            }
+        }
+
+        for (auto &suc : ucm.getSuccessors()){
+
+            DataAccessor<UnitigExtension>* da_suc = suc.getData();
+            UnitigExtension* ue_suc = da_suc->getData(suc);
+
+            if(ue_suc->getLECC() == 1u){
+                F.DFS(border_kmers, suc, VISIT_SUCCESSOR);
+                F.reset_dfs_states();
+            }
+        }
+
+        print_borders(border_kmers, xg);
+        std::cout << std::endl;
+
+        // reset accessibility bits
+        for (auto &border : border_kmers)
+            border.second = false;
+    }
+    */
+    // DEBUG END
+
+    jump_map_t jump_map;
+    F.find_jumps(jump_map, 1u);
+
+    std::cout << "---------- ALL JUMP PAIRS ----------" << std::endl;
+    print_jump_map(jump_map);
 
     SEQAN_ASSERT_EQ(xg.write(opt_lecc_unittest.prefixFilenameOut, opt_lecc_unittest.nb_threads, opt_lecc_unittest.verbose), true);
 }

@@ -374,3 +374,48 @@ inline float ExtendedCCDBG::entropy(const std::string &sequence){
 
     return entropy / 4;
 }
+
+
+inline uint8_t ExtendedCCDBG::post_jump_continue_direction(const Kmer &partner, const unsigned lecc_id) const{
+
+    bool go_bw = true;
+    bool go_fw = true;
+
+    UnitigMap<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, true> ucm = this->find(partner, true);   // const ucm
+
+    for (auto &pre : ucm.getPredecessors()){
+
+        const DataAccessor<UnitigExtension>* da_pre = pre.getData();
+        const UnitigExtension* ue_pre = da_pre->getData(pre);
+
+        if(ue_pre->getLECC() == lecc_id){
+            go_bw = false;
+            break;
+        }
+    }
+
+    if (!go_bw)                     // any of the predecessors was associated with the LECC, go on with successors
+        return VISIT_SUCCESSOR;
+
+    for (auto &suc : ucm.getSuccessors()){
+
+        const DataAccessor<UnitigExtension>* da_suc = suc.getData();
+        const UnitigExtension* ue_suc = da_suc->getData(suc);
+
+        if(ue_suc->getLECC() == lecc_id){
+            go_fw = false;
+            break;
+        }
+    }
+
+    // if ( go_bw &&  go_fw) return 0x2 as debug; it means the Kmer has LECC predecessor(s) and successor(s)
+    // if (!go_bw && !go_fw) should never happen; Kmer is always on a LECC border
+    return (go_bw && !go_fw) ? VISIT_PREDECESSOR : 0x2;
+}
+
+
+
+
+
+
+// EOF

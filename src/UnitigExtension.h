@@ -62,8 +62,6 @@ struct UnitigExtension : public CCDBG_Data_t<UnitigExtension> {
         float getLECC() const {return LECC;}
         void setLECC(const unsigned lecc) {LECC = lecc;}
 
-        // TODO: getter /setter for neighborPairs, maybe pull global functions in here
-
         inline void set_undiscovered_fw() { DFS_STATUS_FW = UNDISCOVERED; }
         inline void set_seen_fw() { DFS_STATUS_FW = SEEN; }
         inline void set_visited_fw() { DFS_STATUS_FW = VISITED; }
