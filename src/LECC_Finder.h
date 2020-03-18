@@ -150,6 +150,7 @@ private:
     *       @return bool; 0 if error occurred; 1 if everything was alright
     */
     bool DFS(border_map_t &border_kmers, const UnitigColorMap<UnitigExtension> &ucm, const direction_t d) const;
+
 };
 
 

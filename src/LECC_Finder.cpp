@@ -245,6 +245,11 @@ inline void LECC_Finder::check_accessibility(border_map_t &border_kmers, const K
 
     UnitigColorMap<UnitigExtension> ucm = g_->find(kmer, true);       // unitig of the border Kmer
 
+    DataAccessor<UnitigExtension>* da = ucm.getData();
+    UnitigExtension* data = da->getData(ucm);
+
+    /* DEBUG */ cout << "[popins2 merge] DFS: I start at " << data->getID() << "" << endl;
+
     for (auto &pre : ucm.getPredecessors()){
 
         DataAccessor<UnitigExtension>* da_pre = pre.getData();
@@ -281,11 +286,18 @@ bool LECC_Finder::DFS(border_map_t &border_kmers, const UnitigColorMap<UnitigExt
     // mark current unititg as seen
     d == VISIT_PREDECESSOR ? data->set_seen_bw() : data->set_seen_fw();
 
+    cout << "[popins2 merge] DFS: I am at " << data->getID() << "" << endl;
+
     // sink
     if (!data->getLECC()){      // 0 means not in a LECC
 
+        /* DEBUG */ cout << "[popins2 merge] DFS: I am a sink." << endl;
+
         // get border kmer, depending on traversal direction
         border_map_t::iterator got = (d == VISIT_PREDECESSOR ? border_kmers.find(ucm.getMappedTail()) : border_kmers.find(ucm.getMappedHead()));
+
+        // one of the kmers at the extremities should be present in border_kmers
+        //border_map_t::iterator got = (border_kmers.find(ucm.getMappedTail()) != border_kmers.end()) ? border_kmers.find(ucm.getMappedTail()) : border_kmers.find(ucm.getMappedHead());
 
         // sanity check
         if (got == border_kmers.end()){
@@ -353,10 +365,12 @@ bool LECC_Finder::find_jumps(jump_map_t &jump_map, const unsigned nb_leccs){
                 }
             }
 
-            //std::cout << "highscore: " << highscore << '\n';
 
             if (highscore == 0.0f){
-                cerr << "[popins2 merge] WARNING: There was no best jump found for (" << border.first.toString() << ")" << endl;
+                /* DEBUG */ UnitigColorMap<UnitigExtension> ucm = this->g_->find(border.first, true);
+                /* DEBUG */ DataAccessor<UnitigExtension>* da = ucm.getData();
+                /* DEBUG */ UnitigExtension* ue = da->getData(ucm);
+                cerr << "[popins2 merge] WARNING: There was no best jump found for node ID " << ue->getID() << "" << endl;
                 continue;
             }
 
@@ -372,9 +386,6 @@ bool LECC_Finder::find_jumps(jump_map_t &jump_map, const unsigned nb_leccs){
 
     return 1;
 }
-
-
-
 
 
 

@@ -45,6 +45,8 @@ int popins2_merge(int argc, char const *argv[]){
     // Bifrost
     // ==============================
     std::ostringstream msg;
+    /*DEBUG*/ cout << "Trial 1" << endl;
+    cout << "k=" << ccdbg_build_opt.k << endl;
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
 
     // ==============================
@@ -93,7 +95,7 @@ int popins2_merge(int argc, char const *argv[]){
     printTimeStatus(msg);
     bool FIND_JUMP_SUCCESSFUL = F.find_jumps(jump_map, nb_lecc);
 
-    //F.write();
+    F.write();
 
     // ==============================
     // Bifrost

@@ -215,44 +215,6 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
     //std::cout << "---------- ALL LECC BORDERS ----------" << std::endl;
     //print_borders(border_kmers, xg); std::cout << std::endl;    // Checked that get_borders() is taking the correct Kmers. Approved.
 
-    // DEBUG
-    /*
-    for (auto &border : border_kmers){
-
-        UnitigColorMap<UnitigExtension> ucm = xg.find(border.first, true);       // unitig of the border Kmer
-
-        for (auto &pre : ucm.getPredecessors()){
-
-            DataAccessor<UnitigExtension>* da_pre = pre.getData();
-            UnitigExtension* ue_pre = da_pre->getData(pre);
-
-            if(ue_pre->getLECC() == 1u){
-                F.DFS(border_kmers, pre, VISIT_PREDECESSOR);
-                F.reset_dfs_states();
-            }
-        }
-
-        for (auto &suc : ucm.getSuccessors()){
-
-            DataAccessor<UnitigExtension>* da_suc = suc.getData();
-            UnitigExtension* ue_suc = da_suc->getData(suc);
-
-            if(ue_suc->getLECC() == 1u){
-                F.DFS(border_kmers, suc, VISIT_SUCCESSOR);
-                F.reset_dfs_states();
-            }
-        }
-
-        print_borders(border_kmers, xg);
-        std::cout << std::endl;
-
-        // reset accessibility bits
-        for (auto &border : border_kmers)
-            border.second = false;
-    }
-    */
-    // DEBUG END
-
     jump_map_t jump_map;
     F.find_jumps(jump_map, 1u);
 
