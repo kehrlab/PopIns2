@@ -165,8 +165,12 @@ inline bool LECC_Finder::get_borders(border_map_t &border_kmers, const unsigned 
             DataAccessor<UnitigExtension>* da_pre = pre.getData();
             UnitigExtension* ue_pre = da_pre->getData(pre);
 
-            if (ue_pre->getLECC() == 0)
-                border_kmers.insert(std::make_pair<Kmer, bool>(pre.getMappedTail(), false));
+            if (ue_pre->getLECC() == 0){
+
+                border_kmers.insert(std::make_pair<Kmer, bool>(pre.getMappedTail().rep(), false));      // .rep() turns a Kmer into its canonical form
+
+                /* DEBUG */ cout << "[popins2 merge] get_borders: from ID " << ue_pre->getID() << " - [" << pre.getMappedTail().toString() << "] added to borders" << endl;
+            }
         }
 
         // check if successors are borders
@@ -175,8 +179,11 @@ inline bool LECC_Finder::get_borders(border_map_t &border_kmers, const unsigned 
             DataAccessor<UnitigExtension>* da_suc = suc.getData();
             UnitigExtension* ue_suc = da_suc->getData(suc);
 
-            if (ue_suc->getLECC() == 0)
-                border_kmers.insert(std::make_pair<Kmer, bool>(suc.getMappedHead(), false));
+            if (ue_suc->getLECC() == 0){
+                border_kmers.insert(std::make_pair<Kmer, bool>(suc.getMappedHead().rep(), false));      // .rep() turns a Kmer into its canonical form
+
+                /* DEBUG */ cout << "[popins2 merge] get_borders: from ID " << ue_suc->getID() << " - [" << suc.getMappedHead().toString() << "] added to borders" << endl;
+            }
         }
     }
 
@@ -294,7 +301,11 @@ bool LECC_Finder::DFS(border_map_t &border_kmers, const UnitigColorMap<UnitigExt
         /* DEBUG */ cout << "[popins2 merge] DFS: I am a sink." << endl;
 
         // get border kmer, depending on traversal direction
-        border_map_t::iterator got = (d == VISIT_PREDECESSOR ? border_kmers.find(ucm.getMappedTail()) : border_kmers.find(ucm.getMappedHead()));
+        const Kmer border2check = (d == VISIT_PREDECESSOR) ? ucm.getMappedTail().rep() : ucm.getMappedHead().rep();     // .rep() turns a Kmer into its canonical form
+
+        /* DEBUG */ cout << "[popins2 merge] DFS: From ID " << data->getID() << " I will look up border-kmer " << border2check.toString() << endl;
+
+        border_map_t::iterator got = border_kmers.find(border2check);
 
         // one of the kmers at the extremities should be present in border_kmers
         //border_map_t::iterator got = (border_kmers.find(ucm.getMappedTail()) != border_kmers.end()) ? border_kmers.find(ucm.getMappedTail()) : border_kmers.find(ucm.getMappedHead());
@@ -313,15 +324,23 @@ bool LECC_Finder::DFS(border_map_t &border_kmers, const UnitigColorMap<UnitigExt
 
     // continue DFS
     if (d == VISIT_PREDECESSOR){
-        for (auto &pre : ucm.getPredecessors())
-            if(!DFS(border_kmers, pre, VISIT_PREDECESSOR))
+        for (auto &pre : ucm.getPredecessors()){
+            if(!DFS(border_kmers, pre, VISIT_PREDECESSOR)){
+                /* DEBUG */ cout << "[popins2 merge] DFS: I jumped back from ERROR state." << endl;
                 return 0;
+            }
+        }
     }
     else{   // d == VISIT_SUCCESSOR
-        for (auto &suc : ucm.getSuccessors())
-            if(!DFS(border_kmers, suc, VISIT_SUCCESSOR))
+        for (auto &suc : ucm.getSuccessors()){
+            if(!DFS(border_kmers, suc, VISIT_SUCCESSOR)){
+                /* DEBUG */ cout << "[popins2 merge] DFS: I jumped back from ERROR state." << endl;
                 return 0;
+            }
+        }
     }
+
+    /* DEBUG */ cout << "[popins2 merge] DFS: I jumped back from " << data->getID() << endl;
 
     return 1;
 }

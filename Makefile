@@ -50,4 +50,4 @@ clean:
 	rm -f $(OBJS) $(TARGET)
 
 purge:
-	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors *.csv
+	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors *.csv popins2.log
