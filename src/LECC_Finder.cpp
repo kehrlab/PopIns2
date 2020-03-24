@@ -45,8 +45,7 @@ unsigned LECC_Finder::annotate(){
 }
 
 
-void LECC_Finder::annotate_recursion(UnitigColorMap<UnitigExtension> &ucm,
-                                     const unsigned LECC__){
+void LECC_Finder::annotate_recursion(UnitigColorMap<UnitigExtension> &ucm, const unsigned LECC__){
 
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* ue = da->getData(ucm);

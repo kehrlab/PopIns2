@@ -18,7 +18,23 @@ const direction_t VISIT_PREDECESSOR = 0x1;
 
 using namespace seqan;
 
+class LECC_Finder_Tester{
 
+    LECC_Finder* f_;
+
+public:
+
+    LECC_Finder_Tester(LECC_Finder* f) : f_(f) {}
+
+    void test_get_borders(border_map_t &m, const unsigned nb_lecc) const{
+        f_->get_borders(m, nb_lecc);
+    }
+
+    void test_check_accessibility(border_map_t &m, const Kmer &kmer, const unsigned nb_lecc) const{
+        f_->check_accessibility(m, kmer, nb_lecc);
+    }
+
+};
 
 template <typename TType>
 inline void print(std::vector<TType> &v){
@@ -30,6 +46,17 @@ inline void print(std::vector<TType> &v){
         std::cout << *it << ", ";
     }
     std::cout << "]" << std::endl;
+}
+
+
+template <typename TKey, typename TValue>
+inline void print(std::unordered_map<TKey, TValue> &m){
+    // stay safe with constant iterators
+    typename std::unordered_map<TKey,TValue>::const_iterator it;
+    for (it = m.cbegin(); it != m.cend(); ++it){
+        // output format
+        std::cout << "[" << it->first << "\t:\t" << it->second << "]" << std::endl;
+    }
 }
 
 
@@ -214,6 +241,31 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
 
     //std::cout << "---------- ALL LECC BORDERS ----------" << std::endl;
     //print_borders(border_kmers, xg); std::cout << std::endl;    // Checked that get_borders() is taking the correct Kmers. Approved.
+
+    LECC_Finder_Tester T(&F);
+    // for every LECC
+    std::unordered_map<uint64_t, unsigned> accessibility_truth_set;
+    for (unsigned i=1; i <= nb_leccs; ++i){
+        border_map_t border_kmers;                 // storage for the borders per LECC
+        T.test_get_borders(border_kmers, i);
+        // all every border kmer
+        for (auto &border : border_kmers){
+            unsigned counter = 0;
+            cout << counter << endl;
+
+            T.test_check_accessibility(border_kmers, border.first, i);
+            for (border_map_t::const_iterator cit = border_kmers.cbegin(); cit != border_kmers.cend(); ++cit)
+                if (true == cit->second)
+                    ++counter;
+
+            std::pair<uint64_t,unsigned> p(border.first.hash(), counter);
+            accessibility_truth_set.insert(p);
+
+            // TODO reset accessibility bits
+        }
+    }
+    print(accessibility_truth_set);
+
 
     jump_map_t jump_map;
     F.find_jumps(jump_map, 1u);

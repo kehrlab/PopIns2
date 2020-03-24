@@ -16,6 +16,10 @@
 
 class LECC_Finder{
 
+#ifdef DEBUG
+    friend class LECC_Finder_Tester;
+#endif
+
     typedef uint8_t direction_t;
 
     typedef std::pair<unsigned,unsigned> color_map_element;     // only used for writing a LECC color file
@@ -133,7 +137,7 @@ private:
 
 
     /**
-    *       DFS_init()
+    *       check_accessibility()
     *       Initiates a directed depth first serach trying to find a jump over a LECC to one of the n-best color matches.
     *       @param  ucm is the current state (unitig) of the DFS
     *       @param  border_kmers is a container to store the bordering Kmers in (the unitig's kmer facing towards the LECC).
