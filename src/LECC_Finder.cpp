@@ -168,7 +168,7 @@ inline bool LECC_Finder::get_borders(border_map_t &border_kmers, const unsigned 
 
                 border_kmers.insert(std::make_pair<Kmer, bool>(pre.getMappedTail().rep(), false));      // .rep() turns a Kmer into its canonical form
 
-                /* DEBUG */ cout << "[popins2 merge] get_borders: from ID " << ue_pre->getID() << " - [" << pre.getMappedTail().toString() << "] added to borders" << endl;
+                /* DEBUG */ cout << "[popins2 merge] get_borders: from ID " << ue_pre->getID() << " - [" << pre.getMappedTail().rep().toString() << "] added to borders" << endl;
             }
         }
 
@@ -180,8 +180,8 @@ inline bool LECC_Finder::get_borders(border_map_t &border_kmers, const unsigned 
 
             if (ue_suc->getLECC() == 0){
                 border_kmers.insert(std::make_pair<Kmer, bool>(suc.getMappedHead().rep(), false));      // .rep() turns a Kmer into its canonical form
-
-                /* DEBUG */ cout << "[popins2 merge] get_borders: from ID " << ue_suc->getID() << " - [" << suc.getMappedHead().toString() << "] added to borders" << endl;
+                
+                /* DEBUG */ cout << "[popins2 merge] get_borders: from ID " << ue_suc->getID() << " - [" << suc.getMappedHead().rep().toString() << "] added to borders" << endl;
             }
         }
     }

@@ -26,12 +26,12 @@ public:
 
     LECC_Finder_Tester(LECC_Finder* f) : f_(f) {}
 
-    void test_get_borders(border_map_t &m, const unsigned nb_lecc) const{
-        f_->get_borders(m, nb_lecc);
+    void test_get_borders(border_map_t &m, const unsigned nb_leccs) const{
+        f_->get_borders(m, nb_leccs);
     }
 
-    void test_check_accessibility(border_map_t &m, const Kmer &kmer, const unsigned nb_lecc) const{
-        f_->check_accessibility(m, kmer, nb_lecc);
+    void test_check_accessibility(border_map_t &m, const Kmer &kmer, const unsigned nb_leccs) const{
+        f_->check_accessibility(m, kmer, nb_leccs);
     }
 
 };
@@ -130,7 +130,7 @@ inline void print_unitig_ends(ExtendedCCDBG &g){
 }
 
 
-inline void init_ids_as_in_schematic(ExtendedCCDBG &xg){
+inline void init_ids_as_in_schematic_lecc_unittest(ExtendedCCDBG &xg){
     const char* u1_head = "CGTCAGCCGTCACCGAGCCTTATCTATGTCCCGACCAACAGAATAAACAGCAGCTACGCTTGA";
     Kmer u1_kmer = Kmer(u1_head);
     UnitigColorMap<UnitigExtension> u1 = xg.find(u1_kmer, true);
@@ -177,10 +177,9 @@ inline void simple_lecc_unittest_truthset(/*TODO*/){
 }
 
 
-
-// -----------------
-// | LECC UNITTEST |
-// -----------------
+// --------------------
+// | SIMPLE LECC TEST |
+// --------------------
 CCDBG_Build_opt opt_lecc_unittest;
 
 SEQAN_DEFINE_TEST(setup_simple_lecc_unittest){
@@ -203,9 +202,6 @@ SEQAN_DEFINE_TEST(setup_simple_lecc_unittest){
 }
 
 
-// -----------------
-// | CCDBG UNITTEST |
-// -----------------
 SEQAN_DEFINE_TEST(simple_lecc_unittest){
 
     ExtendedCCDBG xg(opt_lecc_unittest.k, opt_lecc_unittest.g);
@@ -221,12 +217,10 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
 
     xg.init_ids();
 
-    init_ids_as_in_schematic(xg);
+    init_ids_as_in_schematic_lecc_unittest(xg);
 
-    std::cout << "---------- ALL UNITIG ENDS ----------" << std::endl;
-    print_unitig_ends(xg); std::cout << std::endl;
-
-    //xg.traverse();
+    //std::cout << "---------- ALL UNITIG ENDS ----------" << std::endl;
+    //print_unitig_ends(xg); std::cout << std::endl;
 
     xg.init_entropy();
 
@@ -236,39 +230,43 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
 
     SEQAN_ASSERT_EQ(nb_leccs, 1u);      // simple_lecc_unittest has only one LECC
 
-    //border_map_t border_kmers;
-    //SEQAN_ASSERT_EQ(F.get_borders(border_kmers, 1u), true);     // to test this, the LECC::get_borders() needs to be public
-
-    //std::cout << "---------- ALL LECC BORDERS ----------" << std::endl;
-    //print_borders(border_kmers, xg); std::cout << std::endl;    // Checked that get_borders() is taking the correct Kmers. Approved.
-
     LECC_Finder_Tester T(&F);
-    // for every LECC
-    std::unordered_map<uint64_t, unsigned> accessibility_truth_set;
-    for (unsigned i=1; i <= nb_leccs; ++i){
-        border_map_t border_kmers;                 // storage for the borders per LECC
-        T.test_get_borders(border_kmers, i);
-        // all every border kmer
-        for (auto &border : border_kmers){
-            unsigned counter = 0;
-            cout << counter << endl;
 
-            T.test_check_accessibility(border_kmers, border.first, i);
-            for (border_map_t::const_iterator cit = border_kmers.cbegin(); cit != border_kmers.cend(); ++cit)
-                if (true == cit->second)
-                    ++counter;
+    border_map_t border_kmers;                 // storage for the borders per LECC
+    T.test_get_borders(border_kmers, 1u);
 
-            std::pair<uint64_t,unsigned> p(border.first.hash(), counter);
-            accessibility_truth_set.insert(p);
+    SEQAN_ASSERT_EQ(border_kmers.size(), 4u);   // simple_lecc_unittest has 4 border kmers
 
-            // TODO reset accessibility bits
-        }
+    std::unordered_map<uint64_t, unsigned> accessibility_truth_set({
+        {17419696912337850218u, 2},
+        {5617511096006481569u, 2},
+        {16311619577470620275u, 2},
+        {6202449885273403341u, 2}
+    });
+
+    // for every border kmer check if the correct amount of partners was accessed
+    for (auto &border : border_kmers){
+
+        T.test_check_accessibility(border_kmers, border.first, 1u);
+
+        unsigned counter = 0;
+        for (border_map_t::const_iterator cit = border_kmers.cbegin(); cit != border_kmers.cend(); ++cit)
+            if (true == cit->second)
+                ++counter;
+        SEQAN_ASSERT_EQ(counter, 2u);     // in simple_lecc_unittest each border should be able to access 2 partners
+
+        size_t ret = accessibility_truth_set.erase(border.first.hash());
+        SEQAN_ASSERT_EQ(ret, 1u);   // erase() should have removed one element from accessibility_truth_set
+
+        // reset accessibility bits
+        for (auto &border : border_kmers) border.second = false;
     }
-    print(accessibility_truth_set);
 
+    SEQAN_ASSERT_EQ(accessibility_truth_set.size(), 0u);    // if all lecc borders were processed and the correct hash value was used, then accessibility_truth_set should be empty at this point
 
     jump_map_t jump_map;
-    F.find_jumps(jump_map, 1u);
+    bool ret0 = F.find_jumps(jump_map, 1u);
+    SEQAN_ASSERT_EQ(ret0, true);    // check for seccessful execution
 
     std::cout << "---------- ALL JUMP PAIRS ----------" << std::endl;
     print_jump_map(jump_map);
@@ -277,10 +275,191 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
 }
 
 
+// -----------------------
+// | 5 SIMULATED SIMPLES |
+// -----------------------
+CCDBG_Build_opt opt_5simu_test;
+
+SEQAN_DEFINE_TEST(setup_5simu_test){
+
+    std::vector<std::string> i_files;
+
+    i_files.push_back("./data/5_simu_samples/S0001_assembly_k141.contigs.fa");
+    i_files.push_back("./data/5_simu_samples/S0002_assembly_k141.contigs.fa");
+    i_files.push_back("./data/5_simu_samples/S0003_assembly_k141.contigs.fa");
+    i_files.push_back("./data/5_simu_samples/S0004_assembly_k141.contigs.fa");
+    i_files.push_back("./data/5_simu_samples/S0005_assembly_k141.contigs.fa");
+
+    opt_5simu_test.filename_ref_in = i_files;
+    opt_5simu_test.deleteIsolated = true;
+    opt_5simu_test.clipTips = true;
+    opt_5simu_test.prefixFilenameOut = "5simu_test";
+    opt_5simu_test.nb_threads = 1;
+    opt_5simu_test.outputGFA = true;
+    opt_5simu_test.verbose = false;
+    opt_5simu_test.k = 31;
+}
+
+
+SEQAN_DEFINE_TEST(call_5simu_test){
+
+    ExtendedCCDBG xg(opt_5simu_test.k, opt_5simu_test.g);
+
+    /* DEBUG */ std::cout << "MAX_KMER_SIZE=" << MAX_KMER_SIZE << std::endl;
+    /* DEBUG */ std::cout << "ExtendedCCDBG::getK()=" << xg.getK() << std::endl << std::endl;
+
+    SEQAN_ASSERT_EQ(xg.buildGraph(opt_5simu_test),true);
+
+    SEQAN_ASSERT_EQ(xg.simplify(opt_5simu_test.deleteIsolated, opt_5simu_test.clipTips, opt_5simu_test.verbose),true);
+
+    SEQAN_ASSERT_EQ(xg.buildColors(opt_5simu_test),true);
+
+    xg.init_ids();
+
+    //std::cout << "---------- ALL UNITIG ENDS ----------" << std::endl;
+    //print_unitig_ends(xg); std::cout << std::endl;
+
+    xg.init_entropy();
+
+    LECC_Finder F(&xg, 0.7f);
+
+    unsigned nb_leccs = F.annotate();
+
+    SEQAN_ASSERT_EQ(nb_leccs, 9u);
+
+    LECC_Finder_Tester T(&F);
+
+    std::unordered_map<std::string, unsigned> nb_border_kmers_per_lecc_truthset({       // one entry is a representing kmer for a border set
+        {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC", 23},
+        {"AATATATAAATAAATATTATATATTATATAT", 1},
+        {"TAGATGGGTGGATGGGTAGATGGGTGGATGA", 2},
+        {"ACACACACACACACACACACACACACTTCTC", 16},
+        {"ACAGTCTCAGACACAGACACACACCACACAC", 2},
+        {"AGAGCGAGACTCCATCTCAAAAAAAAAAAAA", 4},
+        {"ACATGTGCATACATGTATATACACATATGTG", 2},
+        {"GTAATAATAATAATAATAATAATAATAATAA", 6},
+        {"ATCTATCTATCTATCTATCTATCTATCTATC", 4}
+    });
+
+    std::unordered_map<std::string, unsigned> border_kmers_accessibility_truthset({
+        {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAGG", 8},
+        {"ATTTTTTTTTTTTTGAGATGGAGTTTTGCTC", 0},
+        {"CTTTTTTTTTTTTTGAGATGGAGTTTTGCTC", 0},
+        {"TAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 4},
+        {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAGA", 8},
+        {"TCTTTTTTTTTTTTTTTTTTTTTTTTGAGAA", 2},
+        {"GTCTCAAAAAAAAAAAAAAAAAAAAAAAGAC", 5},
+        {"CTCTTTTTTTTTTTTTTTTTTTTTTTGAGAC", 5},
+        {"AAAAAAAAAAAAAAAAAAAAAAAAGAAAAAA", 3},
+        {"GACTCCATCTCAAAAAAAAAAAAAAAAAAAA", 4},
+        {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAT", 8},
+        {"GTCTTTTTTTTTTTTTTTTTTTTTTTTGAGA", 2},
+        {"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC", 8},
+        {"CTTTTTTTTTTTTTTTTTTTTTTTTTGAGAC", 5},
+        {"ACTCCGTCTCAAAAAAAAAAAAAAAAAAAAG", 2},
+        {"AACTCTGTCTCAAAAAAAAAAAAAAAAAAAA", 7},
+        {"GAGACTCCGTCTCAAAAAAAAAAAAAAAAAA", 11},
+        {"GGAGCAAAACTCCATCTCAAAAAAAAAAAAA", 4},
+        {"AAGACTCCGTCTCAAAAAAAAAAAAAAAAAA", 11},
+        {"ATTTTTTTTTTTTTTTTTGAGACAGAGTCTC", 1},
+        {"GACAGAGTGAGACTCTGTCTCAAAAAAAAAA", 8},
+        {"AGAGACTCTGTCTCAAAAAAAAAAAAAAAAA", 7},
+        {"AAAAAAAAAAAAAAAAAAAAAAAAGAAAAAT", 3},
+        {"AATATATAAATAAATATTATATATTATATAT", 0},
+        {"ATCTACCCATCCACCCATCTACCCATCCACA", 1},
+        {"TAGATGGGTGGATGGGTAGATGGGTGGATGA", 1},
+        {"GAACACACACACACACACACACACACACACA", 8},
+        {"TCTCACACACACACACACACACACACACACA", 8},
+        {"CCTCACACACACACACACACACACACACACA", 8},
+        {"AAACACACACACACACACACACACACACACA", 8},
+        {"CACACACACACACACACACACACACACACTA", 8},
+        {"GACACACACACACACACACACACACACACAC", 8},
+        {"ACACACACACACACACACACACACACACACG", 8},
+        {"ACACACACACACACACACACACACACACACC", 8},
+        {"ATGTGTGTGTGTGTGTGTGTGTGTGTGTGTG", 8},
+        {"ACACACACACACACACACACACACACTTCTG", 8},
+        {"ACACACACACACACACACACACACACTTCTC", 8},
+        {"CATCACACACACACACACACACACACACACA", 8},
+        {"AATCACACACACACACACACACACACACACA", 8},
+        {"GTGTGTGTGTGTGTGTGTGTGTGTGTGTGTA", 8},
+        {"CACACACACACACACACACACACACACACAG", 8},
+        {"CACACACACACACACACACACACACACACAA", 8},
+        {"AGTGTGTGGTGTGTGTCTGTGTCTGAGACTG", 1},
+        {"ACAGTCTCAGACACAGACACACACCACACAC", 1},
+        {"GACTCCATCTCAAAAAAAAAAAAAAGAAAAC", 2},
+        {"GACTCCATCTCAAAAAAAAAAAAAAGAAAAA", 2},
+        {"AGAGCGAGACTCCATCTCAAAAAAAAAAAAA", 2},
+        {"TAGACTCCATCTCAAAAAAAAAAAAAAGAAA", 2},
+        {"ACATGTATACACATGTACATATATACATATA", 1},
+        {"ACATGTGCATACATGTATATACACATATGTG", 1},
+        {"AATAATAATAATAATAATAATAATAATAAAT", 3},
+        {"CAAATAATAATAATAATAATAATAATAATAA", 3},
+        {"AATAATAATAATAATAATAATAATAATAAAG", 3},
+        {"GTAATAATAATAATAATAATAATAATAATAA", 3},
+        {"TAAATAATAATAATAATAATAATAATAATAA", 3},
+        {"AATAATAATAATAATAATAATAATAATAAAA", 3},
+        {"ATCTATCTATCTATCTATCTATCTATCTATC", 2},
+        {"ATATCTATCTATCTATCTATCTATCTATCTA", 2},
+        {"TAGATAGATAGATAGATAGATAGATAGATAA", 2},
+        {"ATCTATCTATCTATCTATCTATCTATCTATA", 2}
+    });
+
+    for (size_t i = 1; i <= nb_leccs; ++i) {
+        border_map_t border_kmers;                 // storage for the borders per LECC
+        T.test_get_borders(border_kmers, i);
+        cout << "border_kmers size " << border_kmers.size() << endl; cout << endl;
+
+        // TEST correct amount of border kmers per lecc
+        for (auto &t : nb_border_kmers_per_lecc_truthset){
+            const char* s = t.first.c_str();
+            Kmer sk(s);
+            if (border_kmers.find(sk) != border_kmers.end()){
+                SEQAN_ASSERT_EQ(border_kmers.size(), t.second);
+                break;
+            }
+        }
+
+        // TEST correct amount of accessible partners per border kmer
+        for (auto &border : border_kmers){
+
+            T.test_check_accessibility(border_kmers, border.first, i);
+
+            unsigned counter = 0;
+            for (border_map_t::const_iterator cit = border_kmers.cbegin(); cit != border_kmers.cend(); ++cit)
+                if (true == cit->second)
+                    ++counter;
+
+            SEQAN_ASSERT_EQ(border_kmers_accessibility_truthset[border.first.toString()], counter);
+
+            // reset accessibility bits
+            for (auto &border : border_kmers) border.second = false;
+        }
+    }
+
+    jump_map_t jump_map;
+    bool ret0 = F.find_jumps(jump_map, nb_leccs);
+    SEQAN_ASSERT_EQ(ret0, true);    // check for seccessful execution
+
+    std::cout << "---------- ALL JUMP PAIRS ----------" << std::endl;
+    print_jump_map(jump_map); cout << endl;
+
+    SEQAN_ASSERT_EQ(xg.write(opt_5simu_test.prefixFilenameOut, opt_5simu_test.nb_threads, opt_5simu_test.verbose), true);
+}
+
+
+// --------------
+// | CALL TESTS |
+// --------------
 SEQAN_BEGIN_TESTSUITE(test_popins2){
 
     SEQAN_CALL_TEST(setup_simple_lecc_unittest);
 
     SEQAN_CALL_TEST(simple_lecc_unittest);
+
+    SEQAN_CALL_TEST(setup_5simu_test);
+
+    SEQAN_CALL_TEST(call_5simu_test);
 }
+
+
 SEQAN_END_TESTSUITE
