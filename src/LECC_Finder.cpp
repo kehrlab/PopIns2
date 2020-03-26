@@ -180,7 +180,7 @@ inline bool LECC_Finder::get_borders(border_map_t &border_kmers, const unsigned 
 
             if (ue_suc->getLECC() == 0){
                 border_kmers.insert(std::make_pair<Kmer, bool>(suc.getMappedHead().rep(), false));      // .rep() turns a Kmer into its canonical form
-                
+
                 /* DEBUG */ cout << "[popins2 merge] get_borders: from ID " << ue_suc->getID() << " - [" << suc.getMappedHead().rep().toString() << "] added to borders" << endl;
             }
         }
@@ -263,9 +263,8 @@ inline void LECC_Finder::check_accessibility(border_map_t &border_kmers, const K
 
         if(ue_pre->getLECC() == lecc_id)
             DFS(border_kmers, pre, VISIT_PREDECESSOR);
-
-        reset_dfs_states();
     }
+    reset_dfs_states();
 
     for (auto &suc : ucm.getSuccessors()){
 
@@ -274,9 +273,8 @@ inline void LECC_Finder::check_accessibility(border_map_t &border_kmers, const K
 
         if(ue_suc->getLECC() == lecc_id)
             DFS(border_kmers, suc, VISIT_SUCCESSOR);
-
-        reset_dfs_states();
     }
+    reset_dfs_states();
 }
 
 
@@ -367,28 +365,37 @@ bool LECC_Finder::find_jumps(jump_map_t &jump_map, const unsigned nb_leccs){
             float highscore = 0.0f;
             Kmer jump_target;
 
-            for (auto &border2 : border_kmers){
+            unsigned nb_accessible_partners = 0;
 
-                if (border2.second == false) continue;   // skip the not accessible partner
+            for (auto &parter : border_kmers){
 
-                if (border2 == border) continue;         // NOTE this condition has to be evaluated on real data
+                if (parter.second == false) continue;   // skip the not accessible partner
 
-                float jaccard_index = color_overlap(border.first, border2.first);
+                if (parter == border) continue;         // NOTE this condition has to be evaluated on real data
+
+                ++nb_accessible_partners;
+
+                float jaccard_index = color_overlap(border.first, parter.first);
 
                 if (jaccard_index > highscore){
 
                     highscore = jaccard_index;
 
-                    jump_target = border2.first;
+                    jump_target = parter.first;
                 }
             }
 
+            /* DEBUG */ UnitigColorMap<UnitigExtension> ucm = this->g_->find(border.first, true);
+            /* DEBUG */ DataAccessor<UnitigExtension>* da = ucm.getData();
+            /* DEBUG */ UnitigExtension* ue = da->getData(ucm);
+
+            if (!nb_accessible_partners){
+                cerr << "[popins2 merge] WARNING: No accessible partners found for node ID " << ue->getID() << "" << endl;
+                continue;
+            }
 
             if (highscore == 0.0f){
-                /* DEBUG */ UnitigColorMap<UnitigExtension> ucm = this->g_->find(border.first, true);
-                /* DEBUG */ DataAccessor<UnitigExtension>* da = ucm.getData();
-                /* DEBUG */ UnitigExtension* ue = da->getData(ucm);
-                cerr << "[popins2 merge] WARNING: There was no best jump found for node ID " << ue->getID() << "" << endl;
+                cerr << "[popins2 merge] WARNING: Among accessible partners there was no non-empty color overlap for node ID " << ue->getID() << "" << endl;
                 continue;
             }
 
@@ -396,8 +403,7 @@ bool LECC_Finder::find_jumps(jump_map_t &jump_map, const unsigned nb_leccs){
             jump_map.insert(jump_pair);
 
             // reset accessibility bits
-            for (auto &border : border_kmers)
-                border.second = false;
+            for (auto &border : border_kmers) border.second = false;
 
         }   // end kmer border for
     }   // end LECC for

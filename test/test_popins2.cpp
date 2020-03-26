@@ -272,6 +272,8 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
     print_jump_map(jump_map);
 
     SEQAN_ASSERT_EQ(xg.write(opt_lecc_unittest.prefixFilenameOut, opt_lecc_unittest.nb_threads, opt_lecc_unittest.verbose), true);
+
+    SEQAN_ASSERT_EQ(F.write(opt_lecc_unittest.prefixFilenameOut+".lecc.csv"), true);
 }
 
 
@@ -444,6 +446,8 @@ SEQAN_DEFINE_TEST(call_5simu_test){
     print_jump_map(jump_map); cout << endl;
 
     SEQAN_ASSERT_EQ(xg.write(opt_5simu_test.prefixFilenameOut, opt_5simu_test.nb_threads, opt_5simu_test.verbose), true);
+
+    SEQAN_ASSERT_EQ(F.write(opt_5simu_test.prefixFilenameOut+".lecc.csv"), true);
 }
 
 
