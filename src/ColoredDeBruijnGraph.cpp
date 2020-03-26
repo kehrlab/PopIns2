@@ -114,7 +114,8 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
             BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> predecessors = ucm.getPredecessors();
 
-            if (!predecessors.hasPredecessors()){       // sink node
+            // sink node
+            if (!predecessors.hasPredecessors()){
 
                 std::cout << get_unitig_id(ucm) << ": I am a sink." << std::endl; // DEBUG
 
@@ -135,7 +136,8 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
             for (auto it = ranked_predecessors.cbegin(); it != ranked_predecessors.cend(); ++it){           // check all ranked neighbors starting from the best color fit
 
-                for (auto &pre : predecessors){             // traverse further
+            // traverse further
+                for (auto &pre : predecessors){
 
                     DataAccessor<UnitigExtension>* pre_da = pre.getData();
                     UnitigExtension* pre_data = pre_da->getData(pre);
@@ -174,7 +176,8 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
             ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> successors = ucm.getSuccessors();
 
-            if (!successors.hasSuccessors()){           // sink node
+            // sink node
+            if (!successors.hasSuccessors()){
 
                 std::cout << get_unitig_id(ucm) << ": I am a sink." << std::endl; // DEBUG
 
@@ -195,7 +198,8 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
             for (auto it = ranked_successors.cbegin(); it != ranked_successors.cend(); ++it){           // check all ranked neighbors starting from the best color fit
 
-                for (auto &suc : successors){             // traverse further
+            // traverse further
+                for (auto &suc : successors){
 
                     DataAccessor<UnitigExtension>* suc_da = suc.getData();
                     UnitigExtension* suc_data = suc_da->getData(suc);

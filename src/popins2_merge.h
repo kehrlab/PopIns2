@@ -45,7 +45,6 @@ int popins2_merge(int argc, char const *argv[]){
     // Bifrost
     // ==============================
     std::ostringstream msg;
-    /*DEBUG*/ cout << "Trial 1" << endl;
     cout << "k=" << ccdbg_build_opt.k << endl;
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
 
@@ -93,9 +92,17 @@ int popins2_merge(int argc, char const *argv[]){
     msg.str("");
     msg << "Computing jumps though LECCs";
     printTimeStatus(msg);
-    bool FIND_JUMP_SUCCESSFUL = F.find_jumps(jump_map, nb_lecc);
+    bool find_jumps_successful = F.find_jumps(jump_map, nb_lecc);
 
+    msg.str("");
+    msg << "Writing LECCs";
+    printTimeStatus(msg);
     F.write();
+
+    msg.str("");
+    msg << "Traversing paths";
+    printTimeStatus(msg);
+    exg.traverse();
 
     // ==============================
     // Bifrost
@@ -104,16 +111,6 @@ int popins2_merge(int argc, char const *argv[]){
     msg << "Writing CCDBG";
     printTimeStatus(msg);
     exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
-
-    // ==============================
-    // Popins2 merge
-    // ==============================
-    /*
-    msg.str("");
-    msg << "Traversing paths";
-    printTimeStatus(msg);
-    exg.merge(ccdbg_build_opt, mo.min_kmers, mo.outdir);
-    */
 
 
     return 0;
