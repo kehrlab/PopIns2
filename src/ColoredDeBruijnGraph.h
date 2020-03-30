@@ -97,8 +97,9 @@ private:
     *           the color vectors of both kmers,does an AND operation and counts the intersecton.
     * @param    ucm_to_get_head_from is the unitig to get the head kmer from
     * @param    ucm_to_get_tail_from is the unitig to get the tail kmer from
+    * @return   jaccard index of the colors of the overlapping kmers
     **/
-    unsigned get_neighbor_overlap(const UnitigColorMap<UnitigExtension> &ucm_to_get_head_from, const UnitigColorMap<UnitigExtension> &ucm_to_get_tail_from) const;
+    float get_neighbor_overlap(const UnitigColorMap<UnitigExtension> &ucm_to_get_head_from, const UnitigColorMap<UnitigExtension> &ucm_to_get_tail_from) const;
 
 
     /**         Computes the entropy for a given string.

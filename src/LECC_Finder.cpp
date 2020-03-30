@@ -230,7 +230,7 @@ inline float LECC_Finder::color_overlap(const Kmer &kmer1, const Kmer &kmer2) co
     }
 
     if(!denominator)
-        cerr << "[popins2 merge] WARNING: Color overlap should never be zero. Something went wrong!" << endl;
+        cerr << "[popins2 merge] WARNING: Denominator should never be zero. There has to be at least one color in the graph. Something went wrong!" << endl;
 
     return (float)numerator / (float)denominator;
 }

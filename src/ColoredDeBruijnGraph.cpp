@@ -245,10 +245,16 @@ inline void ExtendedCCDBG::reset_dfs_states(){
 
 
 inline bool ExtendedCCDBG::is_startnode(const UnitigColorMap<UnitigExtension> &ucm){
+    DataAccessor<UnitigExtension>* da = ucm.getData();
+    UnitigExtension* ue = da->getData(ucm);
+
     return
-        ucm.len>2 &&                                                                                    // be longer than 2 kmers and
+        ucm.len>2                                                                                       // be longer than 2 kmers and
+        &&
         (( ucm.getPredecessors().hasPredecessors() && !ucm.getSuccessors().hasSuccessors() ) ||         // have only predecessors or
-         (!ucm.getPredecessors().hasPredecessors() &&  ucm.getSuccessors().hasSuccessors() ) );         // have only successors
+         (!ucm.getPredecessors().hasPredecessors() &&  ucm.getSuccessors().hasSuccessors() ))           // have only successors
+        &&
+        ue->getLECC()==0u;                                                                              // is not part of an LECC
 }
 
 
@@ -259,30 +265,30 @@ inline void ExtendedCCDBG::rank_neighbors(ordered_multimap &omm, const UnitigCol
 
         for (auto &pre : neighbors){
 
-            unsigned overlap = get_neighbor_overlap(ucm, pre);              // Mind the orientation of the parameter!
+            float overlap = get_neighbor_overlap(ucm, pre);                 // Mind the orientation of the parameter!
 
             DataAccessor<UnitigExtension>* da = pre.getData();              // NOTE: can I avoid recreating these pointer over and over again?
             UnitigExtension* data = da->getData(pre);
 
-            omm.insert(std::pair<unsigned, unsigned>(overlap, data->getID()));
+            omm.insert(std::pair<float, unsigned>(overlap, data->getID()));
         }
     }
     else{   // direction==VISIT_SUCCESSOR
 
         for (auto &suc : neighbors){
 
-            unsigned overlap = get_neighbor_overlap(suc, ucm);              // Mind the orientation of the parameter!
+            float overlap = get_neighbor_overlap(suc, ucm);                 // Mind the orientation of the parameter!
 
             DataAccessor<UnitigExtension>* da = suc.getData();              // NOTE: can I avoid recreating these pointer over and over again?
             UnitigExtension* data = da->getData(suc);
 
-            omm.insert(std::pair<unsigned, unsigned>(overlap, data->getID()));
+            omm.insert(std::pair<float, unsigned>(overlap, data->getID()));
         }
     }
 }
 
 
-inline unsigned ExtendedCCDBG::get_neighbor_overlap(const UnitigColorMap<UnitigExtension> &ucm_to_get_head_from, const UnitigColorMap<UnitigExtension> &ucm_to_get_tail_from) const{
+inline float ExtendedCCDBG::get_neighbor_overlap(const UnitigColorMap<UnitigExtension> &ucm_to_get_head_from, const UnitigColorMap<UnitigExtension> &ucm_to_get_tail_from) const{
         size_t len = ucm_to_get_tail_from.len;   // I assume this gets me the past-last-kmer index
         //std::cout << len << std::endl;
 
@@ -311,13 +317,33 @@ inline unsigned ExtendedCCDBG::get_neighbor_overlap(const UnitigColorMap<UnitigE
         //std::cout << "START COLORS (" << first_seq << "): " ; print(k_first_color_ids);
         //std::cout << "END COLORS ("   << last_seq  << "): " ; print(k_last_color_ids);
 
-        // sum of intersection
+        // calculate Jaccard index
+        unsigned numerator = 0;
+        unsigned denominator = 0;
+
+        // NOTE: I tried to keep this compliant with the SIMD auto-vectorization of gcc -O3
+        // features: support for if-conversion, support for summation reduction
+        // unclear: not sure if boolean operations (&&/||) are supported
+        size_t i_end = this->getNbColors();
+        for (size_t i = 0; i < i_end; ++i){
+            numerator   += (k_first_color_bits[i] && k_last_color_bits[i] ? 1 : 0);
+            denominator += (k_first_color_bits[i] || k_last_color_bits[i] ? 1 : 0);
+        }
+
+        if(!denominator)
+            cerr << "[popins2 merge] WARNING: Denominator should never be zero. There has to be at least one color in the graph. Something went wrong!" << endl;
+
+        return (float)numerator / (float)denominator;
+
+        // calculate intersection
+        /*
         unsigned count = 0;
         for (unsigned i=0; i < k_first_color_bits.size(); ++i)                  // NOTE: IMPROVEMENT: comparisons can be reduced by using UnitigColors::colorMax(ucm)
             if (k_first_color_bits[i] && k_last_color_bits[i])
                 ++count;
 
         return count;
+        */
 }
 
 
@@ -413,7 +439,7 @@ inline uint8_t ExtendedCCDBG::post_jump_continue_direction(const Kmer &partner, 
     }
 
     // if ( go_bw &&  go_fw) return 0x2 as debug; it means the Kmer has LECC predecessor(s) and successor(s)
-    // if (!go_bw && !go_fw) should never happen; Kmer is always on a LECC border
+    // if (!go_bw && !go_fw) should never happen; Kmer "partner" is always on a LECC border
     return (go_bw && !go_fw) ? VISIT_PREDECESSOR : 0x2;
 }
 
