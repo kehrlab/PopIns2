@@ -51,6 +51,7 @@ public:
 
     /**
      *  Function to trim and concatenate the current unitig with the final contig
+     *  @brief  This function concatenates the path from sink to source.
      *  @param  unitig is a the string to be concatenated with the final contig
      *  @param  startnode is an indicator whether unitig was the first node of the traversal
      *          and therefore should not be trimmed.

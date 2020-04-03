@@ -48,9 +48,6 @@ int popins2_merge(int argc, char const *argv[]){
     cout << "k=" << ccdbg_build_opt.k << endl;
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
 
-    // ==============================
-    // Bifrost graph functions
-    // ==============================
     msg.str("");
     msg << "Building CCDBG";
     printTimeStatus(msg);
@@ -70,12 +67,12 @@ int popins2_merge(int argc, char const *argv[]){
     // ~~~ experimental ~~~
     // ==============================
     msg.str("");
-    msg << "Assigning unitig IDs";
+    msg << "Assigning ID to every UnitigColorMap";
     printTimeStatus(msg);
     exg.init_ids();
 
     msg.str("");
-    msg << "Assigning entropy in each UnitigExtention";
+    msg << "Assigning entropy to each UnitigColorMap";
     printTimeStatus(msg);
     exg.init_entropy();
 
@@ -88,19 +85,33 @@ int popins2_merge(int argc, char const *argv[]){
     unsigned nb_lecc = F.annotate();
 
     jump_map_t jump_map;
+    jump_map_t* jump_map_ptr;
 
     msg.str("");
     msg << "Computing jumps though LECCs";
     printTimeStatus(msg);
     bool find_jumps_successful = F.find_jumps(jump_map, nb_lecc);
 
+    jump_map_ptr = (find_jumps_successful) ? &jump_map : NULL;
+
+    msg.str("");
+    msg << "Connecting jump map with CCDBG";
+    printTimeStatus(msg);
+    exg.set_jump_map(jump_map_ptr);
+
     msg.str("");
     msg << "Writing LECCs";
     printTimeStatus(msg);
     F.write();
 
+    /*DEBUG*/ std::cout << "---------- ALL JUMP PAIRS ----------" << std::endl;
+    /*DEBUG*/ for (jump_map_t::const_iterator cit = jump_map.cbegin(); cit != jump_map.cend(); ++cit)
+    /*DEBUG*/     cout << cit->first << " -> " << cit->second.toString() << endl;
+    /*DEBUG*/ std::cout << "------------------------------------" << std::endl;
+    /*DEBUG*/ cout << endl;
+
     msg.str("");
-    msg << "Traversing paths";
+    msg << "Traversing paths in CCDBG";
     printTimeStatus(msg);
     exg.traverse();
 

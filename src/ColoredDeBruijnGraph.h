@@ -9,6 +9,7 @@
 #include <seqan/seq_io.h>                   // needed for seqan::log()
 #include "UnitigExtension.h"
 #include "Traceback.h"
+#include "prettyprint.h"
 
 
 /**
@@ -23,7 +24,9 @@ struct ExtendedCCDBG : public ColoredCDBG<UnitigExtension> {
         bool operator() (T const &lhs, T const &rhs) const {return lhs>rhs;}
     };
 
-    typedef std::multimap<unsigned, unsigned, Greater> ordered_multimap;
+    typedef std::multimap<float, unsigned, Greater> ordered_multimap_t;
+
+    typedef std::unordered_map<uint64_t, Kmer> jump_map_t;
 
     typedef uint8_t direction_t;
 
@@ -35,7 +38,11 @@ public:
     /**         Default constructor.
     * @brief    This constructor has to initiate private member variables.
     **/
-    ExtendedCCDBG(int kmer_length = 63, int minimizer_length = 23);
+    ExtendedCCDBG(int kmer_length = 63, int minimizer_length = 23) :
+        ColoredCDBG<UnitigExtension> (kmer_length, minimizer_length),
+        id_init_status(false),
+        entropy_init_status(false)
+    {}
 
     void init_ids();
     void print_ids();
@@ -51,6 +58,9 @@ public:
     uint8_t traverse();
 
 
+    void set_jump_map(jump_map_t* m) {_jump_map_ptr = m;}
+
+
 private:
     // --------------------
     // | Member variables |
@@ -61,6 +71,8 @@ private:
 
     bool id_init_status;
     bool entropy_init_status;
+
+    jump_map_t *_jump_map_ptr = NULL;
 
     // --------------------
     // | Member functions |
@@ -89,17 +101,17 @@ private:
     * @param    direction is the traversal direction
     **/
     template <typename TNeighbors>
-    void rank_neighbors(ordered_multimap &omm, const UnitigColorMap<UnitigExtension> &ucm, const TNeighbors &neighbors, const direction_t direction) const;
+    void rank_neighbors(ordered_multimap_t &omm, const UnitigColorMap<UnitigExtension> &ucm, const TNeighbors &neighbors, const direction_t direction);
 
 
     /**         Get the color overlap of two neighbor unitig.
     * @brief    The function isolates the kmers that face each other with respect to the unititgs. Then, it retrieves
     *           the color vectors of both kmers,does an AND operation and counts the intersecton.
-    * @param    ucm_to_get_head_from is the unitig to get the head kmer from
-    * @param    ucm_to_get_tail_from is the unitig to get the tail kmer from
+    * @param    extract_head is the unitig to get the head kmer from
+    * @param    extract_tail is the unitig to get the tail kmer from
     * @return   jaccard index of the colors of the overlapping kmers
     **/
-    float get_neighbor_overlap(const UnitigColorMap<UnitigExtension> &ucm_to_get_head_from, const UnitigColorMap<UnitigExtension> &ucm_to_get_tail_from) const;
+    float get_neighbor_overlap(const UnitigColorMap<UnitigExtension> &extract_head, const UnitigColorMap<UnitigExtension> &extract_tail) ;
 
 
     /**         Computes the entropy for a given string.
@@ -129,6 +141,8 @@ private:
     inline unsigned get_unitig_id(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); return data->getID();}
     inline void print_unitig_seq(const UnitigColorMap<UnitigExtension> &ucm){std::cout << ucm.mappedSequenceToString() << std::endl;}
     inline std::string get_unitig_seq(const UnitigColorMap<UnitigExtension> &ucm){return ucm.mappedSequenceToString();}
+    inline void print_unitig_lecc(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); std::cout << data->getLECC() << std::endl;}
+    inline unsigned get_unitig_lecc(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); return data->getLECC();}
 };
 
 

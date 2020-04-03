@@ -14,6 +14,8 @@
 
 
 
+struct ExtendedCCDBG;
+
 class LECC_Finder{
 
 #ifdef DEBUG
@@ -28,6 +30,7 @@ class LECC_Finder{
     typedef std::unordered_map<Kmer, bool, KmerHash> border_map_t;
 
     typedef std::unordered_map<uint64_t, Kmer> jump_map_t;
+    
 
 public:
     // --------------------

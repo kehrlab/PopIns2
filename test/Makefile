@@ -19,4 +19,4 @@ clean:
 	rm -f *.o test_popins2
 
 purge:
-	rm -f *.o test_popins2 *.gfa *.bfg_colors *.csv test.log
+	rm -f *.o test_popins2 *.gfa *.bfg_colors *.csv *.log
