@@ -274,6 +274,10 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
     SEQAN_ASSERT_EQ(xg.write(opt_lecc_unittest.prefixFilenameOut, opt_lecc_unittest.nb_threads, opt_lecc_unittest.verbose), true);
 
     SEQAN_ASSERT_EQ(F.write(opt_lecc_unittest.prefixFilenameOut+".lecc.csv"), true);
+
+    std::cout << "---------- MAIN TRAVERSAL ----------" << std::endl;
+    xg.set_jump_map(&jump_map);
+    xg.traverse();
 }
 
 

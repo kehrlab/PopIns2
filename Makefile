@@ -51,3 +51,6 @@ clean:
 
 purge:
 	rm -f $(OBJS) $(TARGET) *.gfa *.bfg_colors *.csv popins2.log
+
+metaclean:
+	rm -f *.gfa *.bfg_colors *.csv popins2.log
