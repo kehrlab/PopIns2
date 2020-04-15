@@ -33,6 +33,38 @@ void Traceback::add(const string &unitig, const bool startnode){
 }
 
 
+void Traceback::addFullSink(const string &unitig){
+
+    if(_d == 0x1){          // VISIT_PREDECESSOR
+
+        _contig = _contig + unitig;
+
+    }
+    else{                   // VISIT_SUCCESSOR (0x0)
+
+        _contig = unitig + _contig;
+
+    }
+}
+
+
+void Traceback::addN(){
+
+    string n_gap(_k, 'N');
+
+    if(_d == 0x1){          // VISIT_PREDECESSOR
+
+        _contig = _contig + n_gap;
+
+    }
+    else{                   // VISIT_SUCCESSOR (0x0)
+
+        _contig = n_gap + _contig;
+
+    }
+}
+
+
 void Traceback::write(ofstream &of, const size_t counter) const{
 
     try{

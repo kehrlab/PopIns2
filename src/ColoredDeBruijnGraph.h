@@ -82,7 +82,7 @@ private:
                 This recursive function contains the main logic for the traversal of the CCDBG.
     * @return   1 for further traversal, 0 for jump back into parent recursion level
     **/
-    uint8_t DFS(const UnitigColorMap<UnitigExtension> &ucm, const direction_t direction, Traceback &tb);
+    uint8_t DFS(const UnitigColorMap<UnitigExtension> &ucm, const direction_t direction, Traceback &tb, const bool jumped = false);
 
 
     void reset_dfs_states();
@@ -130,16 +130,16 @@ private:
      *          self-loop can inverse the traversal direction. This function introduces only a
      *          neglectable computational overhead though.
      * @param   partner is the LECC border Kmer that the traversal jumped to
-     * @param   lecc_id is the LECC ID which is to avoid for the following traversal
      * @return  a traversal direction (VISIT_SUCCESSOR or VISIT_PREDECESSOR) or 0x2 (ERROR STATE)
      */
-    uint8_t post_jump_continue_direction(const Kmer &parter, const unsigned lecc_id) const;
+    uint8_t post_jump_continue_direction(const UnitigColorMap<UnitigExtension> &ucm) const;
 
 
     /* DEBUG functions */
     inline void print_unitig_id(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); std::cout << data->getID() << std::endl;}
     inline unsigned get_unitig_id(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); return data->getID();}
     inline void print_unitig_seq(const UnitigColorMap<UnitigExtension> &ucm){std::cout << ucm.mappedSequenceToString() << std::endl;}
+    inline void print_unitig_ref_seq(const UnitigColorMap<UnitigExtension> &ucm){std::cout << ucm.referenceUnitigToString() << std::endl;}
     inline std::string get_unitig_seq(const UnitigColorMap<UnitigExtension> &ucm){return ucm.mappedSequenceToString();}
     inline void print_unitig_lecc(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); std::cout << data->getLECC() << std::endl;}
     inline unsigned get_unitig_lecc(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); return data->getLECC();}

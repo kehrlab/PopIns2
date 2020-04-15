@@ -66,7 +66,7 @@ uint8_t ExtendedCCDBG::traverse(){
 
             if(!DFS(ucm, VISIT_PREDECESSOR, tb)){
 
-                tb.add(ucm.mappedSequenceToString(), true);     // add startnode to final contig
+                tb.add(ucm.referenceUnitigToString(), true);     // add startnode to final contig
 
                 std::cout << get_unitig_id(ucm) << ": Added start kmer to TB." << std::endl; // DEBUG
 
@@ -82,7 +82,7 @@ uint8_t ExtendedCCDBG::traverse(){
 
             if(!DFS(ucm, VISIT_SUCCESSOR, tb)){
 
-                tb.add(ucm.mappedSequenceToString(), true);     // add startnode to final contig
+                tb.add(ucm.referenceUnitigToString(), true);     // add startnode to final contig
 
                 std::cout << get_unitig_id(ucm) << ": Added start kmer to TB." << std::endl; // DEBUG
 
@@ -102,7 +102,7 @@ uint8_t ExtendedCCDBG::traverse(){
 }
 
 
-uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const direction_t direction, Traceback &tb){
+uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const direction_t direction, Traceback &tb, const bool jumped){
 
     std::cout << get_unitig_id(ucm) << ": I am a neighbor." << std::endl; // DEBUG
 
@@ -125,11 +125,11 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                 std::cout << get_unitig_id(ucm) << ": I am a sink." << std::endl; // DEBUG
 
                 print_unitig_id(ucm);
-                print_unitig_seq(ucm);
+                print_unitig_ref_seq(ucm);
 
                 std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
 
-                tb.add(ucm.mappedSequenceToString());       // add unitig to final contig
+                jumped ? tb.addFullSink(ucm.referenceUnitigToString()) : tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
 
                 std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
 
@@ -141,11 +141,13 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
             std::cout << "*** ranked predecessors ***" << std::endl; // DEBUG
             for (auto &t : ranked_predecessors)
-                cout << t.first << " => " << t.second << endl;
+                cout << t.first << " => " << t.second << " (float => partner ID)" << endl;
 
             for (auto it = ranked_predecessors.cbegin(); it != ranked_predecessors.cend(); ++it){           // check all ranked neighbors starting from the best color fit
 
-                // traverse further (direct neighbors)
+                bool _was_direct_neighbor = false;
+
+                // traverse predecessors further (direct neighbors)
                 for (auto &pre : predecessors){
 
                     DataAccessor<UnitigExtension>* pre_da = pre.getData();
@@ -156,14 +158,16 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
                     if(pre_id==ranked_pre_id){
 
+                        _was_direct_neighbor = true;
+
                         if(!DFS(pre, VISIT_PREDECESSOR, tb)){       // if deeper recursion level retuns 0, then stop further traversal here
 
                             print_unitig_id(ucm);
-                            print_unitig_seq(ucm);
+                            print_unitig_ref_seq(ucm);
 
-                            std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
+                            std::cout << get_unitig_id(ucm) << ": I will step back." << std::endl; // DEBUG
 
-                            tb.add(ucm.mappedSequenceToString());       // add unitig to final contig
+                            tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
 
                             std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
 
@@ -173,8 +177,45 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                     }
                 }
 
-                // TODO: traverse further (jump)
+                // TODO: traverse predecessors further (jump)
+                if (!_was_direct_neighbor){
 
+                    uint64_t _border_hash = ucm.getMappedHead().rep().hash();
+
+                    jump_map_t::const_iterator cit = _jump_map_ptr->find(_border_hash);
+
+                    if (cit == _jump_map_ptr->cend()){
+                        cerr << "[popins2 merge] WARNING: ExtendedCCDBG::DFS() couldn't find a kmer to jump to." << endl;
+                        return 0;       // This will break the DFS at this point. Undefined behavior in higher recursion level. TODO: return better error codes in DFS().
+                    }
+
+                    const Kmer partner_kmer = cit->second;
+
+                    const UnitigColorMap<UnitigExtension> partner_unitig = this->find(partner_kmer, true);
+
+                    std::cout << get_unitig_id(ucm) << ": I will jump over a LECC to " << get_unitig_id(partner_unitig) << std::endl; // DEBUG
+
+                    // TEST: is post_jump_continue_direction() necessary?
+                    if(!DFS(partner_unitig, post_jump_continue_direction(partner_unitig), tb, true)){       // if deeper recursion level retuns 0, then stop further traversal here
+
+                        print_unitig_id(ucm);
+                        print_unitig_ref_seq(ucm);
+
+                        std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
+
+                        tb.addN();
+
+                        std::cout << get_unitig_id(ucm) << ": Added Ns to TB." << std::endl; // DEBUG
+
+                        tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
+
+                        std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+
+                        return 0;
+                    }
+                }
+
+                // if control flow reaches this point, for-loop continues with next best ranked predecessor
             }
         }
     }
@@ -194,11 +235,11 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                 std::cout << get_unitig_id(ucm) << ": I am a sink." << std::endl; // DEBUG
 
                 print_unitig_id(ucm);
-                print_unitig_seq(ucm);
+                print_unitig_ref_seq(ucm);
 
                 std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
 
-                tb.add(ucm.mappedSequenceToString());       // add unitig to final contig
+                jumped ? tb.addFullSink(ucm.referenceUnitigToString()) : tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
 
                 std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
 
@@ -210,11 +251,13 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
             std::cout << "*** ranked successors ***" << std::endl; // DEBUG
             for (auto &t : ranked_successors)
-                cout << t.first << " => " << t.second << endl;
+                cout << t.first << " => " << t.second << " (float => partner ID)" << endl;
 
             for (auto it = ranked_successors.cbegin(); it != ranked_successors.cend(); ++it){           // check all ranked neighbors starting from the best color fit
 
-                // traverse further (direct neighbors)
+                bool _was_direct_neighbor = false;
+
+                // traverse successors further (direct neighbors)
                 for (auto &suc : successors){
 
                     DataAccessor<UnitigExtension>* suc_da = suc.getData();
@@ -225,14 +268,16 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
                     if(suc_id==ranked_suc_id){
 
+                        _was_direct_neighbor = true;
+
                         if(!DFS(suc, VISIT_SUCCESSOR, tb)){         // if deeper recursion level retuns 0, then stop further traversal here
 
                             print_unitig_id(ucm);
-                            print_unitig_seq(ucm);
+                            print_unitig_ref_seq(ucm);
 
-                            std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
+                            std::cout << get_unitig_id(ucm) << ": I will step back." << std::endl; // DEBUG
 
-                            tb.add(ucm.mappedSequenceToString());       // add unitig to final contig
+                            tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
 
                             std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
 
@@ -242,8 +287,44 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                     }
                 }
 
-                // TODO: traverse further (jump)
+                // TODO: traverse successors further (jump)
+                if(!_was_direct_neighbor){
+                    uint64_t _border_hash = ucm.getMappedTail().rep().hash();
 
+                    jump_map_t::const_iterator cit = _jump_map_ptr->find(_border_hash);
+
+                    if (cit == _jump_map_ptr->cend()){
+                        cerr << "[popins2 merge] WARNING: ExtendedCCDBG::DFS() couldn't find a kmer to jump to." << endl;
+                        return 0;       // This will break the DFS at this point. Undefined behavior in higher recursion level. TODO: return better error codes in DFS().
+                    }
+
+                    const Kmer partner_kmer = cit->second;
+
+                    const UnitigColorMap<UnitigExtension> partner_unitig = this->find(partner_kmer, true);
+
+                    std::cout << get_unitig_id(ucm) << ": I will jump over a LECC to " << get_unitig_id(partner_unitig) << std::endl; // DEBUG
+
+                    // TEST: is post_jump_continue_direction() necessary?
+                    if(!DFS(partner_unitig, post_jump_continue_direction(partner_unitig), tb, true)){       // if deeper recursion level retuns 0, then stop further traversal here
+
+                        print_unitig_id(ucm);
+                        print_unitig_ref_seq(ucm);
+
+                        std::cout << get_unitig_id(ucm) << ": I will step back." << std::endl; // DEBUG
+
+                        tb.addN();
+
+                        std::cout << get_unitig_id(ucm) << ": Added Ns to TB." << std::endl; // DEBUG
+
+                        tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
+
+                        std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+
+                        return 0;
+                    }
+                }
+
+                // if control flow reaches this point, for-loop continues with next best ranked successor
             }
         }
     }
@@ -508,19 +589,17 @@ inline float ExtendedCCDBG::entropy(const std::string &sequence){
 }
 
 
-inline uint8_t ExtendedCCDBG::post_jump_continue_direction(const Kmer &partner, const unsigned lecc_id) const{
+inline uint8_t ExtendedCCDBG::post_jump_continue_direction(const UnitigColorMap<UnitigExtension> &ucm) const{
 
     bool go_bw = true;
     bool go_fw = true;
-
-    UnitigMap<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, true> ucm = this->find(partner, true);   // const ucm
 
     for (auto &pre : ucm.getPredecessors()){
 
         const DataAccessor<UnitigExtension>* da_pre = pre.getData();
         const UnitigExtension* ue_pre = da_pre->getData(pre);
 
-        if(ue_pre->getLECC() == lecc_id){
+        if(ue_pre->getLECC() != 0){
             go_bw = false;
             break;
         }
@@ -534,7 +613,7 @@ inline uint8_t ExtendedCCDBG::post_jump_continue_direction(const Kmer &partner, 
         const DataAccessor<UnitigExtension>* da_suc = suc.getData();
         const UnitigExtension* ue_suc = da_suc->getData(suc);
 
-        if(ue_suc->getLECC() == lecc_id){
+        if(ue_suc->getLECC() != 0){
             go_fw = false;
             break;
         }
@@ -544,9 +623,6 @@ inline uint8_t ExtendedCCDBG::post_jump_continue_direction(const Kmer &partner, 
     // if (!go_bw && !go_fw) should never happen; Kmer "partner" is always on a LECC border
     return (go_bw && !go_fw) ? VISIT_PREDECESSOR : 0x2;
 }
-
-
-
 
 
 
