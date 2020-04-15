@@ -177,7 +177,7 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                     }
                 }
 
-                // TODO: traverse predecessors further (jump)
+                // traverse predecessors further (jump)
                 if (!_was_direct_neighbor){
 
                     uint64_t _border_hash = ucm.getMappedHead().rep().hash();
@@ -194,6 +194,8 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                     const UnitigColorMap<UnitigExtension> partner_unitig = this->find(partner_kmer, true);
 
                     std::cout << get_unitig_id(ucm) << ": I will jump over a LECC to " << get_unitig_id(partner_unitig) << std::endl; // DEBUG
+
+                    // TODO: catch error in post_jump_continue_direction() here
 
                     // TEST: is post_jump_continue_direction() necessary?
                     if(!DFS(partner_unitig, post_jump_continue_direction(partner_unitig), tb, true)){       // if deeper recursion level retuns 0, then stop further traversal here
@@ -287,7 +289,7 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                     }
                 }
 
-                // TODO: traverse successors further (jump)
+                // traverse successors further (jump)
                 if(!_was_direct_neighbor){
                     uint64_t _border_hash = ucm.getMappedTail().rep().hash();
 
@@ -303,6 +305,8 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                     const UnitigColorMap<UnitigExtension> partner_unitig = this->find(partner_kmer, true);
 
                     std::cout << get_unitig_id(ucm) << ": I will jump over a LECC to " << get_unitig_id(partner_unitig) << std::endl; // DEBUG
+
+                    // TODO: catch error in post_jump_continue_direction() here
 
                     // TEST: is post_jump_continue_direction() necessary?
                     if(!DFS(partner_unitig, post_jump_continue_direction(partner_unitig), tb, true)){       // if deeper recursion level retuns 0, then stop further traversal here
