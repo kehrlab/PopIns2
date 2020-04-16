@@ -76,7 +76,8 @@ public:
     /**
      *  Function to write the current contig
      *  @param  of is a file stream to write the contig into
-    */
+     *  @param  counter is an identifier for the current contig
+     */
     void write(ofstream &of, const size_t counter) const;
 
     string print(){cout << _contig << endl; return _contig;}    // DEBUG

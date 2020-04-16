@@ -58,7 +58,7 @@ public:
     /**
      *          Function to test whether a new path should be included into the setcover
      *  @brief  The function checks whether there is enough novel kmer contribution
-     *          of the vurrent path with respect to the setcover. If true then
+     *          of the current path with respect to the setcover. If true then
      *          the elements of the current path are flushed into the setcover.
      *  @return bool; true if path was incorporated into the setcover
      */

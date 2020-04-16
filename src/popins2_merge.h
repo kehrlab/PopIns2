@@ -113,6 +113,7 @@ int popins2_merge(int argc, char const *argv[]){
     msg.str("");
     msg << "Traversing paths in CCDBG";
     printTimeStatus(msg);
+    // TODO: create ofstream here for Traceback::write()
     exg.traverse();
 
     // ==============================
