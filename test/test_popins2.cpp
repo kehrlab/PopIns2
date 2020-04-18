@@ -7,6 +7,7 @@
 #include <../src/ColoredDeBruijnGraph.h>
 #include <../src/LECC_Finder.h>
 
+
 typedef std::unordered_map<Kmer, bool, KmerHash> border_map_t;
 
 typedef uint8_t direction_t;
@@ -277,7 +278,7 @@ SEQAN_DEFINE_TEST(simple_lecc_unittest){
 
     std::cout << "---------- MAIN TRAVERSAL ----------" << std::endl;
     xg.set_jump_map(&jump_map);
-    xg.traverse();
+    xg.traverse(62);
 }
 
 
