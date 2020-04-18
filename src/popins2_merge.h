@@ -28,24 +28,27 @@ int popins2_merge(int argc, char const *argv[]){
     // ==============================
     // Argument Parser
     // ==============================
-    CCDBG_Build_opt ccdbg_build_opt;
-    CCDBG_Build_opt* p_ccdbg_build_opt = &ccdbg_build_opt;
-    MergeOptions mo(p_ccdbg_build_opt);
-
+    MergeOptions mo;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(mo, argc, argv);
+
     // catch parse error
     if (res != seqan::ArgumentParser::PARSE_OK){
         if (res == seqan::ArgumentParser::PARSE_HELP)
             return 0;
-        cerr << "seqan::ArgumentParser::PARSE_ERROR in module popins2 merge" << endl;
+        cerr << "[popins2 merge] seqan::ArgumentParser::PARSE_ERROR" << endl;
         return 1;
     }
+
+    CCDBG_Build_opt ccdbg_build_opt;
+    setupBifrostOptions(mo, ccdbg_build_opt);
+
+    printMergeOptions(mo);
+
+    std::ostringstream msg;
 
     // ==============================
     // Bifrost
     // ==============================
-    std::ostringstream msg;
-    cout << "k=" << ccdbg_build_opt.k << endl;
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
 
     msg.str("");
@@ -64,15 +67,15 @@ int popins2_merge(int argc, char const *argv[]){
     exg.buildColors(ccdbg_build_opt);
 
     // ==============================
-    // ~~~ experimental ~~~
+    // PopIns2 merge
     // ==============================
     msg.str("");
-    msg << "Assigning ID to every UnitigColorMap";
+    msg << "Assigning ID to every unitig";
     printTimeStatus(msg);
     exg.init_ids();
 
     msg.str("");
-    msg << "Assigning entropy to each UnitigColorMap";
+    msg << "Assigning entropy to every unitig";
     printTimeStatus(msg);
     exg.init_entropy();
 
@@ -88,7 +91,7 @@ int popins2_merge(int argc, char const *argv[]){
     jump_map_t* jump_map_ptr;
 
     msg.str("");
-    msg << "Computing jumps though LECCs";
+    msg << "Computing jump pairs though LECCs";
     printTimeStatus(msg);
     bool find_jumps_successful = F.find_jumps(jump_map, nb_lecc);
 
@@ -104,17 +107,18 @@ int popins2_merge(int argc, char const *argv[]){
     printTimeStatus(msg);
     F.write();
 
-    /*DEBUG*/ std::cout << "---------- ALL JUMP PAIRS ----------" << std::endl;
-    /*DEBUG*/ for (jump_map_t::const_iterator cit = jump_map.cbegin(); cit != jump_map.cend(); ++cit)
-    /*DEBUG*/     cout << cit->first << " -> " << cit->second.toString() << endl;
-    /*DEBUG*/ std::cout << "------------------------------------" << std::endl;
-    /*DEBUG*/ cout << endl;
+    /*DEBUG
+    std::cout << "---------- ALL JUMP PAIRS ----------" << std::endl;
+    for (jump_map_t::const_iterator cit = jump_map.cbegin(); cit != jump_map.cend(); ++cit)
+        cout << cit->first << " -> " << cit->second.toString() << endl;
+    std::cout << "------------------------------------" << std::endl;
+    DEBUG*/
 
     msg.str("");
     msg << "Traversing paths in CCDBG";
     printTimeStatus(msg);
     // TODO: create ofstream here for Traceback::write()
-    exg.traverse();
+    exg.traverse(mo.setcover_min_kmers);
 
     // ==============================
     // Bifrost

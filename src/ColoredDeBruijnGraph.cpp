@@ -31,7 +31,7 @@ void ExtendedCCDBG::print_ids(){
 }
 
 
-uint8_t ExtendedCCDBG::traverse(){
+uint8_t ExtendedCCDBG::traverse(const int setcover_threshold){
 
     // sanity checks
     if (!is_id_init()){
@@ -49,7 +49,7 @@ uint8_t ExtendedCCDBG::traverse(){
         return 0;
     }
 
-    Setcover sc;
+    Setcover sc(setcover_threshold);
 
     // main routine
     for (auto &ucm : *this){
@@ -129,10 +129,6 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
             if (!predecessors.hasPredecessors()){
 
                 std::cout << get_unitig_id(ucm) << ": I am a sink." << std::endl; // DEBUG
-
-                print_unitig_id(ucm);
-                print_unitig_ref_seq(ucm);
-
                 std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
 
                 jumped ? tb.addFullSink(ucm.referenceUnitigToString()) : tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
@@ -147,9 +143,11 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
             ordered_multimap_t ranked_predecessors;
             rank_neighbors(ranked_predecessors, ucm, predecessors, VISIT_PREDECESSOR);
 
-            std::cout << "*** ranked predecessors ***" << std::endl; // DEBUG
+            /*DEBUG
+            std::cout << "*** ranked predecessors ***" << std::endl;
             for (auto &t : ranked_predecessors)
                 cout << t.first << " => " << t.second << " (float => partner ID)" << endl;
+            DEBUG*/
 
             for (auto it = ranked_predecessors.cbegin(); it != ranked_predecessors.cend(); ++it){           // check all ranked neighbors starting from the best color fit
 
@@ -169,9 +167,6 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                         _was_direct_neighbor = true;
 
                         if(!DFS(pre, VISIT_PREDECESSOR, tb, sc)){       // if deeper recursion level retuns 0, then stop further traversal here
-
-                            print_unitig_id(ucm);
-                            print_unitig_ref_seq(ucm);
 
                             std::cout << get_unitig_id(ucm) << ": I will step back." << std::endl; // DEBUG
 
@@ -210,9 +205,6 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                     // TEST: is post_jump_continue_direction() necessary?
                     if(!DFS(partner_unitig, post_jump_continue_direction(partner_unitig), tb, sc, true)){       // if deeper recursion level retuns 0, then stop further traversal here
 
-                        print_unitig_id(ucm);
-                        print_unitig_ref_seq(ucm);
-
                         std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
 
                         tb.addN();
@@ -247,10 +239,6 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
             if (!successors.hasSuccessors()){
 
                 std::cout << get_unitig_id(ucm) << ": I am a sink." << std::endl; // DEBUG
-
-                print_unitig_id(ucm);
-                print_unitig_ref_seq(ucm);
-
                 std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
 
                 jumped ? tb.addFullSink(ucm.referenceUnitigToString()) : tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
@@ -265,9 +253,11 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
             ordered_multimap_t ranked_successors;
             rank_neighbors(ranked_successors, ucm, successors, VISIT_SUCCESSOR);
 
-            std::cout << "*** ranked successors ***" << std::endl; // DEBUG
+            /*DEBUG
+            std::cout << "*** ranked successors ***" << std::endl;
             for (auto &t : ranked_successors)
                 cout << t.first << " => " << t.second << " (float => partner ID)" << endl;
+            DEBUG*/
 
             for (auto it = ranked_successors.cbegin(); it != ranked_successors.cend(); ++it){           // check all ranked neighbors starting from the best color fit
 
@@ -287,9 +277,6 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
                         _was_direct_neighbor = true;
 
                         if(!DFS(suc, VISIT_SUCCESSOR, tb, sc)){         // if deeper recursion level retuns 0, then stop further traversal here
-
-                            print_unitig_id(ucm);
-                            print_unitig_ref_seq(ucm);
 
                             std::cout << get_unitig_id(ucm) << ": I will step back." << std::endl; // DEBUG
 
@@ -326,9 +313,6 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
                     // TEST: is post_jump_continue_direction() necessary?
                     if(!DFS(partner_unitig, post_jump_continue_direction(partner_unitig), tb, sc, true)){       // if deeper recursion level retuns 0, then stop further traversal here
-
-                        print_unitig_id(ucm);
-                        print_unitig_ref_seq(ucm);
 
                         std::cout << get_unitig_id(ucm) << ": I will step back." << std::endl; // DEBUG
 
@@ -395,21 +379,18 @@ inline void ExtendedCCDBG::rank_neighbors(ordered_multimap_t &omm, const UnitigC
             da = pre.getData();
             data = da->getData(pre);
 
-            /*DEBUG*/ cout << "PRE   ID: " << get_unitig_id(pre)   << endl;
-            /*DEBUG*/ cout << "PRE LECC: " << get_unitig_lecc(pre) << endl;
-
             // if neighbor is in LECC consider a jump
             if (data->getLECC()){
 
                 const uint64_t border_hash = ucm.getMappedHead().rep().hash();      // ucm is border here
 
-                /*DEBUG*/ cout << "----------------------------" << endl;
-                /*DEBUG*/ DataAccessor<UnitigExtension>* da_ucm = ucm.getData();
-                /*DEBUG*/ UnitigExtension* data_ucm = da_ucm->getData(ucm);
-                /*DEBUG*/ cout << "BORDER   ID: " << data_ucm->getID()                           << endl;
-                /*DEBUG*/ cout << "BORDER KMER: " << ucm.getMappedHead().rep().toString()        << endl;
-                /*DEBUG*/ cout << "BORDER HASH: " << border_hash                                 << endl;
-                /*DEBUG*/ cout << "----------------------------" << endl;
+                /*DEBUG
+                cout << "----------------------------"                              << endl;
+                cout << "BORDER   ID: " << get_unitig_id(ucm)                       << endl;
+                cout << "BORDER KMER: " << ucm.getMappedHead().rep().toString()     << endl;
+                cout << "BORDER HASH: " << border_hash                              << endl;
+                cout << "----------------------------"                              << endl;
+                DEBUG*/
 
                 // assume having a pointer jump_map_ptr to a jump_map_t (std::unordered_map<uint64_t, Kmer>) in this scope
                 std::unordered_map<uint64_t, Kmer>::const_iterator cit = _jump_map_ptr->find(border_hash);
@@ -445,19 +426,18 @@ inline void ExtendedCCDBG::rank_neighbors(ordered_multimap_t &omm, const UnitigC
             da = suc.getData();
             data = da->getData(suc);
 
-            /*DEBUG*/ cout << "SUC   ID: " << get_unitig_id(suc)   << endl;
-            /*DEBUG*/ cout << "SUC LECC: " << get_unitig_lecc(suc) << endl;
-
             // if neighbor is in LECC consider a jump
             if (data->getLECC()){
 
                 const uint64_t border_hash = ucm.getMappedTail().rep().hash();      // ucm is border here
 
-                /*DEBUG*/ cout << "----------------------------" << endl;
-                /*DEBUG*/ cout << "BORDER   ID: " << get_unitig_id(ucm)                          << endl;
-                /*DEBUG*/ cout << "BORDER KMER: " << ucm.getMappedHead().rep().toString()        << endl;
-                /*DEBUG*/ cout << "BORDER HASH: " << border_hash                                 << endl;
-                /*DEBUG*/ cout << "----------------------------" << endl;
+                /*DEBUG
+                cout << "----------------------------"                              << endl;
+                cout << "BORDER   ID: " << get_unitig_id(ucm)                       << endl;
+                cout << "BORDER KMER: " << ucm.getMappedHead().rep().toString()     << endl;
+                cout << "BORDER HASH: " << border_hash                              << endl;
+                cout << "----------------------------"                              << endl;
+                DEBUG*/
 
                 // assume having a pointer jump_map_ptr to a jump_map_t (std::unordered_map<uint64_t, Kmer>) in this scope
                 std::unordered_map<uint64_t, Kmer>::const_iterator cit = _jump_map_ptr->find(border_hash);
@@ -517,10 +497,10 @@ inline float ExtendedCCDBG::get_neighbor_overlap(const UnitigColorMap<UnitigExte
         for (; cit != tail_colors->end(); ++cit)
             tail_color_bits[cit.getColorID()] = true;
 
-        /* DEBUG */ DataAccessor<UnitigExtension>* da1 = head_ucm.getData(); UnitigExtension* data1 = da1->getData(head_ucm); unsigned id1 = data1->getID();
-        /* DEBUG */ DataAccessor<UnitigExtension>* da2 = tail_ucm.getData(); UnitigExtension* data2 = da2->getData(tail_ucm); unsigned id2 = data2->getID();
-        /* DEBUG */ std::cout << "HEAD COLORS (OF UNITIG ID " << /*head_ucm.mappedSequenceToString()*/ id1 << "): " ; prettyprint::print(head_color_bits);
-        /* DEBUG */ std::cout << "TAIL COLORS (OF UNITIG ID " << /*tail_ucm.mappedSequenceToString()*/ id2 << "): " ; prettyprint::print(tail_color_bits);
+        /*DEBUG
+        std::cout << "HEAD COLORS (OF UNITIG ID " << get_unitig_id(head_ucm) << "): " ; prettyprint::print(head_color_bits);
+        std::cout << "TAIL COLORS (OF UNITIG ID " << get_unitig_id(tail_ucm) << "): " ; prettyprint::print(tail_color_bits);
+        DEBUG*/
 
         // calculate Jaccard index
         unsigned numerator = 0;
@@ -536,7 +516,7 @@ inline float ExtendedCCDBG::get_neighbor_overlap(const UnitigColorMap<UnitigExte
         }
 
         if(!denominator)
-            cerr << "[popins2 merge] WARNING: Denominator should never be zero. There has to be at least one color in the graph. Something went wrong!" << endl;
+            cerr << "[popins2 merge] WARNING: Denominator should never be zero. There has to be at least one color in the graph." << endl;
 
         return (float)numerator / (float)denominator;
 

@@ -57,10 +57,12 @@ public:
 
     /**
      *          This function traverses the graph.
+     * @param   setcover_threshold is the required minimum amount of unseen kmers
+     *          to include a path into the final solution.
      * @return  1 successful execution
      *          0 sanity check(s) failed
      */
-    uint8_t traverse();
+    uint8_t traverse(const int setcover_threshold);
 
 
     void set_jump_map(jump_map_t* m) {_jump_map_ptr = m;}
@@ -150,17 +152,26 @@ private:
     uint8_t post_jump_continue_direction(const UnitigColorMap<UnitigExtension> &ucm) const;
 
 
-    /* DEBUG functions */
-    inline void print_unitig_id(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); std::cout << data->getID() << std::endl;}
-    inline unsigned get_unitig_id(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); return data->getID();}
-    inline void print_unitig_seq(const UnitigColorMap<UnitigExtension> &ucm){std::cout << ucm.mappedSequenceToString() << std::endl;}
-    inline void print_unitig_ref_seq(const UnitigColorMap<UnitigExtension> &ucm){std::cout << ucm.referenceUnitigToString() << std::endl;}
-    inline std::string get_unitig_seq(const UnitigColorMap<UnitigExtension> &ucm){return ucm.mappedSequenceToString();}
-    inline void print_unitig_lecc(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); std::cout << data->getLECC() << std::endl;}
-    inline unsigned get_unitig_lecc(const UnitigColorMap<UnitigExtension> &ucm){DataAccessor<UnitigExtension>* da = ucm.getData(); UnitigExtension* data = da->getData(ucm); return data->getLECC();}
-    inline void print_len_size(const UnitigColorMap<UnitigExtension> &ucm){
-        /* DEBUG*/ std::cout << "LEN : " << ucm.len                       << std::endl;
-        /* DEBUG*/ std::cout << "SIZE: " << ucm.size - (this->getK() - 1) << std::endl;
+    // -------------------
+    // | Debug functions |
+    // -------------------
+
+    inline unsigned get_unitig_id(const UnitigColorMap<UnitigExtension> &ucm){
+        DataAccessor<UnitigExtension>* da = ucm.getData();
+        UnitigExtension* data = da->getData(ucm);
+        return data->getID();
+    }
+
+
+    inline std::string get_unitig_seq(const UnitigColorMap<UnitigExtension> &ucm){
+        return ucm.mappedSequenceToString();
+    }
+
+
+    inline unsigned get_unitig_lecc(const UnitigColorMap<UnitigExtension> &ucm){
+        DataAccessor<UnitigExtension>* da = ucm.getData();
+        UnitigExtension* data = da->getData(ucm);
+        return data->getLECC();
     }
 };
 

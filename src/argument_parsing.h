@@ -1,17 +1,17 @@
-/*!
-* \file    src/argument_parsing.h
-* \brief   Library for the command line parsing, user interaction and directory navigation.
-*
-*/
+/**
+ * @file    src/argument_parsing.h
+ * @brief   Library for the command line parsing, user interaction and directory navigation.
+ *
+ */
 #ifndef ARGUMENT_PARSING_H_
 #define ARGUMENT_PARSING_H_
 
 
 #include "util.h"
-
 #include <bifrost/ColoredCDBG.hpp>
 #include <seqan/arg_parse.h>
 #include <vector>
+
 using namespace std;
 
 
@@ -38,25 +38,55 @@ struct AssemblyOptions {
     bool use_velvet;
 
     AssemblyOptions () :
-        matepairFile(""), referenceFile(""), prefix("."), sampleID(""),
-        kmerLength(47), humanSeqs(maxValue<int>()), threads(1), memory("768M"), use_velvet(false)
+        matepairFile(""),
+        referenceFile(""),
+        prefix("."),
+        sampleID(""),
+        kmerLength(47),
+        humanSeqs(maxValue<int>()),
+        threads(1),
+        memory("768M"),
+        use_velvet(false)
     {}
 };
 
 
 struct MergeOptions {
+    /************
+    *  Bifrost  *
+    ************/
+    bool verbose;
 
-    CCDBG_Build_opt* ccdbg_build_opt;
+    size_t nb_threads;
 
-    string outdir = "";
-    signed min_kmers = -1;
+    vector<string> filename_seq_in;
+    vector<string> filename_ref_in;
 
-    MergeOptions () :
-        ccdbg_build_opt(nullptr)
-    {}
+    int k;
+    int g;
 
-    MergeOptions (CCDBG_Build_opt* g) :
-        ccdbg_build_opt(g)
+    bool clipTips;
+    bool deleteIsolated;
+    bool useMercyKmers;
+
+    string prefixFilenameOut;
+
+    /************
+    *  PopIns2  *
+    ************/
+    int setcover_min_kmers;
+
+    MergeOptions () :       // the initializer list defines the program defaults
+        verbose(false),
+        nb_threads(1),
+        k(63),
+        g(23),
+        clipTips(false),
+        deleteIsolated(false),
+        useMercyKmers(false),
+        prefixFilenameOut("ccdbg"),
+
+        setcover_min_kmers(62)
     {}
 };
 
@@ -65,8 +95,8 @@ struct MergeOptions {
 // Option transfer functions
 // =========================
 
-bool getOptionValues(AssemblyOptions & options, ArgumentParser const & parser)
-{
+bool getOptionValues(AssemblyOptions & options, ArgumentParser const & parser){
+
     getArgumentValue(options.mappingFile, parser, 0);
 
     if (isSet(parser, "prefix"))
@@ -95,53 +125,57 @@ bool getOptionValues(AssemblyOptions & options, ArgumentParser const & parser)
 
 
 bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
-    // Transfer program arguments from command line object to Bifrost's graph options object.
-    /* This design recommendation by seqan is absolutely overengineered here, but it leaves the possibility to extend
-       the cmd line options object with variables that do not belong to the Bifrost graph. */
 
-    // ---------- Setup merge parameter ----------
-    if (seqan::isSet(parser, "outdir")){
-        seqan::getOptionValue(options.outdir, parser, "outdir");
-        checkPathSyntax(options.outdir);
-    }
-    else {options.outdir = "";} // default is set here
-
-    if (seqan::isSet(parser, "min-kmers")) seqan::getOptionValue(options.min_kmers, parser, "min-kmers");
-    else {options.min_kmers = 64;} // default is set here
-
-    // ---------- Setup graph parameter ----------
-    if (seqan::isSet(parser, "verbose")) seqan::getOptionValue(options.ccdbg_build_opt->verbose, parser, "verbose");
-  //if (seqan::isSet(parser, "nb_unique_kmers")) seqan::getOptionValue(options.ccdbg_build_opt->nb_unique_kmers, parser, "nb_unique_kmers");
-  //if (seqan::isSet(parser, "nb_non_unique_kmers")) seqan::getOptionValue(options.ccdbg_build_opt->nb_non_unique_kmers, parser, "nb_non_unique_kmers");
-    if (seqan::isSet(parser, "kmer-length")) seqan::getOptionValue(options.ccdbg_build_opt->k, parser, "kmer-length");
-    if (seqan::isSet(parser, "minimizer-length")) seqan::getOptionValue(options.ccdbg_build_opt->g, parser, "minimizer-length");
-    if (seqan::isSet(parser, "threads")) seqan::getOptionValue(options.ccdbg_build_opt->nb_threads, parser, "threads");
-    if (seqan::isSet(parser, "input-seq-files")) {
+    if (isSet(parser, "verbose"))
+        getOptionValue(options.verbose, parser, "verbose");
+    if (isSet(parser, "threads"))
+        getOptionValue(options.nb_threads, parser, "threads");
+    if (isSet(parser, "input-seq-files")){
         string indir;
-        seqan::getOptionValue(indir, parser, "input-seq-files");
-        getFastx(options.ccdbg_build_opt->filename_seq_in, indir, options.ccdbg_build_opt->verbose);
+        getOptionValue(indir, parser, "input-seq-files");
+        getFastx(options.filename_seq_in, indir, options.verbose);
     }
-    if (seqan::isSet(parser, "input-ref-files")) {
+    if (isSet(parser, "input-ref-files")){
         string indir;
-        seqan::getOptionValue(indir, parser, "input-ref-files");
-        getFastx(options.ccdbg_build_opt->filename_ref_in, indir, options.ccdbg_build_opt->verbose);
+        getOptionValue(indir, parser, "input-ref-files");
+        getFastx(options.filename_ref_in, indir, options.verbose);
     }
-    if (!seqan::isSet(parser, "input-seq-files") && !seqan::isSet(parser, "input-ref-files")){
-        std::cout << "[Argparse Error]: At least one of --input-seq-files or --input-ref-files has to be specified." << std::endl;
-        return false;
-    }
-    if (seqan::isSet(parser, "clip-tips")) seqan::getOptionValue(options.ccdbg_build_opt->clipTips, parser, "clip-tips");
-    if (seqan::isSet(parser, "del-isolated")) seqan::getOptionValue(options.ccdbg_build_opt->deleteIsolated, parser, "del-isolated");
-
-    // This name defines the prefix for the GFA and bfg_colors file. It is currently not a parameter of the parser.
-    if (options.outdir == ""){
-        options.ccdbg_build_opt->prefixFilenameOut = "ccdbg";
-    }
-    else {
-        options.ccdbg_build_opt->prefixFilenameOut = options.outdir+"ccdbg";
-    }
+    if (isSet(parser, "kmer-length"))
+        getOptionValue(options.k, parser, "kmer-length");
+    if (isSet(parser, "minimizer-length"))
+        getOptionValue(options.g, parser, "minimizer-length");
+    if (isSet(parser, "clip-tips"))
+        getOptionValue(options.clipTips, parser, "clip-tips");
+    if (isSet(parser, "del-isolated"))
+        getOptionValue(options.deleteIsolated, parser, "del-isolated");
+    if (isSet(parser, "mercy-kmers"))
+        getOptionValue(options.useMercyKmers, parser, "mercy-kmers");
+    if (isSet(parser, "outputfile-prefix"))
+        getOptionValue(options.prefixFilenameOut, parser, "outputfile-prefix");
+    if (isSet(parser, "setcover-min-kmers"))
+        getOptionValue(options.setcover_min_kmers, parser, "setcover-min-kmers");
 
     return true;
+}
+
+
+/**
+ *          This function transfers all relevant options of the merge module to
+ *          a CCDBG_Build_opt instance.
+ * @param   options is an options instance of the merge module
+ * @param   graph_opt is an options instance of Bifrost
+ */
+void setupBifrostOptions(const MergeOptions &options, CCDBG_Build_opt &graph_opt){
+    graph_opt.verbose           = options.verbose;
+    graph_opt.nb_threads        = options.nb_threads;
+    graph_opt.filename_seq_in   = options.filename_seq_in;
+    graph_opt.filename_ref_in   = options.filename_ref_in;
+    graph_opt.k                 = options.k;
+    graph_opt.g                 = options.g;
+    graph_opt.clipTips          = options.clipTips;
+    graph_opt.deleteIsolated    = options.deleteIsolated;
+    graph_opt.useMercyKmers     = options.useMercyKmers;
+    graph_opt.prefixFilenameOut = options.prefixFilenameOut;
 }
 
 
@@ -149,20 +183,16 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
 // Hide options functions
 // =========================
 
-void
-setHiddenOptions(ArgumentParser & parser, bool hide, AssemblyOptions &)
-{
-   hideOption(parser, "matePair", hide);
-   hideOption(parser, "kmerLength", hide);
+void setHiddenOptions(ArgumentParser & parser, bool hide, AssemblyOptions &){
+    hideOption(parser, "matePair", hide);
+    hideOption(parser, "kmerLength", hide);
 }
 
 
 void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MergeOptions &){
-
-    seqan::hideOption(parser, "g", hide);
-    seqan::hideOption(parser, "m", hide);
-  //seqan::hideOption(parser, "n", hide);
-  //seqan::hideOption(parser, "N", hide);
+    hideOption(parser, "minimizer-length",   hide);
+    hideOption(parser, "setcover-min-kmers", hide);
+    hideOption(parser, "mercy-kmers",        hide);
 }
 
 
@@ -170,8 +200,7 @@ void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MergeOptions &){
 // Functions setupParser()
 // ==========================================================================
 
-void setupParser(ArgumentParser & parser, AssemblyOptions & options)
-{
+void setupParser(ArgumentParser & parser, AssemblyOptions & options){
     setShortDescription(parser, "Assembly of unmapped reads.");
     setVersion(parser, VERSION);
     setDate(parser, DATE);
@@ -220,12 +249,12 @@ void setupParser(ArgumentParser & parser, AssemblyOptions & options)
 }
 
 
-/*!
-* \fn       void setupParser(seqan::ArgumentParser &parser, MergeOptions &options)
-* \brief    Function handles the input parsing for ColoredCDBG.
-*/
+/**
+ *          Function to handle the input parsing for the popins2 merge module
+ * @param   parser is a seqan argument parser instance
+ * @param   options is a struct to store the input arguments for the merge module
+ */
 void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
-
     // Setup meta-information
     seqan::setShortDescription(parser, "Build a colored and compacted de Bruijn Graph (CCDBG)");
     seqan::setVersion(parser, VERSION);
@@ -233,36 +262,30 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::addUsageLine(parser, "\\--input-{seq|ref}-files DIR [OPTIONS] \\fP ");
 
     // Setup options
-    seqan::addSection(parser, "Input/output options");
-    seqan::addOption(parser, seqan::ArgParseOption("s", "input-seq-files", "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
-    seqan::addOption(parser, seqan::ArgParseOption("r", "input-ref-files", "Source directory with reference FASTA/Q files (will not be filtered)", seqan::ArgParseArgument::STRING, "DIR"));
-    seqan::addOption(parser, seqan::ArgParseOption("o", "outdir", "Specify a directory for the output files. Default: current working directory.", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addSection(parser, "I/O options");
+    seqan::addOption(parser, seqan::ArgParseOption("s",   "input-seq-files",   "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("r",   "input-ref-files",   "Source directory with reference FASTA/Q files (no abundance filter)", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("p",   "outputfile-prefix", "Specify a prefix for the output files", seqan::ArgParseArgument::STRING, "STRING"));
 
     seqan::addSection(parser, "Algorithm options");
-  //seqan::addOption(parser, seqan::ArgParseOption("n", "unique-kmers", "Amount of unique kmers.", seqan::ArgParseArgument::INTEGER, "INT"));
-  //seqan::addOption(parser, seqan::ArgParseOption("N", "non-unique-kmers", "Amount of non-unique kmers.", seqan::ArgParseArgument::INTEGER, "INT"));
-    seqan::addOption(parser, seqan::ArgParseOption("k", "kmer-length", "K-mer length for the dBG construction", seqan::ArgParseArgument::INTEGER, "INT"));
-    seqan::addOption(parser, seqan::ArgParseOption("g", "minimizer-length", "Minimizer-length for the dBG construction", seqan::ArgParseArgument::INTEGER, "INT"));
-    seqan::addOption(parser, seqan::ArgParseOption("v", "verbose", "Print more output"));
-    seqan::addOption(parser, seqan::ArgParseOption("i", "clip-tips", "Clip tips shorter than k k-mers in length"));
-    seqan::addOption(parser, seqan::ArgParseOption("d", "del-isolated", "Delete isolated contigs shorter than k k-mers in length"));
-    seqan::addOption(parser, seqan::ArgParseOption("m", "min-kmers", "Minimum amount of novel k-mers to include a path into the set cover", seqan::ArgParseArgument::INTEGER, "INT"));
+    seqan::addOption(parser, seqan::ArgParseOption("k", "kmer-length",        "Kmer length for the dBG construction", seqan::ArgParseArgument::INTEGER, "INT"));
+    seqan::addOption(parser, seqan::ArgParseOption("g", "minimizer-length",   "Minimizer length for the dBG construction", seqan::ArgParseArgument::INTEGER, "INT"));
+    seqan::addOption(parser, seqan::ArgParseOption("v", "verbose",            "Print more output"));
+    seqan::addOption(parser, seqan::ArgParseOption("i", "clip-tips",          "Clip tips shorter than k kmers in length"));
+    seqan::addOption(parser, seqan::ArgParseOption("d", "del-isolated",       "Delete isolated contigs shorter than k kmers in length"));
+    seqan::addOption(parser, seqan::ArgParseOption("x", "mercy-kmers",        "Keep low coverage k-mers (cov=1) connecting tips of the graph"));
+    seqan::addOption(parser, seqan::ArgParseOption("m", "setcover-min-kmers", "Minimum amount of unseen kmers to include a path into the set cover", seqan::ArgParseArgument::INTEGER, "INT"));
 
     seqan::addSection(parser, "Compute resource options");
     seqan::addOption(parser, seqan::ArgParseOption("t", "threads", "Amount of threads for parallel processing", seqan::ArgParseArgument::INTEGER, "INT"));
 
     // Setup option constraints
-    // input (-s/-r) is constrained at getOptionValues()
-  //seqan::setRequired(parser, "input-seq-files", true);
-  //seqan::setRequired(parser, "output-file", true);
+    seqan::setDefaultValue(parser, "p",   options.prefixFilenameOut);
+    seqan::setDefaultValue(parser, "k",   options.k);
+    seqan::setDefaultValue(parser, "g",   options.g);
+    seqan::setDefaultValue(parser, "m",   options.setcover_min_kmers);
+    seqan::setDefaultValue(parser, "t",   options.nb_threads);
 
-    seqan::setDefaultValue(parser, "k", "63");
-    seqan::setDefaultValue(parser, "g", "23");
-    seqan::setDefaultValue(parser, "threads", "1");
-    seqan::setDefaultValue(parser, "m", "64");     // only for the help print
-
-  //seqan::setMinValue(parser, "unique-kmers", "1");
-  //seqan::setMinValue(parser, "non-unique-kmers", "1");
     seqan::setMinValue(parser, "k", "1");
     seqan::setMaxValue(parser, "k", "63");
     seqan::setMinValue(parser, "g", "1");
@@ -270,17 +293,17 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::setMinValue(parser, "t", "1");
     seqan::setMinValue(parser, "m", "1");
 
-    // Hide some options from default help.
+    // Setup hidden options
     setHiddenOptions(parser, true, options);
 }
 
 
 // ==========================================================================
-// Function parseCommandLine()
+// Function checkInput()
 // ==========================================================================
 
-ArgumentParser::ParseResult checkInput(AssemblyOptions & options)
-{
+ArgumentParser::ParseResult checkInput(AssemblyOptions & options){
+
     ArgumentParser::ParseResult res = ArgumentParser::PARSE_OK;
 
     if (options.prefix != "." && !exists(options.prefix))
@@ -313,12 +336,13 @@ ArgumentParser::ParseResult checkInput(AssemblyOptions & options)
 }
 
 
-ArgumentParser::ParseResult checkInput(MergeOptions & options)
-{
+ArgumentParser::ParseResult checkInput(MergeOptions & options){
+
     ArgumentParser::ParseResult res = ArgumentParser::PARSE_OK;
 
-    if (options.min_kmers < 0){
-        std::cerr << "ERROR: Minimum amount of kmers \'-m/--min-kmers\' can not be less than zero." << std::endl;
+    if (options.filename_ref_in.empty() && options.filename_seq_in.empty()){
+        cerr << "[popins2 merge][parser] ERROR: No input files specified/found." << endl;
+        cerr << "[popins2 merge][parser] ERROR: At least one input -r or -s must be given." << endl;
         res = ArgumentParser::PARSE_ERROR;
     }
 
@@ -327,11 +351,10 @@ ArgumentParser::ParseResult checkInput(MergeOptions & options)
 
 
 // =========================
-// Parsing functions
+// Print functions
 // =========================
 
-void printHelp(char const * name)
-{
+void printHelp(char const * name){
     std::cerr << "Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs" << std::endl;
     std::cerr << "================================================================" << std::endl;
     std::cerr << std::endl;
@@ -350,16 +373,34 @@ void printHelp(char const * name)
 }
 
 
+void printMergeOptions(const MergeOptions &options){
+    cout << "PARAMETER ======== : VALUE ==============================" << endl;
+    cout << "verbose            : " << options.verbose                  << endl;
+    cout << "threads            : " << options.nb_threads               << endl;
+    cout << "#filename_seq_in   : " << options.filename_seq_in.size()   << endl;
+    cout << "#filename_ref_in   : " << options.filename_ref_in.size()   << endl;
+    cout << "k                  : " << options.k                        << endl;
+    cout << "g                  : " << options.g                        << endl;
+    cout << "clip-tips          : " << options.clipTips                 << endl;
+    cout << "delete-isolated    : " << options.deleteIsolated           << endl;
+    cout << "mercy-kmers        : " << options.useMercyKmers            << endl;
+    cout << "outputfile-prefix  : " << options.prefixFilenameOut        << endl;
+    cout << "setcover-min-kmers : " << options.setcover_min_kmers       << endl;
+    cout << "=========================================================" << endl;
+}
+
+
 // ==========================================================================
 // Function parseCommandLine()
 // ==========================================================================
 
-/*!
-* \fn       template<typename TOptions> seqan::ArgumentParser::ParseResult parseCommandLine(TOptions &options, int argc, char const ** argv)
-* \brief    Meta-function to setup module based option forwarding
-* \remark   Taken from PopIns.
-* \return   returns a seqan::ArgumentParser::ParseResult
-*/
+/**
+ *          Setup module based option forwarding
+ * @param   options is an individual options struct instance, the type depends on the module called
+ * @param   argc is the CLI argument count
+ * @param   argv is the CLI argument list
+ * @return  seqan::ArgumentParser::ParseResult type
+ */
 template<typename TOptions>
 seqan::ArgumentParser::ParseResult parseCommandLine(TOptions &options, int argc, char const ** argv){
 
