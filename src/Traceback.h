@@ -80,7 +80,12 @@ public:
      */
     void write(ofstream &of, const size_t counter) const;
 
-    string print(){cout << _contig << endl; return _contig;}    // DEBUG
+
+    // -------------------
+    // | Debug functions |
+    // -------------------
+
+    void print(){cout << _contig << endl;}
 };
 
 

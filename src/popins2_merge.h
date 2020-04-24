@@ -102,23 +102,28 @@ int popins2_merge(int argc, char const *argv[]){
     printTimeStatus(msg);
     exg.set_jump_map(jump_map_ptr);
 
-    msg.str("");
-    msg << "Writing LECCs";
-    printTimeStatus(msg);
-    F.write();
+    if(mo.write_lecc){
+        msg.str("");
+        msg << "Writing LECCs";
+        printTimeStatus(msg);
+        F.write();    
+    }
 
-    /*DEBUG
-    std::cout << "---------- ALL JUMP PAIRS ----------" << std::endl;
-    for (jump_map_t::const_iterator cit = jump_map.cbegin(); cit != jump_map.cend(); ++cit)
-        cout << cit->first << " -> " << cit->second.toString() << endl;
-    std::cout << "------------------------------------" << std::endl;
-    DEBUG*/
+    std::ofstream ofs;
+    ofs.open(mo.prefixFilenameOut+".contigs.fasta");
 
-    msg.str("");
-    msg << "Traversing paths in CCDBG";
-    printTimeStatus(msg);
-    // TODO: create ofstream here for Traceback::write()
-    exg.traverse(mo.setcover_min_kmers);
+    if(ofs.is_open()){
+        msg.str("");
+        msg << "Traversing paths in CCDBG";
+        printTimeStatus(msg);
+        exg.traverse(mo.setcover_min_kmers, ofs, mo.write_setcover, mo.prefixFilenameOut);
+    }
+    else{
+        msg.str("");
+        msg << "[popins2_merge()] ERROR opening fasta file";
+        return 1;
+    }
+    ofs.close();
 
     // ==============================
     // Bifrost

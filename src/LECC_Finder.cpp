@@ -168,7 +168,7 @@ inline bool LECC_Finder::get_borders(border_map_t &border_kmers, const unsigned 
 
                 border_kmers.insert(std::make_pair<Kmer, bool>(pre.getMappedTail().rep(), false));      // .rep() turns a Kmer into its canonical form
 
-                /* DEBUG */ cout << "[popins2 merge] get_borders: from ID " << ue_pre->getID() << " - [" << pre.getMappedTail().rep().toString() << "] added to borders" << endl;
+                DEBUG_PRINT_PRE_LECC_BORDER;
             }
         }
 
@@ -181,7 +181,7 @@ inline bool LECC_Finder::get_borders(border_map_t &border_kmers, const unsigned 
             if (ue_suc->getLECC() == 0){
                 border_kmers.insert(std::make_pair<Kmer, bool>(suc.getMappedHead().rep(), false));      // .rep() turns a Kmer into its canonical form
 
-                /* DEBUG */ cout << "[popins2 merge] get_borders: from ID " << ue_suc->getID() << " - [" << suc.getMappedHead().rep().toString() << "] added to borders" << endl;
+                DEBUG_PRINT_SUC_LECC_BORDER;
             }
         }
     }
@@ -251,10 +251,7 @@ inline void LECC_Finder::check_accessibility(border_map_t &border_kmers, const K
 
     UnitigColorMap<UnitigExtension> ucm = g_->find(kmer, true);       // unitig of the border Kmer
 
-    DataAccessor<UnitigExtension>* da = ucm.getData();
-    UnitigExtension* data = da->getData(ucm);
-
-    /* DEBUG */ cout << "[popins2 merge] DFS: I start at " << data->getID() << "" << endl;
+    DEBUG_PRINT_UCM_STATUS("I am a border. I'll look for accessible partners from here");
 
     for (auto &pre : ucm.getPredecessors()){
 
@@ -290,26 +287,23 @@ bool LECC_Finder::DFS(border_map_t &border_kmers, const UnitigColorMap<UnitigExt
     // mark current unititg as seen
     d == VISIT_PREDECESSOR ? data->set_seen_bw() : data->set_seen_fw();
 
-    cout << "[popins2 merge] DFS: I am at " << data->getID() << "" << endl;
+    DEBUG_PRINT_UCM_STATUS("Now I am the current state.");
 
     // sink
     if (!data->getLECC()){      // 0 means not in a LECC
 
-        /* DEBUG */ cout << "[popins2 merge] DFS: I am a sink." << endl;
+        DEBUG_PRINT_UCM_STATUS("I am a sink.");
 
         // get border kmer, depending on traversal direction
         const Kmer border2check = (d == VISIT_PREDECESSOR) ? ucm.getMappedTail().rep() : ucm.getMappedHead().rep();     // .rep() turns a Kmer into its canonical form
 
-        /* DEBUG */ cout << "[popins2 merge] DFS: From ID " << data->getID() << " I will look up border-kmer " << border2check.toString() << endl;
+        DEBUG_PRINT_PARTNER_TO_CHECK;
 
         border_map_t::iterator got = border_kmers.find(border2check);
 
-        // one of the kmers at the extremities should be present in border_kmers
-        //border_map_t::iterator got = (border_kmers.find(ucm.getMappedTail()) != border_kmers.end()) ? border_kmers.find(ucm.getMappedTail()) : border_kmers.find(ucm.getMappedHead());
-
         // sanity check
         if (got == border_kmers.end()){
-            cerr << "[popins2 merge] ERROR: Unitigs immediately outside a LECC should all be member of border_kmers!" << endl;
+            cerr << "[popins2 merge][LECC_Finder::DFS] ERROR: Couldn't find partner Kmer. Unitigs immediately outside a LECC should all be member of border_kmers!" << endl;
             return 0;
         }
 
@@ -323,7 +317,9 @@ bool LECC_Finder::DFS(border_map_t &border_kmers, const UnitigColorMap<UnitigExt
     if (d == VISIT_PREDECESSOR){
         for (auto &pre : ucm.getPredecessors()){
             if(!DFS(border_kmers, pre, VISIT_PREDECESSOR)){
-                /* DEBUG */ cout << "[popins2 merge] DFS: I jumped back from ERROR state." << endl;
+
+                DEBUG_PRINT_PRE_STATUS("I jumped back from ERROR state.");
+
                 return 0;
             }
         }
@@ -331,13 +327,15 @@ bool LECC_Finder::DFS(border_map_t &border_kmers, const UnitigColorMap<UnitigExt
     else{   // d == VISIT_SUCCESSOR
         for (auto &suc : ucm.getSuccessors()){
             if(!DFS(border_kmers, suc, VISIT_SUCCESSOR)){
-                /* DEBUG */ cout << "[popins2 merge] DFS: I jumped back from ERROR state." << endl;
+
+                DEBUG_PRINT_SUC_STATUS("I jumped back from ERROR state.");
+
                 return 0;
             }
         }
     }
 
-    /* DEBUG */ cout << "[popins2 merge] DFS: I jumped back from " << data->getID() << endl;
+    DEBUG_PRINT_UCM_STATUS("I will jump back from here.");
 
     return 1;
 }
@@ -346,7 +344,7 @@ bool LECC_Finder::DFS(border_map_t &border_kmers, const UnitigColorMap<UnitigExt
 bool LECC_Finder::find_jumps(jump_map_t &jump_map, const unsigned nb_leccs){
 
     if (!lecc_init_status_){                    // sanity check
-        cerr << "[popins2 merge] ERROR: LECC IDs need to be initialized before find_jumps()!" << endl;
+        cerr << "[popins2 merge][LECC_Finder::find_jumps] ERROR: LECC IDs need to be initialized. Sanity check failed." << endl;
         return 0;
     }
 
@@ -385,17 +383,13 @@ bool LECC_Finder::find_jumps(jump_map_t &jump_map, const unsigned nb_leccs){
                 }
             }
 
-            /* DEBUG */ UnitigColorMap<UnitigExtension> ucm = this->g_->find(border.first, true);
-            /* DEBUG */ DataAccessor<UnitigExtension>* da = ucm.getData();
-            /* DEBUG */ UnitigExtension* ue = da->getData(ucm);
-
             if (!nb_accessible_partners){
-                cerr << "[popins2 merge] WARNING: No accessible partners found for node ID " << ue->getID() << "" << endl;
+                cerr << "[popins2 merge][LECC_Finder::find_jumps] WARNING: No accessible partner(s) found for Kmer[" << border.first.toString() << "]" << endl;
                 continue;
             }
 
             if (highscore == 0.0f){
-                cerr << "[popins2 merge] WARNING: Among accessible partners there was no non-empty color overlap for node ID " << ue->getID() << "" << endl;
+                cerr << "[popins2 merge][LECC_Finder::find_jumps] WARNING: All accessible partner(s) have empty color overlap for Kmer[" << border.first.toString() << "]" << endl;
                 continue;
             }
 

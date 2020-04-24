@@ -10,7 +10,7 @@
 #include "Traceback.h"
 #include "Setcover.h"
 
-
+#include "debug_macros.h"
 #include "prettyprint.h"        // TODO: delete at release
 
 
@@ -59,10 +59,15 @@ public:
      *          This function traverses the graph.
      * @param   setcover_threshold is the required minimum amount of unseen kmers
      *          to include a path into the final solution.
+     * @param   ofs is an outfile stream to write in the contig
+     * @param   write_setcover is a boolean indicating whether the IDs of the setcover
+     *          should be written to a file.
+     * @param   prefixFilenameOut is the prefix for all filenames
+     *          (currently only used for Setcover::write)
      * @return  1 successful execution
      *          0 sanity check(s) failed
      */
-    uint8_t traverse(const int setcover_threshold);
+    uint8_t traverse(const int setcover_threshold, ofstream &ofs, const bool write_setcover, const string prefixFilenameOut);
 
 
     void set_jump_map(jump_map_t* m) {_jump_map_ptr = m;}
@@ -156,19 +161,19 @@ private:
     // | Debug functions |
     // -------------------
 
-    inline unsigned get_unitig_id(const UnitigColorMap<UnitigExtension> &ucm){
+    inline unsigned get_unitig_id(const UnitigColorMap<UnitigExtension> &ucm) const{
         DataAccessor<UnitigExtension>* da = ucm.getData();
         UnitigExtension* data = da->getData(ucm);
         return data->getID();
     }
 
 
-    inline std::string get_unitig_seq(const UnitigColorMap<UnitigExtension> &ucm){
+    inline std::string get_unitig_seq(const UnitigColorMap<UnitigExtension> &ucm) const{
         return ucm.mappedSequenceToString();
     }
 
 
-    inline unsigned get_unitig_lecc(const UnitigColorMap<UnitigExtension> &ucm){
+    inline unsigned get_unitig_lecc(const UnitigColorMap<UnitigExtension> &ucm) const{
         DataAccessor<UnitigExtension>* da = ucm.getData();
         UnitigExtension* data = da->getData(ucm);
         return data->getLECC();

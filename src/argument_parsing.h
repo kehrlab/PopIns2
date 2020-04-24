@@ -75,6 +75,8 @@ struct MergeOptions {
     *  PopIns2  *
     ************/
     int setcover_min_kmers;
+    bool write_setcover;
+    bool write_lecc;
 
     MergeOptions () :       // the initializer list defines the program defaults
         verbose(false),
@@ -86,7 +88,9 @@ struct MergeOptions {
         useMercyKmers(false),
         prefixFilenameOut("ccdbg"),
 
-        setcover_min_kmers(62)
+        setcover_min_kmers(62),
+        write_setcover(false),
+        write_lecc(false)
     {}
 };
 
@@ -152,8 +156,13 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
         getOptionValue(options.useMercyKmers, parser, "mercy-kmers");
     if (isSet(parser, "outputfile-prefix"))
         getOptionValue(options.prefixFilenameOut, parser, "outputfile-prefix");
+
     if (isSet(parser, "setcover-min-kmers"))
         getOptionValue(options.setcover_min_kmers, parser, "setcover-min-kmers");
+    if (isSet(parser, "write-setcover"))
+        getOptionValue(options.write_setcover, parser, "write-setcover");
+    if (isSet(parser, "write-lecc"))
+        getOptionValue(options.write_lecc, parser, "write-lecc");
 
     return true;
 }
@@ -191,8 +200,11 @@ void setHiddenOptions(ArgumentParser & parser, bool hide, AssemblyOptions &){
 
 void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MergeOptions &){
     hideOption(parser, "minimizer-length",   hide);
-    hideOption(parser, "setcover-min-kmers", hide);
     hideOption(parser, "mercy-kmers",        hide);
+
+    hideOption(parser, "setcover-min-kmers", hide);
+    hideOption(parser, "write-setcover",     hide);
+    hideOption(parser, "write-lecc",     hide);
 }
 
 
@@ -263,9 +275,11 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
 
     // Setup options
     seqan::addSection(parser, "I/O options");
-    seqan::addOption(parser, seqan::ArgParseOption("s",   "input-seq-files",   "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
-    seqan::addOption(parser, seqan::ArgParseOption("r",   "input-ref-files",   "Source directory with reference FASTA/Q files (no abundance filter)", seqan::ArgParseArgument::STRING, "DIR"));
-    seqan::addOption(parser, seqan::ArgParseOption("p",   "outputfile-prefix", "Specify a prefix for the output files", seqan::ArgParseArgument::STRING, "STRING"));
+    seqan::addOption(parser, seqan::ArgParseOption("s", "input-seq-files",   "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("r", "input-ref-files",   "Source directory with reference FASTA/Q files (no abundance filter)", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("p", "outputfile-prefix", "Specify a prefix for the output files", seqan::ArgParseArgument::STRING, "STRING"));
+    seqan::addOption(parser, seqan::ArgParseOption("c", "write-setcover",    "Write a CSV file with unitig IDs of the setcover"));
+    seqan::addOption(parser, seqan::ArgParseOption("l", "write-lecc",        "Write a CSV file with unitig IDs of the LECCs"));
 
     seqan::addSection(parser, "Algorithm options");
     seqan::addOption(parser, seqan::ArgParseOption("k", "kmer-length",        "Kmer length for the dBG construction", seqan::ArgParseArgument::INTEGER, "INT"));
@@ -386,6 +400,8 @@ void printMergeOptions(const MergeOptions &options){
     cout << "mercy-kmers        : " << options.useMercyKmers            << endl;
     cout << "outputfile-prefix  : " << options.prefixFilenameOut        << endl;
     cout << "setcover-min-kmers : " << options.setcover_min_kmers       << endl;
+    cout << "write-setcover     : " << options.write_setcover           << endl;
+    cout << "write-lecc         : " << options.write_lecc               << endl;
     cout << "=========================================================" << endl;
 }
 

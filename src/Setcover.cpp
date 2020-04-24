@@ -17,7 +17,7 @@ bool Setcover::test(){
 
         _current_path.clear();
 
-        /* DEBUG */ std::cout << "SETCOVER: Path was NOT included." << std::endl;
+        DEBUG_PRINT_STATUS("[popins2 merge][Setcover::test] Path was NOT included.");
 
         return false;
     }
@@ -27,7 +27,7 @@ bool Setcover::test(){
 
     _current_path.clear();
 
-    /* DEBUG */ std::cout << "SETCOVER: Path was included." << std::endl;
+    DEBUG_PRINT_STATUS("[popins2 merge][Setcover::test] Path was included.");
 
     return true;
 }
@@ -47,7 +47,7 @@ void Setcover::write(const std::string ofile_prefix) const{
 
         ofile.close();
     }
-    else cerr << "[popins2 merge] [Setcover::write]: Unable to open output file.";
+    else cerr << "[popins2 merge][Setcover::write]: Unable to open output file.";
 }
 
 

@@ -12,6 +12,8 @@
 #include <unordered_map>
 #include "ColoredDeBruijnGraph.h"
 
+#include "debug_macros.h"
+
 
 
 struct ExtendedCCDBG;
@@ -30,7 +32,7 @@ class LECC_Finder{
     typedef std::unordered_map<Kmer, bool, KmerHash> border_map_t;
 
     typedef std::unordered_map<uint64_t, Kmer> jump_map_t;
-    
+
 
 public:
     // --------------------
@@ -158,6 +160,16 @@ private:
     */
     bool DFS(border_map_t &border_kmers, const UnitigColorMap<UnitigExtension> &ucm, const direction_t d) const;
 
+
+    // -------------------
+    // | Debug functions |
+    // -------------------
+
+    inline unsigned get_unitig_id(const UnitigColorMap<UnitigExtension> &ucm) const{
+        DataAccessor<UnitigExtension>* da = ucm.getData();
+        UnitigExtension* data = da->getData(ucm);
+        return data->getID();
+    }
 };
 
 

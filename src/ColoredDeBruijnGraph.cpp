@@ -31,7 +31,7 @@ void ExtendedCCDBG::print_ids(){
 }
 
 
-uint8_t ExtendedCCDBG::traverse(const int setcover_threshold){
+uint8_t ExtendedCCDBG::traverse(const int setcover_threshold, ofstream &ofs, const bool write_setcover, const string prefixFilenameOut){
 
     // sanity checks
     if (!is_id_init()){
@@ -51,18 +51,20 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold){
 
     Setcover sc(setcover_threshold);
 
+    unsigned sv_counter = 0;
+
     // main routine
     for (auto &ucm : *this){
 
         if (!is_startnode(ucm)) continue;                       // NOTE: improvement: receive traversal direction from is_startnode() s.t. traverse() doesn't have to find out again
 
-        std::cout << get_unitig_id(ucm) << ": I am a startnode." << std::endl; // DEBUG
+        DEBUG_PRINT_UCM_STATUS("I am a startnode.");
 
         // I think there is no need to color startnodes, since by definition they cannot be part of a cycle.
 
         if (ucm.getPredecessors().hasPredecessors()){
 
-            std::cout << get_unitig_id(ucm) << ": I jump to my predecessors." << std::endl; // DEBUG
+            DEBUG_PRINT_UCM_STATUS("I jump to my predecessors.");
 
             Traceback tb(VISIT_PREDECESSOR, this->getK());
 
@@ -72,16 +74,21 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold){
 
                 // don't sc.add(ucm) here because the current ucm is added in ExtendedCCDBG::DFS()
 
-                std::cout << get_unitig_id(ucm) << ": Added start kmer to TB." << std::endl; // DEBUG
+                DEBUG_PRINT_UCM_STATUS("Added start kmer to TB.");
             }
 
-            if(sc.test())
-                tb.print();
+            if(sc.test()){
+                DEBUG_PRINT_TRACEBACK;
+
+                ++sv_counter;
+
+                tb.write(ofs, sv_counter);
+            }
         }
 
         else{ //ucm.getSuccessors().hasSuccessors()
 
-            std::cout << get_unitig_id(ucm) << ": I jump to my successors." << std::endl; // DEBUG
+            DEBUG_PRINT_UCM_STATUS("I jump to my successors.");
 
             Traceback tb(VISIT_SUCCESSOR, this->getK());
 
@@ -91,18 +98,24 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold){
 
                 // don't sc.add(ucm) here because the current ucm is added in ExtendedCCDBG::DFS()
 
-                std::cout << get_unitig_id(ucm) << ": Added start kmer to TB." << std::endl; // DEBUG
+                DEBUG_PRINT_UCM_STATUS("Added start kmer to TB.");
             }
 
-            if(sc.test())
-                tb.print();
+            if(sc.test()){
+                DEBUG_PRINT_TRACEBACK;
+
+                ++sv_counter;
+
+                tb.write(ofs, sv_counter);
+            }
         }
 
         reset_dfs_states();
 
-        /*DEBUG*/ std::cout << "" << std::endl;
-
     }   // end for all unitigs
+
+    if(write_setcover)
+        sc.write(prefixFilenameOut);
 
     return 1;
 }
@@ -110,7 +123,7 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold){
 
 uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const direction_t direction, Traceback &tb, Setcover &sc, const bool jumped){
 
-    std::cout << get_unitig_id(ucm) << ": I am a neighbor." << std::endl; // DEBUG
+    DEBUG_PRINT_UCM_STATUS("I am a neighbor.");
 
     DataAccessor<UnitigExtension>* da = ucm.getData();
     UnitigExtension* data = da->getData(ucm);
@@ -121,21 +134,21 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
             data->set_seen_bw();
 
-            std::cout << get_unitig_id(ucm) << ": [PRE] Now I am the current state." << std::endl; // DEBUG
+            DEBUG_PRINT_UCM_STATUS("[PRE] Now I am the current state.");
 
             BackwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> predecessors = ucm.getPredecessors();
 
             // sink node
             if (!predecessors.hasPredecessors()){
 
-                std::cout << get_unitig_id(ucm) << ": I am a sink." << std::endl; // DEBUG
-                std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
+                DEBUG_PRINT_UCM_STATUS("I am a sink.");
+                DEBUG_PRINT_UCM_STATUS("I will jump back.");
 
                 jumped ? tb.addFullSink(ucm.referenceUnitigToString()) : tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
 
                 sc.add(ucm);
 
-                std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+                DEBUG_PRINT_UCM_STATUS("Added sequence to TB.");
 
                 return 0;
             }
@@ -168,13 +181,13 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
                         if(!DFS(pre, VISIT_PREDECESSOR, tb, sc)){       // if deeper recursion level retuns 0, then stop further traversal here
 
-                            std::cout << get_unitig_id(ucm) << ": I will step back." << std::endl; // DEBUG
+                            DEBUG_PRINT_UCM_STATUS("I will step back.");
 
                             tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
 
                             sc.add(ucm);
 
-                            std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+                            DEBUG_PRINT_UCM_STATUS("Added sequence to TB.");
 
                             return 0;
                         }
@@ -198,24 +211,24 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
                     const UnitigColorMap<UnitigExtension> partner_unitig = this->find(partner_kmer, true);
 
-                    std::cout << get_unitig_id(ucm) << ": I will jump over a LECC to " << get_unitig_id(partner_unitig) << std::endl; // DEBUG
+                    DEBUG_PRINT_UCM_STATUS("I will jump over a LECC.");
 
                     // TODO: catch error in post_jump_continue_direction() here
 
                     // TEST: is post_jump_continue_direction() necessary?
                     if(!DFS(partner_unitig, post_jump_continue_direction(partner_unitig), tb, sc, true)){       // if deeper recursion level retuns 0, then stop further traversal here
 
-                        std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
+                        DEBUG_PRINT_UCM_STATUS("I will jump back.");
 
                         tb.addN();
 
-                        std::cout << get_unitig_id(ucm) << ": Added Ns to TB." << std::endl; // DEBUG
+                        DEBUG_PRINT_UCM_STATUS("Added Ns to TB.");
 
                         tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
 
                         sc.add(ucm);
 
-                        std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+                        DEBUG_PRINT_UCM_STATUS("Added sequence to TB.");
 
                         return 0;
                     }
@@ -231,21 +244,21 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
             data->set_seen_fw();
 
-            std::cout << get_unitig_id(ucm) << ": [SUC] Now I am the current state." << std::endl; // DEBUG
+            DEBUG_PRINT_UCM_STATUS("[SUC] Now I am the current state.");
 
             ForwardCDBG<DataAccessor<UnitigExtension>, DataStorage<UnitigExtension>, false> successors = ucm.getSuccessors();
 
             // sink node
             if (!successors.hasSuccessors()){
 
-                std::cout << get_unitig_id(ucm) << ": I am a sink." << std::endl; // DEBUG
-                std::cout << get_unitig_id(ucm) << ": I will jump back." << std::endl; // DEBUG
+                DEBUG_PRINT_UCM_STATUS("I am a sink.");
+                DEBUG_PRINT_UCM_STATUS("I will jump back.");
 
                 jumped ? tb.addFullSink(ucm.referenceUnitigToString()) : tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
 
                 sc.add(ucm);
 
-                std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+                DEBUG_PRINT_UCM_STATUS("Added sequence to TB.");
 
                 return 0;
             }
@@ -278,13 +291,13 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
                         if(!DFS(suc, VISIT_SUCCESSOR, tb, sc)){         // if deeper recursion level retuns 0, then stop further traversal here
 
-                            std::cout << get_unitig_id(ucm) << ": I will step back." << std::endl; // DEBUG
+                            DEBUG_PRINT_UCM_STATUS("I will step back.");
 
                             tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
 
                             sc.add(ucm);
 
-                            std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+                            DEBUG_PRINT_UCM_STATUS("Added sequence to TB.");
 
                             return 0;
                         }
@@ -307,24 +320,24 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
 
                     const UnitigColorMap<UnitigExtension> partner_unitig = this->find(partner_kmer, true);
 
-                    std::cout << get_unitig_id(ucm) << ": I will jump over a LECC to " << get_unitig_id(partner_unitig) << std::endl; // DEBUG
+                    DEBUG_PRINT_UCM_STATUS("I will jump over a LECC.");
 
                     // TODO: catch error in post_jump_continue_direction() here
 
                     // TEST: is post_jump_continue_direction() necessary?
                     if(!DFS(partner_unitig, post_jump_continue_direction(partner_unitig), tb, sc, true)){       // if deeper recursion level retuns 0, then stop further traversal here
 
-                        std::cout << get_unitig_id(ucm) << ": I will step back." << std::endl; // DEBUG
+                        DEBUG_PRINT_UCM_STATUS("I will step back.");
 
                         tb.addN();
 
-                        std::cout << get_unitig_id(ucm) << ": Added Ns to TB." << std::endl; // DEBUG
+                        DEBUG_PRINT_UCM_STATUS("Added Ns to TB.");
 
                         tb.add(ucm.referenceUnitigToString());       // add unitig to final contig
 
                         sc.add(ucm);
 
-                        std::cout << get_unitig_id(ucm) << ": Added sequence to TB." << std::endl; // DEBUG
+                        DEBUG_PRINT_UCM_STATUS("Added sequence to TB.");
 
                         return 0;
                     }
