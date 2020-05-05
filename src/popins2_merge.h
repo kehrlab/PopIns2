@@ -80,7 +80,8 @@ int popins2_merge(int argc, char const *argv[]){
     exg.init_entropy();
 
     ExtendedCCDBG* exg_p = &exg;
-    LECC_Finder F(exg_p, 0.7f);
+    const float me = static_cast<float>(mo.min_entropy);
+    LECC_Finder F(exg_p, me);
 
     msg.str("");
     msg << "Computing LECCs";
@@ -106,7 +107,7 @@ int popins2_merge(int argc, char const *argv[]){
         msg.str("");
         msg << "Writing LECCs";
         printTimeStatus(msg);
-        F.write();    
+        F.write();
     }
 
     std::ofstream ofs;

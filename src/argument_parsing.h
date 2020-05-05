@@ -75,6 +75,7 @@ struct MergeOptions {
     *  PopIns2  *
     ************/
     int setcover_min_kmers;
+    float min_entropy;
     bool write_setcover;
     bool write_lecc;
 
@@ -89,6 +90,7 @@ struct MergeOptions {
         prefixFilenameOut("ccdbg"),
 
         setcover_min_kmers(62),
+        min_entropy(0.0f),
         write_setcover(false),
         write_lecc(false)
     {}
@@ -159,6 +161,8 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
 
     if (isSet(parser, "setcover-min-kmers"))
         getOptionValue(options.setcover_min_kmers, parser, "setcover-min-kmers");
+    if (isSet(parser, "min-entropy"))
+        getOptionValue(options.min_entropy, parser, "min-entropy");
     if (isSet(parser, "write-setcover"))
         getOptionValue(options.write_setcover, parser, "write-setcover");
     if (isSet(parser, "write-lecc"))
@@ -289,6 +293,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::addOption(parser, seqan::ArgParseOption("d", "del-isolated",       "Delete isolated contigs shorter than k kmers in length"));
     seqan::addOption(parser, seqan::ArgParseOption("x", "mercy-kmers",        "Keep low coverage k-mers (cov=1) connecting tips of the graph"));
     seqan::addOption(parser, seqan::ArgParseOption("m", "setcover-min-kmers", "Minimum amount of unseen kmers to include a path into the set cover", seqan::ArgParseArgument::INTEGER, "INT"));
+    seqan::addOption(parser, seqan::ArgParseOption("e", "min-entropy",        "Minimum entropy for a unitig to not get flagged as low entropy", seqan::ArgParseArgument::DOUBLE, "FLOAT"));
 
     seqan::addSection(parser, "Compute resource options");
     seqan::addOption(parser, seqan::ArgParseOption("t", "threads", "Amount of threads for parallel processing", seqan::ArgParseArgument::INTEGER, "INT"));
@@ -298,14 +303,17 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::setDefaultValue(parser, "k",   options.k);
     seqan::setDefaultValue(parser, "g",   options.g);
     seqan::setDefaultValue(parser, "m",   options.setcover_min_kmers);
+    seqan::setDefaultValue(parser, "e",   options.min_entropy);
     seqan::setDefaultValue(parser, "t",   options.nb_threads);
 
     seqan::setMinValue(parser, "k", "1");
     seqan::setMaxValue(parser, "k", "63");
     seqan::setMinValue(parser, "g", "1");
     seqan::setMaxValue(parser, "g", "62");
-    seqan::setMinValue(parser, "t", "1");
     seqan::setMinValue(parser, "m", "1");
+    seqan::setMinValue(parser, "e", "0.0");
+    seqan::setMaxValue(parser, "e", "1.0");
+    seqan::setMinValue(parser, "t", "1");
 
     // Setup hidden options
     setHiddenOptions(parser, true, options);
@@ -388,6 +396,8 @@ void printHelp(char const * name){
 
 
 void printMergeOptions(const MergeOptions &options){
+    cout << "=========================================================" << endl;
+    cout << "popins2 version    : " << VERSION                          << endl;
     cout << "PARAMETER ======== : VALUE ==============================" << endl;
     cout << "verbose            : " << options.verbose                  << endl;
     cout << "threads            : " << options.nb_threads               << endl;
@@ -400,6 +410,7 @@ void printMergeOptions(const MergeOptions &options){
     cout << "mercy-kmers        : " << options.useMercyKmers            << endl;
     cout << "outputfile-prefix  : " << options.prefixFilenameOut        << endl;
     cout << "setcover-min-kmers : " << options.setcover_min_kmers       << endl;
+    cout << "min-entropy        : " << options.min_entropy              << endl;
     cout << "write-setcover     : " << options.write_setcover           << endl;
     cout << "write-lecc         : " << options.write_lecc               << endl;
     cout << "=========================================================" << endl;
