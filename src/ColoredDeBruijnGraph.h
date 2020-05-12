@@ -107,7 +107,7 @@ private:
     void reset_dfs_states();
 
 
-    bool is_startnode(const UnitigColorMap<UnitigExtension> &ucm);
+    bool is_startnode(const UnitigColorMap<UnitigExtension> &ucm) const;
 
 
     /**         Get a ranking of the neighbors.

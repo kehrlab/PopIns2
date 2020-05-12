@@ -84,9 +84,11 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold, ofstream &ofs, con
 
                 tb.write(ofs, sv_counter);
             }
+
+            reset_dfs_states();
         }
 
-        else{ //ucm.getSuccessors().hasSuccessors()
+        else if (ucm.getSuccessors().hasSuccessors()){
 
             DEBUG_PRINT_UCM_STATUS("I jump to my successors.");
 
@@ -108,9 +110,35 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold, ofstream &ofs, con
 
                 tb.write(ofs, sv_counter);
             }
+
+            reset_dfs_states();
         }
 
-        reset_dfs_states();
+        else{       // is a singleton
+
+            DEBUG_PRINT_UCM_STATUS("I am a singleton.");
+
+            sc.add(ucm);
+
+            if(sc.test()){
+                DEBUG_PRINT_STATUS(ucm.referenceUnitigToString());
+
+                ++sv_counter;
+
+                // write without Traceback instance
+                try{
+                    ofs << ">contig_" << sv_counter << "\n";
+                    ofs << ucm.referenceUnitigToString() << "\n";
+                }
+                catch(std::ofstream::failure &writeErr){
+                    std::cerr << "\n[Traceback::write] Error:\n"
+                              << writeErr.what()
+                              << std::endl;
+                }
+            }
+
+            // no reset_dfs_states() needed here
+        }
 
     }   // end for all unitigs
 
@@ -363,17 +391,22 @@ inline void ExtendedCCDBG::reset_dfs_states(){
 }
 
 
-inline bool ExtendedCCDBG::is_startnode(const UnitigColorMap<UnitigExtension> &ucm){
-    DataAccessor<UnitigExtension>* da = ucm.getData();
-    UnitigExtension* ue = da->getData(ucm);
+inline bool ExtendedCCDBG::is_startnode(const UnitigColorMap<UnitigExtension> &ucm) const{
+    const DataAccessor<UnitigExtension>* da = ucm.getData();
+    const UnitigExtension* ue = da->getData(ucm);
+
+    const bool hasPre = ucm.getPredecessors().hasPredecessors();
+    const bool hasSuc = ucm.getSuccessors().hasSuccessors();
 
     return
-        ucm.len>2                                                                                       // be longer than 2 kmers and
-        &&
-        (( ucm.getPredecessors().hasPredecessors() && !ucm.getSuccessors().hasSuccessors() ) ||         // have only predecessors or
-         (!ucm.getPredecessors().hasPredecessors() &&  ucm.getSuccessors().hasSuccessors() ))           // have only successors
-        &&
-        ue->getLECC()==0u;                                                                              // is not part of an LECC
+        ucm.len>2                         // be longer than 2 kmers
+        &&                                // AND
+        (( hasPre && !hasSuc ) ||         // have only predecessors OR
+         (!hasPre &&  hasSuc ) ||         // have only successors   OR
+         (!hasPre && !hasSuc )            // is a singleton
+        )
+        &&                                // AND
+        ue->getLECC()==0u;                // is not part of an LECC
 }
 
 
