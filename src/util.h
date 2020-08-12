@@ -20,9 +20,10 @@ using namespace seqan;
 
 
 
-inline void checkPathSyntax(std::string &path){
+inline std::string forcePathEndingSlash(std::string path){
     if (path.substr(path.length()-1) != "/")
         path += "/";
+    return path;
 }
 
 
@@ -60,6 +61,7 @@ inline void printTimeStatus(const char * message){
 inline void printTimeStatus(std::ostringstream & message){
         std::string msg = message.str();
         printTimeStatus(seqan::toCString(msg));
+        message.str("");
 }
 
 
@@ -189,6 +191,19 @@ inline bool file_exist (const std::string &name){
 }
 
 
+inline std::string getAbsoluteFileName(const std::string &path, const std::string &file)
+{
+    std::string abspath(path);
+
+    if (abspath.substr(abspath.length()-1) != "/")
+        abspath += "/";
+
+    abspath += file;
+
+    return abspath;
+}
+
+
 // --------------------------------------------------------------------------------------------------------------------------------------------
 // copied from popins-1.0.1
 // --------------------------------------------------------------------------------------------------------------------------------------------
@@ -204,7 +219,7 @@ struct SampleInfo
     double avg_cov;
     unsigned read_len;
     CharString adapter_type;
-    
+
     SampleInfo() {}
 };
 
@@ -225,7 +240,7 @@ initSampleInfo(CharString & filename, CharString sample_id, CharString & adapter
     BamAlignmentRecord record;
     readRecord(record, bamFile);
     info.read_len = length(record.seq);
-    
+
     info.adapter_type = adapter_type;
 
     return info;
@@ -244,7 +259,7 @@ readSampleInfo(SampleInfo & info, CharString & filename)
         std::cerr << "ERROR: Could not open sample info file \'" << filename << "\' for reading." << std::endl;
         return 1;
     }
-    
+
     std::string field, value;
     while (stream >> field >> value)
     {
@@ -279,13 +294,13 @@ writeSampleInfo(SampleInfo & info, CharString & filename)
         std::cerr << "ERROR: Could not open sample info file \'" << filename << "\' for writing." << std::endl;
         return 1;
     }
-    
+
     stream << "SAMPLE_ID" << "\t" << info.sample_id << "\n";
     stream << "BAM_FILE" << "\t" << info.bam_file << "\n";
     stream << "AVG_COV" << "\t" << info.avg_cov << "\n";
     stream << "READ_LEN" << "\t" << info.read_len << "\n";
     stream << "ADAPTER_TYPE" << "\t" << info.adapter_type << "\n";
-    
+
     stream.close();
     return 0;
 }

@@ -97,6 +97,17 @@ struct MergeOptions {
 };
 
 
+struct MegamergeOptions {
+    CharString samplePath;
+    CharString tempPath;
+
+    MegamergeOptions () :
+        samplePath(""),
+        tempPath("")
+    {}
+};
+
+
 // =========================
 // Option transfer functions
 // =========================
@@ -192,6 +203,17 @@ void setupBifrostOptions(const MergeOptions &options, CCDBG_Build_opt &graph_opt
 }
 
 
+bool getOptionValues(MegamergeOptions &options, seqan::ArgumentParser &parser){
+
+    if (isSet(parser, "sample-path"))
+        getOptionValue(options.samplePath, parser, "sample-path");
+    if (isSet(parser, "temp-path"))
+        getOptionValue(options.tempPath, parser, "temp-path");
+
+    return true;
+}
+
+
 // =========================
 // Hide options functions
 // =========================
@@ -209,6 +231,10 @@ void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MergeOptions &){
     hideOption(parser, "setcover-min-kmers", hide);
     hideOption(parser, "write-setcover",     hide);
     hideOption(parser, "write-lecc",     hide);
+}
+
+void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MegamergeOptions &){
+    // TODO
 }
 
 
@@ -320,6 +346,23 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
 }
 
 
+void setupParser(seqan::ArgumentParser &parser, MegamergeOptions &options){
+    // Setup meta-information
+    seqan::setShortDescription(parser, "Multi-k framework for a colored and compacted de Bruijn Graph (CCDBG)");
+    seqan::setVersion(parser, VERSION);
+    seqan::setDate(parser, DATE);
+    seqan::addUsageLine(parser, "\\--sample-path STRING [OPTIONS] \\fP ");
+
+    // Setup options
+    seqan::addSection(parser, "I/O options");
+    seqan::addOption(parser, seqan::ArgParseOption("s", "sample-path",   "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("a", "temp-path",     "Auxiliary directory for temporary files. Default: mkdir ./megamerge_aux", seqan::ArgParseArgument::STRING, "DIR"));
+
+    // Setup hidden options
+    setHiddenOptions(parser, true, options);
+}
+
+
 // ==========================================================================
 // Function checkInput()
 // ==========================================================================
@@ -372,6 +415,19 @@ ArgumentParser::ParseResult checkInput(MergeOptions & options){
 }
 
 
+ArgumentParser::ParseResult checkInput(MegamergeOptions & options){
+
+    ArgumentParser::ParseResult res = ArgumentParser::PARSE_OK;
+
+    if (options.samplePath == "") {
+        cerr << "[popins2 megamerge][parser] ERROR: No input path specified." << endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    return res;
+}
+
+
 // =========================
 // Print functions
 // =========================
@@ -386,6 +442,7 @@ void printHelp(char const * name){
     std::cerr << "\033[1mCOMMAND\033[0m" << std::endl;
     std::cerr << "    \033[1massemble\033[0m        Filter, clip and assemble unmapped reads from a sample." << std::endl;
     std::cerr << "    \033[1mmerge\033[0m           Merge many samples into a colored compacted de Bruijn Graph." << std::endl;
+    std::cerr << "    \033[1mmegamerge\033[0m       Multi-k framework for a colored compacted de Bruijn Graph." << std::endl;
     std::cerr << std::endl;
     std::cerr << "\033[1mVERSION\033[0m" << std::endl;
     std::cerr << "    " << VERSION << ", Date: " << DATE << std::endl;
@@ -413,6 +470,16 @@ void printMergeOptions(const MergeOptions &options){
     cout << "min-entropy        : " << options.min_entropy              << endl;
     cout << "write-setcover     : " << options.write_setcover           << endl;
     cout << "write-lecc         : " << options.write_lecc               << endl;
+    cout << "=========================================================" << endl;
+}
+
+
+void printMegamergeOptions(const MegamergeOptions &options){
+    cout << "=========================================================" << endl;
+    cout << "popins2 version    : " << VERSION                          << endl;
+    cout << "PARAMETER ======== : VALUE ==============================" << endl;
+    cout << "sample-path        : " << options.samplePath               << endl;
+    cout << "temp-path          : " << options.tempPath                 << endl;
     cout << "=========================================================" << endl;
 }
 
