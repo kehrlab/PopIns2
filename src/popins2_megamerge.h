@@ -12,9 +12,86 @@
 #define POPINS2_MEGAMERGE_H_
 
 #include <bifrost/ColoredCDBG.hpp>          // ColoredCDBG
-#include "util.h"                           // getFastx, printTimeStatus
+#include <seqan/seq_io.h>                   // getAbsolutePath, toCString, readRecords
+#include "util.h"                           // getFastx, printTimeStatus, getAbsoluteFileName
 #include "argument_parsing.h"               // MegamergeOptions, parseCommandLine, printMegamergeOptions
-#include "prettyprint.h"                    // REMOVE AT RELEASE, print
+//#include "prettyprint.h"                    // REMOVE AT RELEASE, print
+
+using namespace seqan;
+
+
+
+/**
+ *          Function to convert FASTQ to FASTA.
+ * @details This is the seqAn2 way to do this. Converting this with the new C++20 concepts used in
+ *          seqAn3 is so much more elegant.
+ * @param   fastq_file is the name of the fastq file to convert to fasta, including its full path
+ * @param   outpath is a (optional) string to define an output directory for the FASTA.
+ *          If outpath is "" the FASTA will be written to the same directory as the FASTQ
+ * @param   fasta_names is a vector reference to store the absolute FASTA filenames in
+ * @return  bool; 1 if error, 0 else
+ */
+inline bool fastq2fastq(const std::string &fastq_file, const std::string &outpath, std::vector<std::string> &fasta_names){
+    // read FASTQ
+    CharString seqFileName = fastq_file;
+    SeqFileIn seqFileIn;
+    
+    if (!open(seqFileIn, toCString(seqFileName))){
+        std::cerr << "ERROR: Could not open FASTQ file to read from.\n";
+        return 1;
+    }
+
+    StringSet<CharString> ids;
+    StringSet<Dna5String> seqs;
+    StringSet<CharString> quals;
+    clear(quals);   // we don't need them
+
+    try{
+        readRecords(ids, seqs, quals, seqFileIn);
+    }
+    catch (Exception const & e){
+        std::cout << "ERROR: " << e.what() << std::endl;
+        return 1;
+    }
+
+    close(seqFileIn);
+
+    // get FASTQ filename without path and without file ending
+    size_t lastSlashPos = fastq_file.find_last_of("/");
+    std::string fname   = fastq_file.substr(lastSlashPos+1);
+    size_t lastDotPos   = fname.find_last_of(".");
+    std::string fname_  = fname.substr(0,lastDotPos);
+
+    // create FASTA filename
+    std::string ofile_name;
+    if (strcmp(outpath.c_str(), "") == 0){
+        ofile_name = getAbsoluteFileName(fastq_file.substr(0, lastSlashPos), fname_+".fasta");
+    }
+    else{
+        ofile_name = getAbsoluteFileName(outpath, fname_+".fasta");
+    }
+    fasta_names.push_back(ofile_name);
+
+    // write FASTA
+    SeqFileOut seqFileOut(ofile_name.c_str());
+    if (!open(seqFileOut, ofile_name.c_str())){
+        std::cerr << "ERROR: Could not open FASTA file to write into.\n";
+        return 1;
+    }
+
+    try{
+        writeRecords(seqFileOut, ids, seqs);
+    }
+    catch (Exception const & e){
+        std::cout << "ERROR: " << e.what() << std::endl;
+        return 1;
+    }
+
+
+    close(seqFileOut);
+
+    return 0;
+}
 
 
 /**
@@ -87,26 +164,45 @@ int popins2_megamerge(int argc, char const *argv[]){
         cerr << "[popins2 megamerge] seqan::ArgumentParser::PARSE_ERROR" << endl;
         return 1;
     }
+
+    // manage a temporary directory
+    if (strcmp(mmo.tempPath.c_str(), "") == 0){      // if mmo.tempPath == ""
+        (mkdir("megamerge_aux", 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "Directory created." << "\n";
+        mmo.tempPath = "megamerge_aux";
+    }
+
+    int delta_k = 20;
+    int k_max = 123;
+
     printMegamergeOptions(mmo);
 
     std::ostringstream msg;
     msg << "[popins2 megamerge] Starting ..."; printTimeStatus(msg);
 
+    // read original FASTQ samples
     std::vector<std::string> samples;
-    getFastx(samples, toCString(mmo.samplePath));
+    getFastx(samples, mmo.samplePath);
 
-    // manage a temporary directory
-    if (strcmp(toCString(mmo.tempPath), "") == 0)   // if mmo.tempPath == ""
-        (mkdir("megamerge_aux", 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "Directory created." << "\n";
+    // create a FASTA at tempDir for every input FASTQ
+    std::vector<std::string> temp_fastas;
+    bool fastq2fasta_failed = false;
 
-    int delta_k = 20;
-    int k_max = 123;
+    for (auto &sample : samples){
+        bool ret = fastq2fastq(sample, mmo.tempPath, temp_fastas);
+        fastq2fasta_failed = fastq2fasta_failed || ret;
+    }
+    if (fastq2fasta_failed){
+        std::cerr << "[Error] Initial FASTQ to FASTA conversion failed]" << '\n';
+        return 1;
+    }
+
+    samples.clear();
 
     // =====================
     // Graph options
     // =====================
     CCDBG_Build_opt opt;
-    opt.filename_ref_in   = samples;
+    opt.filename_ref_in   = temp_fastas;
     opt.deleteIsolated    = true;
     opt.clipTips          = true;
     opt.prefixFilenameOut = "ccdbg";

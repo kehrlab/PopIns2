@@ -98,8 +98,8 @@ struct MergeOptions {
 
 
 struct MegamergeOptions {
-    CharString samplePath;
-    CharString tempPath;
+    std::string samplePath;
+    std::string tempPath;
 
     MegamergeOptions () :
         samplePath(""),
