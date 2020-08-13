@@ -103,7 +103,7 @@ struct MegamergeOptions {
 
     MegamergeOptions () :
         samplePath(""),
-        tempPath("")
+        tempPath("auxMegamerge")
     {}
 };
 
@@ -356,7 +356,10 @@ void setupParser(seqan::ArgumentParser &parser, MegamergeOptions &options){
     // Setup options
     seqan::addSection(parser, "I/O options");
     seqan::addOption(parser, seqan::ArgParseOption("s", "sample-path",   "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
-    seqan::addOption(parser, seqan::ArgParseOption("a", "temp-path",     "Auxiliary directory for temporary files. Default: mkdir ./megamerge_aux", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("a", "temp-path",     "Auxiliary directory for temporary files.", seqan::ArgParseArgument::STRING, "DIR"));
+
+    // Setup option constraints
+    seqan::setDefaultValue(parser, "a",   options.tempPath);
 
     // Setup hidden options
     setHiddenOptions(parser, true, options);

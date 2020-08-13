@@ -15,7 +15,6 @@
 #include <seqan/seq_io.h>                   // getAbsolutePath, toCString, readRecords
 #include "util.h"                           // getFastx, printTimeStatus, getAbsoluteFileName
 #include "argument_parsing.h"               // MegamergeOptions, parseCommandLine, printMegamergeOptions
-//#include "prettyprint.h"                    // REMOVE AT RELEASE, print
 
 using namespace seqan;
 
@@ -27,7 +26,7 @@ using namespace seqan;
  *          seqAn3 is so much more elegant.
  * @param   fastq_file is the name of the fastq file to convert to fasta, including its full path
  * @param   outpath is a (optional) string to define an output directory for the FASTA.
- *          If outpath is "" the FASTA will be written to the same directory as the FASTQ
+ *          If outpath is "" the FASTA will be written to the current working directory
  * @param   fasta_names is a vector reference to store the absolute FASTA filenames in
  * @return  bool; 1 if error, 0 else
  */
@@ -35,7 +34,7 @@ inline bool fastq2fastq(const std::string &fastq_file, const std::string &outpat
     // read FASTQ
     CharString seqFileName = fastq_file;
     SeqFileIn seqFileIn;
-    
+
     if (!open(seqFileIn, toCString(seqFileName))){
         std::cerr << "ERROR: Could not open FASTQ file to read from.\n";
         return 1;
@@ -65,7 +64,7 @@ inline bool fastq2fastq(const std::string &fastq_file, const std::string &outpat
     // create FASTA filename
     std::string ofile_name;
     if (strcmp(outpath.c_str(), "") == 0){
-        ofile_name = getAbsoluteFileName(fastq_file.substr(0, lastSlashPos), fname_+".fasta");
+        ofile_name = fname_+".fasta";
     }
     else{
         ofile_name = getAbsoluteFileName(outpath, fname_+".fasta");
@@ -166,10 +165,8 @@ int popins2_megamerge(int argc, char const *argv[]){
     }
 
     // manage a temporary directory
-    if (strcmp(mmo.tempPath.c_str(), "") == 0){      // if mmo.tempPath == ""
-        (mkdir("megamerge_aux", 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "Directory created." << "\n";
-        mmo.tempPath = "megamerge_aux";
-    }
+    if (strcmp(mmo.tempPath.c_str(), "") != 0)      // if mmo.tempPath != ""
+        (mkdir(mmo.tempPath.c_str(), 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "[popins2 megamerge] Temp directory created.\n";
 
     int delta_k = 20;
     int k_max = 123;
@@ -209,112 +206,97 @@ int popins2_megamerge(int argc, char const *argv[]){
     opt.nb_threads        = 16;
     opt.outputGFA         = true;
     opt.verbose           = false;
-    opt.k                 = 23;
+    opt.k                 = 27;
 
     // =====================
     // Multi-k framework
     // =====================
-    ColoredCDBG<> g(opt.k);
+    unsigned k_iter_counter = 0;
+    while (opt.k <= k_max) {
+        ++k_iter_counter;
+        msg << "[popins2 megamerge] Multi-k iteration "+std::to_string(k_iter_counter)+" using k="+std::to_string(opt.k); printTimeStatus(msg);
 
-    msg << "[popins2 megamerge] Building dBG..."; printTimeStatus(msg);
-    g.buildGraph(opt);
+        ColoredCDBG<> g(opt.k);
 
-    msg << "[popins2 megamerge] Simplifying dBG..."; printTimeStatus(msg);
-    g.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
+        msg << "[popins2 megamerge] Building dBG..."; printTimeStatus(msg);
+        g.buildGraph(opt);
 
-    msg << "[popins2 megamerge] Annotating colors..."; printTimeStatus(msg);
-    g.buildColors(opt);
+        msg << "[popins2 megamerge] Simplifying dBG..."; printTimeStatus(msg);
+        g.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
 
-    opt.k += delta_k;
+        msg << "[popins2 megamerge] Annotating colors..."; printTimeStatus(msg);
+        g.buildColors(opt);
 
-    // exit point
-    if (opt.k > k_max){
-        msg << "[popins2 megamerge] Writing k_max GFA..."; printTimeStatus(msg);
-        g.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose);
-        return 0;
-    }
+        opt.k += delta_k;
 
-    // get sample-unitig assignment
-    const size_t nb_colors = g.getNbColors();
-    std::unordered_map <std::string, std::vector<unsigned> > unitig_propagation_table;
-    std::vector<size_t> color_indices;
-    unsigned ucm_index = 0;
-
-    for (auto &ucm : g){
-        // don't process unitigs of size less than current k, they wouldn't survive the include of the next k iteration anyway
-        if (ucm.size < (unsigned)opt.k){
-            ++ucm_index;
-            continue;
+        // exit point
+        if (opt.k >= k_max){
+            msg << "[popins2 megamerge] Writing "+opt.prefixFilenameOut+".gfa of de Bruijn Graph built with k="+std::to_string(opt.k - delta_k)+"..."; printTimeStatus(msg);
+            g.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose);
+            break;
         }
 
-        colorProbing(ucm, color_indices, nb_colors);
+        // get sample-unitig assignment
+        msg << "[popins2 megamerge] Get sample-unitig assignment..."; printTimeStatus(msg);
+        const size_t nb_colors = g.getNbColors();
+        std::unordered_map <std::string, std::vector<unsigned> > unitig_propagation_table;
+        std::vector<size_t> color_indices;
+        unsigned ucm_index = 0;
 
-        for (size_t i = 0; i < color_indices.size(); ++i)
-            unitig_propagation_table[g.getColorName(i)].push_back(ucm_index);
-
-        ++ucm_index;
-        color_indices.clear();
-    }
-
-    // DEBUG
-    /*
-    std::cout << "Table size: " << unitig_propagation_table.size() << '\n';
-    for (auto cit = unitig_propagation_table.cbegin(); cit != unitig_propagation_table.cend(); ++cit){
-        std::cout << cit->first << " : "; prettyprint::print(cit->second, 10);
-    }
-    */
-
-    // write unitig file per sample
-    for (auto sample = unitig_propagation_table.cbegin(); sample != unitig_propagation_table.cend(); ++sample){
-
-        // open unitig file
-        size_t lastSlashPos = sample->first.find_last_of("/");
-        std::string fname   = sample->first.substr(lastSlashPos+1);
-        size_t lastDotPos   = fname.find_last_of(".");
-        std::string fname_  = fname.substr(0,lastDotPos);
-
-        std::string temp_fname;
-        if (strcmp(toCString(mmo.tempPath), "") == 0){      // if mmo.tempPath == ""
-            temp_fname = getAbsoluteFileName("megamerge_aux", fname_) + ".unitigs.k" + std::to_string(opt.k) + ".fasta";
-        }
-        else{
-            temp_fname = getAbsoluteFileName(toCString(mmo.tempPath), fname_) + ".unitigs.k" + std::to_string(opt.k) + ".fasta";
-        }
-
-        std::ofstream stream(temp_fname);
-        if (!stream.good())
-        {
-            std::cerr << "ERROR: Could not open sample file \'" << temp_fname << "\' for writing." << std::endl;
-            return 1;
-        }
-
-        // iterators pointing to the unitig ID list of a sample
-        std::vector<unsigned>::const_iterator idx = sample->second.cbegin();
-        std::vector<unsigned>::const_iterator idx_end = sample->second.cend();
-
-        // loop through graph
-        unsigned current_ucm_idx = 0;
         for (auto &ucm : g){
-
-            if (*idx == current_ucm_idx){
-
-                // write unitig to file
-                stream << ">unitig_" << std::to_string(current_ucm_idx) << "\n";
-                stream << ucm.referenceUnitigToString() << "\n";
-
-                ++idx;
-
-                if (idx == idx_end)
-                    break;
+            // don't process unitigs of size less than current k, they wouldn't survive the include of the next k iteration anyway
+            if (ucm.size < (unsigned)opt.k){
+                ++ucm_index;
+                continue;
             }
 
-            current_ucm_idx += 1;
+            colorProbing(ucm, color_indices, nb_colors);
+
+            for (size_t i = 0; i < color_indices.size(); ++i)
+                unitig_propagation_table[g.getColorName(i)].push_back(ucm_index);
+
+            ++ucm_index;
+            color_indices.clear();
         }
 
-        stream.close();
+        // write unitig file per sample
+        msg << "[popins2 megamerge] Adding (k + delta_k)-unitigs to temp FASTAs..."; printTimeStatus(msg);
+        for (auto sample = unitig_propagation_table.cbegin(); sample != unitig_propagation_table.cend(); ++sample){
+
+            std::ofstream stream(sample->first, std::ofstream::out | std::ofstream::app);
+            if (!stream.good())
+            {
+                std::cerr << "ERROR: Could not open sample file \'" << sample->first << "\' for writing." << std::endl;
+                return 1;
+            }
+
+            // iterators pointing to the unitig ID list of a sample
+            std::vector<unsigned>::const_iterator idx = sample->second.cbegin();
+            std::vector<unsigned>::const_iterator idx_end = sample->second.cend();
+
+            // loop through graph
+            unsigned current_ucm_idx = 0;
+            for (auto &ucm : g){
+
+                if (*idx == current_ucm_idx){
+
+                    // write unitig to file
+                    stream << ">unitig_" << std::to_string(current_ucm_idx) << "\n";
+                    stream << ucm.referenceUnitigToString() << "\n";
+
+                    ++idx;
+
+                    if (idx == idx_end)
+                        break;
+                }
+
+                current_ucm_idx += 1;
+            }
+
+            stream.close();
+        }
+
     }
-
-
 
     // =====================
     // EOF
