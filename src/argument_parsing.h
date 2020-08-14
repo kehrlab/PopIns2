@@ -98,10 +98,17 @@ struct MergeOptions {
 
 
 struct MegamergeOptions {
+    int k_init;
+    unsigned k_max;
+    unsigned delta_k;
+
     std::string samplePath;
     std::string tempPath;
 
     MegamergeOptions () :
+        k_init(27),
+        k_max(127),
+        delta_k(20),
         samplePath(""),
         tempPath("auxMegamerge")
     {}
@@ -209,6 +216,13 @@ bool getOptionValues(MegamergeOptions &options, seqan::ArgumentParser &parser){
         getOptionValue(options.samplePath, parser, "sample-path");
     if (isSet(parser, "temp-path"))
         getOptionValue(options.tempPath, parser, "temp-path");
+    if (isSet(parser, "k-init"))
+        getOptionValue(options.k_init, parser, "k-init");
+    if (isSet(parser, "k-max"))
+        getOptionValue(options.k_max, parser, "k-max");
+    if (isSet(parser, "delta-k"))
+        getOptionValue(options.delta_k, parser, "delta-k");
+
 
     return true;
 }
@@ -358,8 +372,16 @@ void setupParser(seqan::ArgumentParser &parser, MegamergeOptions &options){
     seqan::addOption(parser, seqan::ArgParseOption("s", "sample-path",   "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
     seqan::addOption(parser, seqan::ArgParseOption("a", "temp-path",     "Auxiliary directory for temporary files.", seqan::ArgParseArgument::STRING, "DIR"));
 
+    seqan::addSection(parser, "Algorithm options");
+    seqan::addOption(parser, seqan::ArgParseOption("k", "k-init",    "Initial kmer length to start the multi-k iteration", seqan::ArgParseArgument::INTEGER, "INT"));
+    seqan::addOption(parser, seqan::ArgParseOption("m", "k-max",     "Maximal kmer length to build a dBG with", seqan::ArgParseArgument::INTEGER, "INT"));
+    seqan::addOption(parser, seqan::ArgParseOption("d", "delta-k",   "Step size to increase k", seqan::ArgParseArgument::INTEGER, "INT"));
+
     // Setup option constraints
     seqan::setDefaultValue(parser, "a",   options.tempPath);
+    seqan::setDefaultValue(parser, "k",   options.k_init);
+    seqan::setDefaultValue(parser, "m",   options.k_max);
+    seqan::setDefaultValue(parser, "d",   options.delta_k);
 
     // Setup hidden options
     setHiddenOptions(parser, true, options);
@@ -427,6 +449,26 @@ ArgumentParser::ParseResult checkInput(MegamergeOptions & options){
         res = ArgumentParser::PARSE_ERROR;
     }
 
+    if (options.k_init < 1) {
+        cerr << "[popins2 megamerge][parser] ERROR: Parameter k_init must be a positive integer." << endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    if ((unsigned)options.k_init > options.k_max) {
+        cerr << "[popins2 megamerge][parser] ERROR: Parameter k_init must be smaller than k_max." << endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    if (options.delta_k > options.k_max) {
+        cerr << "[popins2 megamerge][parser] ERROR: Parameter delta_k must be smaller than k_max." << endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    if (options.delta_k > (options.k_max - (unsigned)options.k_init)) {
+        cerr << "[popins2 megamerge][parser] ERROR: This step size delta_k will have no effect." << endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
     return res;
 }
 
@@ -483,6 +525,9 @@ void printMegamergeOptions(const MegamergeOptions &options){
     cout << "PARAMETER ======== : VALUE ==============================" << endl;
     cout << "sample-path        : " << options.samplePath               << endl;
     cout << "temp-path          : " << options.tempPath                 << endl;
+    cout << "k-init             : " << options.k_init                   << endl;
+    cout << "k-max              : " << options.k_max                    << endl;
+    cout << "delta-k            : " << options.delta_k                  << endl;
     cout << "=========================================================" << endl;
 }
 

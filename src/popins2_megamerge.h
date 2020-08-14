@@ -168,8 +168,8 @@ int popins2_megamerge(int argc, char const *argv[]){
     if (strcmp(mmo.tempPath.c_str(), "") != 0)      // if mmo.tempPath != ""
         (mkdir(mmo.tempPath.c_str(), 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "[popins2 megamerge] Temp directory created.\n";
 
-    int delta_k = 20;
-    int k_max = 123;
+    int delta_k = mmo.delta_k;
+    int k_max   = mmo.k_max;
 
     printMegamergeOptions(mmo);
 
@@ -199,14 +199,15 @@ int popins2_megamerge(int argc, char const *argv[]){
     // Graph options
     // =====================
     CCDBG_Build_opt opt;
-    opt.filename_ref_in   = temp_fastas;
+    opt.filename_seq_in   = temp_fastas;
     opt.deleteIsolated    = true;
     opt.clipTips          = true;
+    opt.useMercyKmers     = false;
     opt.prefixFilenameOut = "ccdbg";
     opt.nb_threads        = 16;
     opt.outputGFA         = true;
     opt.verbose           = false;
-    opt.k                 = 27;
+    opt.k                 = mmo.k_init;
 
     // =====================
     // Multi-k framework
@@ -230,7 +231,7 @@ int popins2_megamerge(int argc, char const *argv[]){
         opt.k += delta_k;
 
         // exit point
-        if (opt.k >= k_max){
+        if (opt.k > k_max){
             msg << "[popins2 megamerge] Writing "+opt.prefixFilenameOut+".gfa of de Bruijn Graph built with k="+std::to_string(opt.k - delta_k)+"..."; printTimeStatus(msg);
             g.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose);
             break;
