@@ -4,7 +4,7 @@
 #include "argument_parsing.h"           /* seqAn argument parser */
 #include "popins2_assemble.h"
 #include "popins2_merge.h"
-#include "popins2_megamerge.h"
+#include "popins2_multik.h"
 
 using namespace std;
 
@@ -28,7 +28,7 @@ int main(int argc, char const *argv[]){
     const char * command = argv[1];
     if (strcmp(command,"assemble") == 0) ret = popins2_assemble(argc, argv);
     else if (strcmp(command,"merge") == 0) ret = popins2_merge(argc, argv);
-    else if (strcmp(command,"megamerge") == 0) ret = popins2_megamerge(argc, argv);
+    else if (strcmp(command,"multik") == 0) ret = popins2_multik(argc, argv);
     else if (strcmp(command, "--help") == 0 || strcmp(command, "-h") == 0){
         printHelp(prog_name);
         return 1;

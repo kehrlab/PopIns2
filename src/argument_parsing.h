@@ -62,6 +62,9 @@ struct MergeOptions {
     vector<string> filename_seq_in;
     vector<string> filename_ref_in;
 
+    std::string filename_graph_in;
+    std::string filename_colors_in;
+
     int k;
     int g;
 
@@ -82,6 +85,10 @@ struct MergeOptions {
     MergeOptions () :       // the initializer list defines the program defaults
         verbose(false),
         nb_threads(1),
+
+        filename_graph_in(""),
+        filename_colors_in(""),
+
         k(63),
         g(23),
         clipTips(false),
@@ -97,7 +104,7 @@ struct MergeOptions {
 };
 
 
-struct MegamergeOptions {
+struct MultikOptions {
     int k_init;
     unsigned k_max;
     unsigned delta_k;
@@ -105,12 +112,12 @@ struct MegamergeOptions {
     std::string samplePath;
     std::string tempPath;
 
-    MegamergeOptions () :
+    MultikOptions () :
         k_init(27),
         k_max(127),
         delta_k(20),
         samplePath(""),
-        tempPath("auxMegamerge")
+        tempPath("auxMultik")
     {}
 };
 
@@ -164,6 +171,12 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
         getOptionValue(indir, parser, "input-ref-files");
         getFastx(options.filename_ref_in, indir, options.verbose);
     }
+    if (isSet(parser, "input-graph-file")){
+        getOptionValue(options.filename_graph_in, parser, "input-graph-file");
+    }
+    if (isSet(parser, "input-colors-file")){
+        getOptionValue(options.filename_colors_in, parser, "input-colors-file");
+    }
     if (isSet(parser, "kmer-length"))
         getOptionValue(options.k, parser, "kmer-length");
     if (isSet(parser, "minimizer-length"))
@@ -197,20 +210,22 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
  * @param   graph_opt is an options instance of Bifrost
  */
 void setupBifrostOptions(const MergeOptions &options, CCDBG_Build_opt &graph_opt){
-    graph_opt.verbose           = options.verbose;
-    graph_opt.nb_threads        = options.nb_threads;
-    graph_opt.filename_seq_in   = options.filename_seq_in;
-    graph_opt.filename_ref_in   = options.filename_ref_in;
-    graph_opt.k                 = options.k;
-    graph_opt.g                 = options.g;
-    graph_opt.clipTips          = options.clipTips;
-    graph_opt.deleteIsolated    = options.deleteIsolated;
-    graph_opt.useMercyKmers     = options.useMercyKmers;
-    graph_opt.prefixFilenameOut = options.prefixFilenameOut;
+    graph_opt.verbose            = options.verbose;
+    graph_opt.nb_threads         = options.nb_threads;
+    graph_opt.filename_seq_in    = options.filename_seq_in;
+    graph_opt.filename_ref_in    = options.filename_ref_in;
+    graph_opt.filename_graph_in  = options.filename_graph_in;
+    graph_opt.filename_colors_in = options.filename_colors_in;
+    graph_opt.k                  = options.k;
+    graph_opt.g                  = options.g;
+    graph_opt.clipTips           = options.clipTips;
+    graph_opt.deleteIsolated     = options.deleteIsolated;
+    graph_opt.useMercyKmers      = options.useMercyKmers;
+    graph_opt.prefixFilenameOut  = options.prefixFilenameOut;
 }
 
 
-bool getOptionValues(MegamergeOptions &options, seqan::ArgumentParser &parser){
+bool getOptionValues(MultikOptions &options, seqan::ArgumentParser &parser){
 
     if (isSet(parser, "sample-path"))
         getOptionValue(options.samplePath, parser, "sample-path");
@@ -247,7 +262,7 @@ void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MergeOptions &){
     hideOption(parser, "write-lecc",     hide);
 }
 
-void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MegamergeOptions &){
+void setHiddenOptions(seqan::ArgumentParser &parser, bool hide, MultikOptions &){
     // TODO
 }
 
@@ -312,15 +327,17 @@ void setupParser(ArgumentParser & parser, AssemblyOptions & options){
  */
 void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     // Setup meta-information
-    seqan::setShortDescription(parser, "Build a colored and compacted de Bruijn Graph (CCDBG)");
+    seqan::setShortDescription(parser, "Build or read a colored and compacted de Bruijn Graph (CCDBG) and generate supercontigs.");
     seqan::setVersion(parser, VERSION);
     seqan::setDate(parser, DATE);
-    seqan::addUsageLine(parser, "\\--input-{seq|ref}-files DIR [OPTIONS] \\fP ");
+    seqan::addUsageLine(parser, "\\--input-{seq|ref}-files DIR or --input-graph-file GFA --input-colors-file BFG_COLORS [OPTIONS] \\fP ");
 
     // Setup options
     seqan::addSection(parser, "I/O options");
     seqan::addOption(parser, seqan::ArgParseOption("s", "input-seq-files",   "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
     seqan::addOption(parser, seqan::ArgParseOption("r", "input-ref-files",   "Source directory with reference FASTA/Q files (no abundance filter)", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("y", "input-graph-file",  "Source file with dBG", seqan::ArgParseArgument::STRING, "GFA"));
+    seqan::addOption(parser, seqan::ArgParseOption("z", "input-colors-file", "Source file with dBG colors", seqan::ArgParseArgument::STRING, "BFG_COLORS"));
     seqan::addOption(parser, seqan::ArgParseOption("p", "outputfile-prefix", "Specify a prefix for the output files", seqan::ArgParseArgument::STRING, "STRING"));
     seqan::addOption(parser, seqan::ArgParseOption("c", "write-setcover",    "Write a CSV file with unitig IDs of the setcover"));
     seqan::addOption(parser, seqan::ArgParseOption("l", "write-lecc",        "Write a CSV file with unitig IDs of the LECCs"));
@@ -360,7 +377,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
 }
 
 
-void setupParser(seqan::ArgumentParser &parser, MegamergeOptions &options){
+void setupParser(seqan::ArgumentParser &parser, MultikOptions &options){
     // Setup meta-information
     seqan::setShortDescription(parser, "Multi-k framework for a colored and compacted de Bruijn Graph (CCDBG)");
     seqan::setVersion(parser, VERSION);
@@ -430,9 +447,22 @@ ArgumentParser::ParseResult checkInput(MergeOptions & options){
 
     ArgumentParser::ParseResult res = ArgumentParser::PARSE_OK;
 
-    if (options.filename_ref_in.empty() && options.filename_seq_in.empty()){
-        cerr << "[popins2 merge][parser] ERROR: No input files specified/found." << endl;
-        cerr << "[popins2 merge][parser] ERROR: At least one input -r or -s must be given." << endl;
+    if (options.filename_ref_in.empty() && options.filename_seq_in.empty() && strcmp(options.filename_graph_in.c_str(), "")==0 ){
+        cerr << "[popins2 merge][parser] ERROR: No input files or graph found." << endl;
+        cerr << "[popins2 merge][parser] ERROR: At least one input (-r/-s) must be given OR a graph (-y) AND colors (-z)." << endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    if ((!options.filename_ref_in.empty() || !options.filename_seq_in.empty()) && strcmp(options.filename_graph_in.c_str(), "")!=0 ){
+        cerr << "[popins2 merge][parser] ERROR: The merge module takes only sequence files or a graph, not both!" << endl;
+        cerr << "[popins2 merge][parser] ERROR: At least one input (-r/-s) must be given XOR a graph (-y) AND colors (-z)." << endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    if (strcmp(options.filename_graph_in.c_str(), "")!=0 && strcmp(options.filename_colors_in.c_str(), "")==0  ||
+        strcmp(options.filename_graph_in.c_str(), "")==0 && strcmp(options.filename_colors_in.c_str(), "")!=0){
+        cerr << "[popins2 merge][parser] ERROR: One of the colored de Bruijn Graph files is missing (-y/-z)." << endl;
+        cerr << "[popins2 merge][parser] ERROR: If a graph should be read, please provide a graph (-y) AND a colors file (-z)." << endl;
         res = ArgumentParser::PARSE_ERROR;
     }
 
@@ -440,32 +470,32 @@ ArgumentParser::ParseResult checkInput(MergeOptions & options){
 }
 
 
-ArgumentParser::ParseResult checkInput(MegamergeOptions & options){
+ArgumentParser::ParseResult checkInput(MultikOptions & options){
 
     ArgumentParser::ParseResult res = ArgumentParser::PARSE_OK;
 
     if (options.samplePath == "") {
-        cerr << "[popins2 megamerge][parser] ERROR: No input path specified." << endl;
+        cerr << "[popins2 multik][parser] ERROR: No input path specified." << endl;
         res = ArgumentParser::PARSE_ERROR;
     }
 
     if (options.k_init < 1) {
-        cerr << "[popins2 megamerge][parser] ERROR: Parameter k_init must be a positive integer." << endl;
+        cerr << "[popins2 multik][parser] ERROR: Parameter k_init must be a positive integer." << endl;
         res = ArgumentParser::PARSE_ERROR;
     }
 
     if ((unsigned)options.k_init > options.k_max) {
-        cerr << "[popins2 megamerge][parser] ERROR: Parameter k_init must be smaller than k_max." << endl;
+        cerr << "[popins2 multik][parser] ERROR: Parameter k_init must be smaller than k_max." << endl;
         res = ArgumentParser::PARSE_ERROR;
     }
 
     if (options.delta_k > options.k_max) {
-        cerr << "[popins2 megamerge][parser] ERROR: Parameter delta_k must be smaller than k_max." << endl;
+        cerr << "[popins2 multik][parser] ERROR: Parameter delta_k must be smaller than k_max." << endl;
         res = ArgumentParser::PARSE_ERROR;
     }
 
     if (options.delta_k > (options.k_max - (unsigned)options.k_init)) {
-        cerr << "[popins2 megamerge][parser] ERROR: This step size delta_k will have no effect." << endl;
+        cerr << "[popins2 multik][parser] ERROR: This step size delta_k will have no effect." << endl;
         res = ArgumentParser::PARSE_ERROR;
     }
 
@@ -486,8 +516,8 @@ void printHelp(char const * name){
     std::cerr << std::endl;
     std::cerr << "\033[1mCOMMAND\033[0m" << std::endl;
     std::cerr << "    \033[1massemble\033[0m        Filter, clip and assemble unmapped reads from a sample." << std::endl;
-    std::cerr << "    \033[1mmerge\033[0m           Merge many samples into a colored compacted de Bruijn Graph." << std::endl;
-    std::cerr << "    \033[1mmegamerge\033[0m       Multi-k framework for a colored compacted de Bruijn Graph." << std::endl;
+    std::cerr << "    \033[1mmerge\033[0m           Generate supercontigs from a colored compacted de Bruijn Graph." << std::endl;
+    std::cerr << "    \033[1mmultik\033[0m          Multi-k framework for a colored compacted de Bruijn Graph." << std::endl;
     std::cerr << std::endl;
     std::cerr << "\033[1mVERSION\033[0m" << std::endl;
     std::cerr << "    " << VERSION << ", Date: " << DATE << std::endl;
@@ -505,6 +535,8 @@ void printMergeOptions(const MergeOptions &options){
     cout << "threads            : " << options.nb_threads               << endl;
     cout << "#filename_seq_in   : " << options.filename_seq_in.size()   << endl;
     cout << "#filename_ref_in   : " << options.filename_ref_in.size()   << endl;
+    cout << "filename_graph_in  : " << options.filename_graph_in        << endl;
+    cout << "filename_colors_in : " << options.filename_colors_in       << endl;
     cout << "k                  : " << options.k                        << endl;
     cout << "g                  : " << options.g                        << endl;
     cout << "clip-tips          : " << options.clipTips                 << endl;
@@ -519,7 +551,7 @@ void printMergeOptions(const MergeOptions &options){
 }
 
 
-void printMegamergeOptions(const MegamergeOptions &options){
+void printMultikOptions(const MultikOptions &options){
     cout << "=========================================================" << endl;
     cout << "popins2 version    : " << VERSION                          << endl;
     cout << "PARAMETER ======== : VALUE ==============================" << endl;
