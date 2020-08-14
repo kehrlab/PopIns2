@@ -1,20 +1,20 @@
 /**
- *  @file   src/popins2_megamerge.h
+ *  @file   src/popins2_multik.h
  *  @brief  Creating a multi-k-iterative colored compacted de Bruijn Graph.
  *          In the past, the multi-k paradigm for de Bruijn Graphs (dBG) has been shown to be a successful
  *          method to transform the topology of a dBG for de novo sequence assembly. The multi-k paradigm
  *          aims to increase the average unitig length without the fragmentation of large k values.
- *          The megamerge module extends this idea for colored de Bruijn Graphs by maintaining the color
+ *          The multik module extends this idea for colored de Bruijn Graphs by maintaining the color
  *          awareness in each iteration.
  */
 
-#ifndef POPINS2_MEGAMERGE_H_
-#define POPINS2_MEGAMERGE_H_
+#ifndef POPINS2_MULTIK_H_
+#define POPINS2_MULTIK_H_
 
 #include <bifrost/ColoredCDBG.hpp>          // ColoredCDBG
 #include <seqan/seq_io.h>                   // getAbsolutePath, toCString, readRecords
 #include "util.h"                           // getFastx, printTimeStatus, getAbsoluteFileName
-#include "argument_parsing.h"               // MegamergeOptions, parseCommandLine, printMegamergeOptions
+#include "argument_parsing.h"               // MultikOptions, parseCommandLine, printMultikOptions
 
 using namespace seqan;
 
@@ -148,33 +148,33 @@ inline void colorProbing(const UnitigColorMap<void> &ucm, std::vector<size_t> &c
 
 
 /**
- *          Megamerge main routine.
+ *          Multik main routine.
  *  @return 0=success, 1=error
  */
-int popins2_megamerge(int argc, char const *argv[]){
+int popins2_multik(int argc, char const *argv[]){
     // =====================
     // Argument parsing
     // =====================
-    MegamergeOptions mmo;
+    MultikOptions mmo;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(mmo, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK){
         if (res == seqan::ArgumentParser::PARSE_HELP)
             return 0;
-        cerr << "[popins2 megamerge] seqan::ArgumentParser::PARSE_ERROR" << endl;
+        cerr << "[popins2 multik] seqan::ArgumentParser::PARSE_ERROR" << endl;
         return 1;
     }
 
     // manage a temporary directory
     if (strcmp(mmo.tempPath.c_str(), "") != 0)      // if mmo.tempPath != ""
-        (mkdir(mmo.tempPath.c_str(), 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "[popins2 megamerge] Temp directory created.\n";
+        (mkdir(mmo.tempPath.c_str(), 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "[popins2 multik] Temp directory created.\n";
 
     int delta_k = mmo.delta_k;
     int k_max   = mmo.k_max;
 
-    printMegamergeOptions(mmo);
+    printMultikOptions(mmo);
 
     std::ostringstream msg;
-    msg << "[popins2 megamerge] Starting ..."; printTimeStatus(msg);
+    msg << "[popins2 multik] Starting ..."; printTimeStatus(msg);
 
     // read original FASTQ samples
     std::vector<std::string> samples;
@@ -215,30 +215,30 @@ int popins2_megamerge(int argc, char const *argv[]){
     unsigned k_iter_counter = 0;
     while (opt.k <= k_max) {
         ++k_iter_counter;
-        msg << "[popins2 megamerge] Multi-k iteration "+std::to_string(k_iter_counter)+" using k="+std::to_string(opt.k); printTimeStatus(msg);
+        msg << "[popins2 multik] Multi-k iteration "+std::to_string(k_iter_counter)+" using k="+std::to_string(opt.k); printTimeStatus(msg);
 
         ColoredCDBG<> g(opt.k);
 
-        msg << "[popins2 megamerge] Building dBG..."; printTimeStatus(msg);
+        msg << "[popins2 multik] Building dBG..."; printTimeStatus(msg);
         g.buildGraph(opt);
 
-        msg << "[popins2 megamerge] Simplifying dBG..."; printTimeStatus(msg);
+        msg << "[popins2 multik] Simplifying dBG..."; printTimeStatus(msg);
         g.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
 
-        msg << "[popins2 megamerge] Annotating colors..."; printTimeStatus(msg);
+        msg << "[popins2 multik] Annotating colors..."; printTimeStatus(msg);
         g.buildColors(opt);
 
         opt.k += delta_k;
 
         // exit point
         if (opt.k > k_max){
-            msg << "[popins2 megamerge] Writing "+opt.prefixFilenameOut+".gfa of de Bruijn Graph built with k="+std::to_string(opt.k - delta_k)+"..."; printTimeStatus(msg);
+            msg << "[popins2 multik] Writing "+opt.prefixFilenameOut+".gfa of de Bruijn Graph built with k="+std::to_string(opt.k - delta_k)+"..."; printTimeStatus(msg);
             g.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose);
             break;
         }
 
         // get sample-unitig assignment
-        msg << "[popins2 megamerge] Get sample-unitig assignment..."; printTimeStatus(msg);
+        msg << "[popins2 multik] Get sample-unitig assignment..."; printTimeStatus(msg);
         const size_t nb_colors = g.getNbColors();
         std::unordered_map <std::string, std::vector<unsigned> > unitig_propagation_table;
         std::vector<size_t> color_indices;
@@ -261,7 +261,7 @@ int popins2_megamerge(int argc, char const *argv[]){
         }
 
         // write unitig file per sample
-        msg << "[popins2 megamerge] Adding (k + delta_k)-unitigs to temp FASTAs..."; printTimeStatus(msg);
+        msg << "[popins2 multik] Adding (k + delta_k)-unitigs to temp FASTAs..."; printTimeStatus(msg);
         for (auto sample = unitig_propagation_table.cbegin(); sample != unitig_propagation_table.cend(); ++sample){
 
             std::ofstream stream(sample->first, std::ofstream::out | std::ofstream::app);
@@ -302,11 +302,11 @@ int popins2_megamerge(int argc, char const *argv[]){
     // =====================
     // EOF
     // =====================
-    msg << "[popins2 megamerge] Done."; printTimeStatus(msg);
+    msg << "[popins2 multik] Done."; printTimeStatus(msg);
 
     return 0;
 }
 
 
 
-#endif /*POPINS2_MEGAMERGE_H_*/
+#endif /*POPINS2_MULTIK_H_*/
