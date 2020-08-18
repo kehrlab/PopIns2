@@ -51,20 +51,28 @@ int popins2_merge(int argc, char const *argv[]){
     // ==============================
     ExtendedCCDBG exg(ccdbg_build_opt.k, ccdbg_build_opt.g);
 
-    msg.str("");
-    msg << "Building CCDBG";
-    printTimeStatus(msg);
-    exg.buildGraph(ccdbg_build_opt);
+    if (strcmp(ccdbg_build_opt.filename_graph_in.c_str(), "")!=0) { // parser checks that no FASTX are loaded into ccdbg_build_opt before
+        msg.str("");
+        msg << "Load CCDBG";
+        printTimeStatus(msg);
+        exg.read(ccdbg_build_opt.filename_graph_in, ccdbg_build_opt.filename_colors_in, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
+    }
+    else{
+        msg.str("");
+        msg << "Building CCDBG";
+        printTimeStatus(msg);
+        exg.buildGraph(ccdbg_build_opt);
 
-    msg.str("");
-    msg << "Simplifying CCDBG";
-    printTimeStatus(msg);
-    exg.simplify(ccdbg_build_opt.deleteIsolated, ccdbg_build_opt.clipTips, ccdbg_build_opt.verbose);
+        msg.str("");
+        msg << "Simplifying CCDBG";
+        printTimeStatus(msg);
+        exg.simplify(ccdbg_build_opt.deleteIsolated, ccdbg_build_opt.clipTips, ccdbg_build_opt.verbose);
 
-    msg.str("");
-    msg << "ColorMapping CCDBG";
-    printTimeStatus(msg);
-    exg.buildColors(ccdbg_build_opt);
+        msg.str("");
+        msg << "ColorMapping CCDBG";
+        printTimeStatus(msg);
+        exg.buildColors(ccdbg_build_opt);
+    }
 
     // ==============================
     // PopIns2 merge
@@ -129,11 +137,12 @@ int popins2_merge(int argc, char const *argv[]){
     // ==============================
     // Bifrost
     // ==============================
-    msg.str("");
-    msg << "Writing CCDBG";
-    printTimeStatus(msg);
-    exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
-
+    if (strcmp(ccdbg_build_opt.filename_graph_in.c_str(), "")==0){  // only if the graph was build from sequences (-s/-r), then write the graph to gfa
+        msg.str("");
+        msg << "Writing CCDBG";
+        printTimeStatus(msg);
+        exg.write(ccdbg_build_opt.prefixFilenameOut, ccdbg_build_opt.nb_threads, ccdbg_build_opt.verbose);
+    }
 
     return 0;
 }

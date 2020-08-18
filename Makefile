@@ -20,10 +20,10 @@ CXXFLAGS += -DDATE=\""$(DATE)"\" -DVERSION=\""$(VERSION)"\"
 # Compiler flags
 CXXFLAGS += -DSEQAN_HAS_ZLIB=1 -DSEQAN_DISABLE_VERSION_CHECK
 CXXFLAGS += -W -Wall -Wno-long-long -pedantic -Wno-variadic-macros -Wno-unused-result
-CXXFLAGS += -march=native -DMAX_KMER_SIZE=64
+CXXFLAGS += -march=native -DMAX_KMER_SIZE=128
 
 # Linker flags
-LDLIBS = -lbifrost -pthread -lz -lrt -rdynamic -DMAX_KMER_SIZE=64
+LDLIBS = -lbifrost -pthread -lz -lrt -rdynamic -DMAX_KMER_SIZE=128
 
 # DEBUG build
 #CXXFLAGS += -g -pg -O0 -DDEBUG -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
