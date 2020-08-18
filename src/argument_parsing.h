@@ -364,9 +364,9 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::setDefaultValue(parser, "t",   options.nb_threads);
 
     seqan::setMinValue(parser, "k", "1");
-    seqan::setMaxValue(parser, "k", "63");
+    seqan::setMaxValue(parser, "k", std::to_string(MAX_KMER_SIZE));
     seqan::setMinValue(parser, "g", "1");
-    seqan::setMaxValue(parser, "g", "62");
+    seqan::setMaxValue(parser, "g", std::to_string(MAX_KMER_SIZE-1));
     seqan::setMinValue(parser, "m", "1");
     seqan::setMinValue(parser, "e", "0.0");
     seqan::setMaxValue(parser, "e", "1.0");
