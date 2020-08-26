@@ -65,7 +65,8 @@ inline int remapping(Triple<CharString> & fastqFilesTemp,
         unsigned humanSeqs,
         unsigned threads,
         CharString & memory,
-        CharString & prefix)
+        CharString & prefix,
+        float as_factor)
 {
     std::stringstream cmd;
 
@@ -157,7 +158,7 @@ inline int remapping(Triple<CharString> & fastqFilesTemp,
     printStatus(msg);
 
     // Crop unmapped and create bam file of remapping.
-    if (crop_unmapped(fastqFiles, remappedUnsortedBam, remappedBam, humanSeqs, NoAdapters()) != 0)
+    if (crop_unmapped(fastqFiles, remappedUnsortedBam, remappedBam, humanSeqs, NoAdapters(), as_factor) != 0)
         return 1;
     remove(toCString(remappedBai));
 
@@ -534,6 +535,8 @@ int popins2_assemble(int argc, char const ** argv)
 
     SampleInfo info = initSampleInfo(options.mappingFile, options.sampleID, options.adapters);
 
+    float as_factor = options.alignment_score_factor;
+
     CharString matesBam = getFileName(workingDirectory, "mates.bam");
     CharString nonRefBamTemp = getFileName(workingDirectory, "non_ref_tmp.bam");
     CharString nonRefBam = getFileName(workingDirectory, "non_ref.bam");
@@ -554,17 +557,17 @@ int popins2_assemble(int argc, char const ** argv)
         // Crop unmapped reads and reads with unreliable mappings from the input bam file.
         if (options.adapters == "HiSeqX")
         {
-            if (crop_unmapped(info.avg_cov, fastqFiles, matesBam, options.mappingFile, options.humanSeqs, HiSeqXAdapters()) != 0)
+            if (crop_unmapped(info.avg_cov, fastqFiles, matesBam, options.mappingFile, options.humanSeqs, HiSeqXAdapters(), as_factor) != 0)
                 return 7;
         }
         else if (options.adapters == "HiSeq")
         {
-            if (crop_unmapped(info.avg_cov, fastqFiles, matesBam, options.mappingFile, options.humanSeqs, HiSeqAdapters()) != 0)
+            if (crop_unmapped(info.avg_cov, fastqFiles, matesBam, options.mappingFile, options.humanSeqs, HiSeqAdapters(), as_factor) != 0)
                 return 7;
         }
         else
         {
-            if (crop_unmapped(info.avg_cov, fastqFiles, matesBam, options.mappingFile, options.humanSeqs, NoAdapters()) != 0)
+            if (crop_unmapped(info.avg_cov, fastqFiles, matesBam, options.mappingFile, options.humanSeqs, NoAdapters(), as_factor) != 0)
                 return 7;
         }
 
@@ -603,7 +606,7 @@ int popins2_assemble(int argc, char const ** argv)
             CharString remappedBam = getFileName(workingDirectory, "remapped.bam");
             CharString prefix = "";
             if (remapping(fastqFilesTemp, fastqFiles, options.referenceFile, workingDirectory,
-                    options.humanSeqs, options.threads, options.memory, prefix) != 0)
+                    options.humanSeqs, options.threads, options.memory, prefix, as_factor) != 0)
                 return 7;
 
             // Set the mate's location and merge non_ref.bam and remapped.bam into a single file.
@@ -649,17 +652,17 @@ int popins2_assemble(int argc, char const ** argv)
             // Crop unmapped reads and reads with unreliable mappings from the input bam file.
             if (options.adapters == "HiSeqX")
             {
-                if (crop_unmapped(fastqMPFiles, matesMPBam, options.matepairFile, options.humanSeqs, HiSeqXAdapters()) != 0)
+                if (crop_unmapped(fastqMPFiles, matesMPBam, options.matepairFile, options.humanSeqs, HiSeqXAdapters(), as_factor) != 0)
                     return 7;
             }
             else if (options.adapters == "HiSeq")
             {
-                if (crop_unmapped(fastqMPFiles, matesMPBam, options.matepairFile, options.humanSeqs, HiSeqAdapters()) != 0)
+                if (crop_unmapped(fastqMPFiles, matesMPBam, options.matepairFile, options.humanSeqs, HiSeqAdapters(), as_factor) != 0)
                     return 7;
             }
             else
             {
-                if (crop_unmapped(fastqMPFiles, matesMPBam, options.matepairFile, options.humanSeqs, NoAdapters()) != 0)
+                if (crop_unmapped(fastqMPFiles, matesMPBam, options.matepairFile, options.humanSeqs, NoAdapters(), as_factor) != 0)
                     return 7;
             }
 
@@ -691,7 +694,7 @@ int popins2_assemble(int argc, char const ** argv)
                 CharString remappedMPBam = getFileName(workingDirectory, "MP.remapped.bam");
                 CharString prefix = "MP.";
                 if (remapping(fastqMPFilesTemp, fastqMPFiles, options.referenceFile, workingDirectory,
-                        options.humanSeqs, options.threads, options.memory, prefix) != 0)
+                        options.humanSeqs, options.threads, options.memory, prefix, as_factor) != 0)
                     return 7;
 
                 // Set the mate's location and merge non_ref.bam and remapped.bam into a single file.
@@ -714,61 +717,64 @@ int popins2_assemble(int argc, char const ** argv)
 
     Triple<CharString> filteredMPFiles(firstMPFiltered, secondMPFiltered, singleMPFiltered);
 
-    if (options.matepairFile != "")
-    {
+    if (options.matepairFile != ""){
         if (sickle_filtering(filteredMPFiles,fastqMPFiles, workingDirectory) != 0)
             return 7;
     }
 
-    CharString assemblyDirectory = getFileName(workingDirectory, "assembly");
-    if (options.use_velvet){
-        // Assembly with velvet.
-        if (velvet_assembly(filteredFiles, filteredMPFiles, assemblyDirectory, options.kmerLength, options.matepairFile != "") != 0)
-            return 7;
+    if (!options.skip_assembly){    // if you use the multik module or an independent assembler you might want to skip the assembly here
 
-        if (options.matepairFile == "")
-        {
-            remove(toCString(firstMPFiltered));
-            remove(toCString(secondMPFiltered));
-            remove(toCString(singleMPFiltered));
+        CharString assemblyDirectory = getFileName(workingDirectory, "assembly");
+        if (options.use_velvet){
+
+            // Assembly with velvet.
+            if (velvet_assembly(filteredFiles, filteredMPFiles, assemblyDirectory, options.kmerLength, options.matepairFile != "") != 0)
+                return 7;
+
+            if (options.matepairFile == ""){
+                remove(toCString(firstMPFiltered));
+                remove(toCString(secondMPFiltered));
+                remove(toCString(singleMPFiltered));
+            }
+
+            // Copy contigs file to workingDirectory and remove assembly directory.
+            CharString contigFileAssembly = getFileName(assemblyDirectory, "contigs.fa");
+            CharString contigFile = getFileName(workingDirectory, "contigs.fa");
+            std::ifstream src(toCString(contigFileAssembly), std::ios::binary);
+            std::ofstream dst(toCString(contigFile), std::ios::binary);
+            dst << src.rdbuf();
+            src.close();
+            dst.close();
+            removeAssemblyDirectory(assemblyDirectory);
         }
+        else{
 
-        // Copy contigs file to workingDirectory and remove assembly directory.
-        CharString contigFileAssembly = getFileName(assemblyDirectory, "contigs.fa");
-        CharString contigFile = getFileName(workingDirectory, "contigs.fa");
-        std::ifstream src(toCString(contigFileAssembly), std::ios::binary);
-        std::ofstream dst(toCString(contigFile), std::ios::binary);
-        dst << src.rdbuf();
-        src.close();
-        dst.close();
-        removeAssemblyDirectory(assemblyDirectory);
-    }
-    else{
-        // Assembly with minia. (default)
-        if (mkdir(toCString(assemblyDirectory), 0755) == 0){    // in contrast to Velvet, minia does not create a missing directory at runtime
-            msg.str("");
-            msg << "Assembly directory created at " << workingDirectory;
-            printStatus(msg);
+            // Assembly with minia. (default)
+            if (mkdir(toCString(assemblyDirectory), 0755) == 0){    // in contrast to Velvet, minia does not create a missing directory at runtime
+                msg.str("");
+                msg << "Assembly directory created at " << workingDirectory;
+                printStatus(msg);
+            }
+            if (minia_assembly(filteredFiles, assemblyDirectory, options.threads) != 0)
+                return 7;
+
+            // Copy contigs file to workingDirectory
+            CharString contigFileAssembly = getFileName(assemblyDirectory, "assembly_final.contigs.fa");
+            CharString contigFile = getFileName(workingDirectory, "assembly_final.contigs.fa");
+            //cout << "assemblyDirectory: " << assemblyDirectory << endl;
+            //cout << "workingDirectory: " << workingDirectory << endl;
+            std::ifstream src(toCString(contigFileAssembly), std::ios::binary);
+            std::ofstream dst(toCString(contigFile), std::ios::binary);
+            dst << src.rdbuf();
+            src.close();
+            dst.close();
+
+            // remove assembly directory
+            std::stringstream cmd;
+            cmd.str("");
+            cmd << "rm -rf " << assemblyDirectory;
+            system(cmd.str().c_str());
         }
-        if (minia_assembly(filteredFiles, assemblyDirectory, options.threads) != 0)
-            return 7;
-
-        // Copy contigs file to workingDirectory
-        CharString contigFileAssembly = getFileName(assemblyDirectory, "assembly_final.contigs.fa");
-        CharString contigFile = getFileName(workingDirectory, "assembly_final.contigs.fa");
-        //cout << "assemblyDirectory: " << assemblyDirectory << endl;
-        //cout << "workingDirectory: " << workingDirectory << endl;
-        std::ifstream src(toCString(contigFileAssembly), std::ios::binary);
-        std::ofstream dst(toCString(contigFile), std::ios::binary);
-        dst << src.rdbuf();
-        src.close();
-        dst.close();
-
-        // remove assembly directory
-        std::stringstream cmd;
-        cmd.str("");
-        cmd << "rm -rf " << assemblyDirectory;
-        system(cmd.str().c_str());
     }
 
     remove(toCString(firstFiltered));

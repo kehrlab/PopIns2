@@ -155,8 +155,8 @@ int popins2_multik(int argc, char const *argv[]){
     // =====================
     // Argument parsing
     // =====================
-    MultikOptions mmo;
-    seqan::ArgumentParser::ParseResult res = parseCommandLine(mmo, argc, argv);
+    MultikOptions mko;
+    seqan::ArgumentParser::ParseResult res = parseCommandLine(mko, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK){
         if (res == seqan::ArgumentParser::PARSE_HELP)
             return 0;
@@ -165,27 +165,27 @@ int popins2_multik(int argc, char const *argv[]){
     }
 
     // manage a temporary directory
-    if (strcmp(mmo.tempPath.c_str(), "") != 0)      // if mmo.tempPath != ""
-        (mkdir(mmo.tempPath.c_str(), 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "[popins2 multik] Temp directory created.\n";
+    if (strcmp(mko.tempPath.c_str(), "") != 0)      // if mko.tempPath != ""
+        (mkdir(mko.tempPath.c_str(), 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "[popins2 multik] Temp directory created.\n";
 
-    int delta_k = mmo.delta_k;
-    int k_max   = mmo.k_max;
+    int delta_k = mko.delta_k;
+    int k_max   = mko.k_max;
 
-    printMultikOptions(mmo);
+    printMultikOptions(mko);
 
     std::ostringstream msg;
     msg << "[popins2 multik] Starting ..."; printTimeStatus(msg);
 
     // read original FASTQ samples
     std::vector<std::string> samples;
-    getFastx(samples, mmo.samplePath);
+    getFastx(samples, mko.samplePath);
 
     // create a FASTA at tempDir for every input FASTQ
     std::vector<std::string> temp_fastas;
     bool fastq2fasta_failed = false;
 
     for (auto &sample : samples){
-        bool ret = fastq2fastq(sample, mmo.tempPath, temp_fastas);
+        bool ret = fastq2fastq(sample, mko.tempPath, temp_fastas);
         fastq2fasta_failed = fastq2fasta_failed || ret;
     }
     if (fastq2fasta_failed){
@@ -203,11 +203,11 @@ int popins2_multik(int argc, char const *argv[]){
     opt.deleteIsolated    = true;
     opt.clipTips          = true;
     opt.useMercyKmers     = false;
-    opt.prefixFilenameOut = "ccdbg";
+    opt.prefixFilenameOut = mko.prefixFilenameOut;
     opt.nb_threads        = 16;
     opt.outputGFA         = true;
     opt.verbose           = false;
-    opt.k                 = mmo.k_init;
+    opt.k                 = mko.k_init;
 
     // =====================
     // Multi-k framework

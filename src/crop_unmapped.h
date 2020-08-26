@@ -29,7 +29,7 @@ using namespace seqan;
  * @returns         true if the read has low mapping quality and otherwise false.
  */
 inline bool
-hasLowMappingQuality(BamAlignmentRecord & record, int humanSeqs)
+hasLowMappingQuality(BamAlignmentRecord & record, int humanSeqs, float as_factor)
 {
     typedef Iterator<String<CigarElement<> > >::Type TIter;
 
@@ -54,14 +54,14 @@ hasLowMappingQuality(BamAlignmentRecord & record, int humanSeqs)
             record.cigar[length(record.cigar)-1].count > 24)
         return true;
 
-    // Check for AS (alignment score) lower than 0.5 * readLength.
+    // Check for AS (alignment score) lower than as_factor * readLength.
     BamTagsDict tagsDict(record.tags);
     unsigned idx;
     if (findTagKey(idx, tagsDict, "AS"))
     {
         unsigned score = 0;
         extractTagValue(score, tagsDict, idx);
-        if (score < 0.5*length(record.seq))
+        if (score < as_factor*length(record.seq))
             return true;
     }
 
@@ -83,11 +83,11 @@ removeLowQuality(BamAlignmentRecord & record, TSize_ qualThresh)
     TSize windowThresh = qualThresh*windowSize;
 
     // Initialize windowQual with first windowSize quality values.
-    TSize windowQual = 0; 
+    TSize windowQual = 0;
     TIter qualEnd = end(record.qual);
     TIter windowEnd = begin(record.qual) + std::min(windowSize, length(record.qual));
     TIter windowBegin = begin(record.qual);
-    for (; windowBegin != windowEnd; ++windowBegin) 
+    for (; windowBegin != windowEnd; ++windowBegin)
         windowQual += *windowBegin - 33;
 
     // Check quality from the left.
@@ -356,7 +356,8 @@ crop_unmapped(double & avgCov,
         CharString & matesBam,
         CharString const & mappingBam,
         int humanSeqs,
-        TAdapterTag tag)
+        TAdapterTag tag,
+        float as_factor)
 {
     typedef __int32 TPos;
     typedef std::map<CharString, Pair<CharString> > TFastqMap; // Reads to go into fastq files.
@@ -392,7 +393,7 @@ crop_unmapped(double & avgCov,
     TFastqMap firstReads, secondReads;
     TOtherMap otherReads;
 
-    // Open the output fastq files.    
+    // Open the output fastq files.
     SeqFileOut fastqFirstStream(toCString(fastqFiles.i1));
     SeqFileOut fastqSecondStream(toCString(fastqFiles.i2));
     SeqFileOut fastqSingleStream(toCString(fastqFiles.i3));
@@ -426,7 +427,7 @@ crop_unmapped(double & avgCov,
         }
 
         // Check for low mapping quality.
-        else if (hasLowMappingQuality(record, humanSeqs))
+        else if (hasLowMappingQuality(record, humanSeqs, as_factor))
         {
             if (removeLowQuality(record, 20) != 1 && removeAdapter(record, indexUniversal, indexTruSeqs, 30, tag) != 2)
             {
@@ -458,7 +459,7 @@ crop_unmapped(double & avgCov,
     msg << "Unmapped reads written to " << fastqFiles.i1 << ", " << fastqFiles.i2 << ", " << fastqFiles.i3;
     printStatus(msg);
 
-    // Find the other read end of the low quality mapping reads and write them to the output bam file. 
+    // Find the other read end of the low quality mapping reads and write them to the output bam file.
     int found = findOtherReads(matesStream, otherReads, mappingBam);
     if (found == -1) return 1;
 
@@ -476,10 +477,11 @@ crop_unmapped(Triple<CharString> & fastqFiles,
         CharString & matesBam,
         CharString const & mappingBam,
         int humanSeqs,
-        TAdapterTag tag)
+        TAdapterTag tag,
+        float as_factor)
 {
     double cov;
-    return crop_unmapped(cov, fastqFiles, matesBam, mappingBam, humanSeqs, tag);
+    return crop_unmapped(cov, fastqFiles, matesBam, mappingBam, humanSeqs, tag, as_factor);
 }
 
 #endif // #ifndef NOVINS_CROP_UNMAPPED_H_

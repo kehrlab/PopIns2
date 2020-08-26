@@ -36,6 +36,8 @@ struct AssemblyOptions {
     CharString memory;
 
     bool use_velvet;
+    bool skip_assembly;
+    float alignment_score_factor;
 
     AssemblyOptions () :
         matepairFile(""),
@@ -46,7 +48,9 @@ struct AssemblyOptions {
         humanSeqs(maxValue<int>()),
         threads(1),
         memory("768M"),
-        use_velvet(false)
+        use_velvet(false),
+        skip_assembly(false),
+        alignment_score_factor(0.67f)
     {}
 };
 
@@ -112,12 +116,15 @@ struct MultikOptions {
     std::string samplePath;
     std::string tempPath;
 
+    std::string prefixFilenameOut;
+
     MultikOptions () :
         k_init(27),
         k_max(127),
         delta_k(20),
         samplePath(""),
-        tempPath("auxMultik")
+        tempPath("auxMultik"),
+        prefixFilenameOut("ccdbg")
     {}
 };
 
@@ -144,12 +151,16 @@ bool getOptionValues(AssemblyOptions & options, ArgumentParser const & parser){
         getOptionValue(options.humanSeqs, parser, "filter");
     if (isSet(parser, "use-velvet"))
         getOptionValue(options.use_velvet, parser, "use-velvet");
+    if (isSet(parser, "skip-assembly"))
+        getOptionValue(options.skip_assembly, parser, "skip-assembly");
     if (isSet(parser, "kmerLength"))
         getOptionValue(options.kmerLength, parser, "kmerLength");
     if (isSet(parser, "threads"))
         getOptionValue(options.threads, parser, "threads");
     if (isSet(parser, "memory"))
         getOptionValue(options.memory, parser, "memory");
+    if (isSet(parser, "alignment-score-factor"))
+        getOptionValue(options.alignment_score_factor, parser, "alignment-score-factor");
 
     return true;
 }
@@ -231,6 +242,8 @@ bool getOptionValues(MultikOptions &options, seqan::ArgumentParser &parser){
         getOptionValue(options.samplePath, parser, "sample-path");
     if (isSet(parser, "temp-path"))
         getOptionValue(options.tempPath, parser, "temp-path");
+    if (isSet(parser, "outputfile-prefix"))
+        getOptionValue(options.prefixFilenameOut, parser, "outputfile-prefix");
     if (isSet(parser, "k-init"))
         getOptionValue(options.k_init, parser, "k-init");
     if (isSet(parser, "k-max"))
@@ -250,6 +263,7 @@ bool getOptionValues(MultikOptions &options, seqan::ArgumentParser &parser){
 void setHiddenOptions(ArgumentParser & parser, bool hide, AssemblyOptions &){
     hideOption(parser, "matePair", hide);
     hideOption(parser, "kmerLength", hide);
+    hideOption(parser, "alignment-score-factor", hide);
 }
 
 
@@ -297,9 +311,10 @@ void setupParser(ArgumentParser & parser, AssemblyOptions & options){
     addOption(parser, ArgParseOption("r", "reference", "Remap reads to this reference before assembly. Default: \\fIno remapping\\fP.", ArgParseArgument::INPUT_FILE, "FASTA_FILE"));
     addOption(parser, ArgParseOption("f", "filter", "Treat reads aligned to all but the first INT reference sequences after remapping as high-quality aligned even if their alignment quality is low. "
           "Recommended for non-human reference sequences.", ArgParseArgument::INTEGER, "INT"));
-    addOption(parser, ArgParseOption("vel", "use-velvet", "Use the velvet assembler."));
+    addOption(parser, ArgParseOption("vel", "use-velvet", "Use the velvet assembler. Default: Minia."));
+    addOption(parser, ArgParseOption("n", "skip-assembly", "Skip assembly per sample."));
     addOption(parser, ArgParseOption("k", "kmerLength", "The k-mer size if the velvet assembler is used.", ArgParseArgument::INTEGER, "INT"));
-
+    addOption(parser, ArgParseOption("c", "alignment-score-factor", "A record is considered low quality if the alignment score (AS) is below FLOAT*read length", seqan::ArgParseArgument::DOUBLE, "FLOAT"));
     addSection(parser, "Compute resource options");
     addOption(parser, ArgParseOption("t", "threads", "Number of threads to use for BWA and samtools sort.", ArgParseArgument::INTEGER, "INT"));
     addOption(parser, ArgParseOption("m", "memory", "Maximum memory per thread for samtools sort; suffix K/M/G recognized.", ArgParseArgument::STRING, "STR"));
@@ -307,13 +322,16 @@ void setupParser(ArgumentParser & parser, AssemblyOptions & options){
     // Set valid and default values.
     setValidValues(parser, "adapters", "HiSeq HiSeqX");
     setValidValues(parser, "reference", "fa fna fasta gz");
-    setMinValue(parser, "threads", "1");
-
     setDefaultValue(parser, "prefix", "\'.\'");
     setDefaultValue(parser, "sample", "retrieval from BAM file header");
     setDefaultValue(parser, "kmerLength", options.kmerLength);
     setDefaultValue(parser, "threads", options.threads);
     setDefaultValue(parser, "memory", options.memory);
+    setDefaultValue(parser, "alignment-score-factor", options.alignment_score_factor);
+
+    setMinValue(parser, "threads", "1");
+    setMinValue(parser, "alignment-score-factor", "0.0");
+    setMaxValue(parser, "alignment-score-factor", "1.0");
 
     // Hide some options from default help.
     setHiddenOptions(parser, true, options);
@@ -388,6 +406,7 @@ void setupParser(seqan::ArgumentParser &parser, MultikOptions &options){
     seqan::addSection(parser, "I/O options");
     seqan::addOption(parser, seqan::ArgParseOption("s", "sample-path",   "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
     seqan::addOption(parser, seqan::ArgParseOption("a", "temp-path",     "Auxiliary directory for temporary files.", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("p", "outputfile-prefix", "Specify a prefix for the output files", seqan::ArgParseArgument::STRING, "STRING"));
 
     seqan::addSection(parser, "Algorithm options");
     seqan::addOption(parser, seqan::ArgParseOption("k", "k-init",    "Initial kmer length to start the multi-k iteration", seqan::ArgParseArgument::INTEGER, "INT"));
@@ -395,6 +414,7 @@ void setupParser(seqan::ArgumentParser &parser, MultikOptions &options){
     seqan::addOption(parser, seqan::ArgParseOption("d", "delta-k",   "Step size to increase k", seqan::ArgParseArgument::INTEGER, "INT"));
 
     // Setup option constraints
+    seqan::setDefaultValue(parser, "p",   options.prefixFilenameOut);
     seqan::setDefaultValue(parser, "a",   options.tempPath);
     seqan::setDefaultValue(parser, "k",   options.k_init);
     seqan::setDefaultValue(parser, "m",   options.k_max);
@@ -557,6 +577,7 @@ void printMultikOptions(const MultikOptions &options){
     cout << "PARAMETER ======== : VALUE ==============================" << endl;
     cout << "sample-path        : " << options.samplePath               << endl;
     cout << "temp-path          : " << options.tempPath                 << endl;
+    cout << "outputfile-prefix  : " << options.prefixFilenameOut        << endl;
     cout << "k-init             : " << options.k_init                   << endl;
     cout << "k-max              : " << options.k_max                    << endl;
     cout << "delta-k            : " << options.delta_k                  << endl;
