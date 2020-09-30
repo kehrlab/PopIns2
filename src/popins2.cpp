@@ -5,6 +5,9 @@
 #include "popins2_assemble.h"
 #include "popins2_merge.h"
 #include "popins2_multik.h"
+#include "popins_contigmap.h"
+#include "popins_place.h"
+#include "popins_genotype.h"
 
 using namespace std;
 
@@ -29,6 +32,11 @@ int main(int argc, char const *argv[]){
     if (strcmp(command,"assemble") == 0) ret = popins2_assemble(argc, argv);
     else if (strcmp(command,"merge") == 0) ret = popins2_merge(argc, argv);
     else if (strcmp(command,"multik") == 0) ret = popins2_multik(argc, argv);
+    else if (strcmp(command,"contigmap") == 0) ret = popins_contigmap(argc, argv);
+    else if (strcmp(command,"place-refalign") == 0) ret = popins_place_refalign(argc, argv);
+    else if (strcmp(command,"place-splitalign") == 0) ret = popins_place_splitalign(argc, argv);
+    else if (strcmp(command,"place-finish") == 0) ret = popins_place_finish(argc, argv);
+    else if (strcmp(command,"genotype") == 0) ret = popins_genotype(argc, argv);
     else if (strcmp(command, "--help") == 0 || strcmp(command, "-h") == 0){
         printHelp(prog_name);
         return 1;
