@@ -65,6 +65,16 @@ inline void printTimeStatus(std::ostringstream & message){
 }
 
 
+inline bool file_exist (const std::string &name){
+    if (FILE *file = fopen(name.c_str(), "r")) {
+        fclose(file);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
 /*!
 * \fn       vector<string> getFilesFromDir(string &path)
 * \brief    Function returnes a vector of all files in a given folder (path)
@@ -181,13 +191,39 @@ inline bool getFastx(std::vector<std::string> &v, std::string path, const bool v
 }
 
 
-inline bool file_exist (const std::string &name){
-    if (FILE *file = fopen(name.c_str(), "r")) {
-        fclose(file);
-        return true;
-    } else {
-        return false;
+/*!
+* \fn       listFiles(vector<string> &v, const string &path, const string &contigsFileName)
+* \brief    Lists all files <prefix> --> <sample> --> <filename>
+* \remark   Only works for UNIX/POSIX so far.
+* \return   void
+*/
+inline void listFiles(std::vector<std::string> &v, const std::string &path, const std::string &contigsFileName){
+
+    DIR *dir = opendir(path.c_str());
+
+    struct dirent *entry = readdir(dir);
+    while (entry != NULL){
+
+        if (entry->d_type == DT_DIR){
+
+            std::string sampleID = entry->d_name;
+
+            if (sampleID == "." || sampleID == ".."){
+                entry = readdir(dir);
+                continue;
+            }
+
+            std::string fileWithPath = path+"/"+sampleID+"/"+contigsFileName;
+
+            if (file_exist(fileWithPath))
+                v.push_back(fileWithPath);
+            else
+                std::cerr << "WARNING: \'" << fileWithPath << "\' does not exist." << std::endl;
+        }
+        entry = readdir(dir);
     }
+
+    closedir(dir);
 }
 
 
