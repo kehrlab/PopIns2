@@ -627,8 +627,8 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::addOption(parser, seqan::ArgParseOption("r", "input-ref-files",   "Source directory with reference FASTA/Q files (no abundance filter)", seqan::ArgParseArgument::STRING, "DIR"));
     seqan::addOption(parser, seqan::ArgParseOption("y", "input-graph-file",  "Source file with dBG", seqan::ArgParseArgument::STRING, "GFA"));
     seqan::addOption(parser, seqan::ArgParseOption("z", "input-colors-file", "Source file with dBG colors", seqan::ArgParseArgument::STRING, "BFG_COLORS"));
-    seqan::addOption(parser, seqan::ArgParseOption("p", "outputfile-prefix", "Specify a prefix for the output files", seqan::ArgParseArgument::STRING, "STRING"));
-    seqan::addOption(parser, seqan::ArgParseOption("f", "contigs-filename", "Specify a filename of contigs to search for in the sample directories", seqan::ArgParseArgument::STRING, "STRING"));
+    seqan::addOption(parser, seqan::ArgParseOption("p", "outputfile-prefix", "Specify a prefix for the output files.", seqan::ArgParseArgument::STRING, "STRING"));
+    seqan::addOption(parser, seqan::ArgParseOption("f", "contigs-filename",  "Specify a filename of contigs to search for in the sample directories.", seqan::ArgParseArgument::STRING, "STRING"));
     seqan::addOption(parser, seqan::ArgParseOption("c", "write-setcover",    "Write a CSV file with unitig IDs of the setcover"));
     seqan::addOption(parser, seqan::ArgParseOption("l", "write-lecc",        "Write a CSV file with unitig IDs of the LECCs"));
 
@@ -647,6 +647,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
 
     // Setup option constraints
     seqan::setDefaultValue(parser, "p",   options.prefixFilenameOut);
+    seqan::setDefaultValue(parser, "f",   options.contigsFileName);
     seqan::setDefaultValue(parser, "k",   options.k);
     seqan::setDefaultValue(parser, "g",   options.g);
     seqan::setDefaultValue(parser, "m",   options.setcover_min_kmers);
