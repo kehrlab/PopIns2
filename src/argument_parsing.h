@@ -76,7 +76,8 @@ struct MergeOptions {
     bool deleteIsolated;
     bool useMercyKmers;
 
-    string prefixFilenameOut;
+    std::string prefixFilenameOut;
+    std::string contigsFileName;
 
     /************
     *  PopIns2  *
@@ -98,7 +99,9 @@ struct MergeOptions {
         clipTips(false),
         deleteIsolated(false),
         useMercyKmers(false),
+
         prefixFilenameOut("ccdbg"),
+        contigsFileName("assembly_final.contigs.fa"),
 
         setcover_min_kmers(62),
         min_entropy(0.0f),
@@ -265,22 +268,27 @@ bool getOptionValues(MergeOptions &options, seqan::ArgumentParser &parser){
         getOptionValue(options.verbose, parser, "verbose");
     if (isSet(parser, "threads"))
         getOptionValue(options.nb_threads, parser, "threads");
+    if (isSet(parser, "contigs-filename"))
+        getOptionValue(options.contigsFileName, parser, "contigs-filename");
+
     if (isSet(parser, "input-seq-files")){
         string indir;
         getOptionValue(indir, parser, "input-seq-files");
-        getFastx(options.filename_seq_in, indir, options.verbose);
+        listFiles(options.filename_seq_in, indir, options.contigsFileName);
     }
     if (isSet(parser, "input-ref-files")){
         string indir;
         getOptionValue(indir, parser, "input-ref-files");
-        getFastx(options.filename_ref_in, indir, options.verbose);
+        listFiles(options.filename_ref_in, indir, options.contigsFileName);
     }
+
     if (isSet(parser, "input-graph-file")){
         getOptionValue(options.filename_graph_in, parser, "input-graph-file");
     }
     if (isSet(parser, "input-colors-file")){
         getOptionValue(options.filename_colors_in, parser, "input-colors-file");
     }
+
     if (isSet(parser, "kmer-length"))
         getOptionValue(options.k, parser, "kmer-length");
     if (isSet(parser, "minimizer-length"))
@@ -619,7 +627,8 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::addOption(parser, seqan::ArgParseOption("r", "input-ref-files",   "Source directory with reference FASTA/Q files (no abundance filter)", seqan::ArgParseArgument::STRING, "DIR"));
     seqan::addOption(parser, seqan::ArgParseOption("y", "input-graph-file",  "Source file with dBG", seqan::ArgParseArgument::STRING, "GFA"));
     seqan::addOption(parser, seqan::ArgParseOption("z", "input-colors-file", "Source file with dBG colors", seqan::ArgParseArgument::STRING, "BFG_COLORS"));
-    seqan::addOption(parser, seqan::ArgParseOption("p", "outputfile-prefix", "Specify a prefix for the output files", seqan::ArgParseArgument::STRING, "STRING"));
+    seqan::addOption(parser, seqan::ArgParseOption("p", "outputfile-prefix", "Specify a prefix for the output files.", seqan::ArgParseArgument::STRING, "STRING"));
+    seqan::addOption(parser, seqan::ArgParseOption("f", "contigs-filename",  "Specify a filename of contigs to search for in the sample directories.", seqan::ArgParseArgument::STRING, "STRING"));
     seqan::addOption(parser, seqan::ArgParseOption("c", "write-setcover",    "Write a CSV file with unitig IDs of the setcover"));
     seqan::addOption(parser, seqan::ArgParseOption("l", "write-lecc",        "Write a CSV file with unitig IDs of the LECCs"));
 
@@ -638,6 +647,7 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
 
     // Setup option constraints
     seqan::setDefaultValue(parser, "p",   options.prefixFilenameOut);
+    seqan::setDefaultValue(parser, "f",   options.contigsFileName);
     seqan::setDefaultValue(parser, "k",   options.k);
     seqan::setDefaultValue(parser, "g",   options.g);
     seqan::setDefaultValue(parser, "m",   options.setcover_min_kmers);
@@ -953,7 +963,7 @@ ArgumentParser::ParseResult checkInput(AssemblyOptions & options){
 
     if (options.prefix != "." && !exists(options.prefix))
     {
-        std::cerr << "ERROR: Path to sample direcotories \'" << options.prefix << "\' does not exist." << std::endl;
+        std::cerr << "ERROR: Path to sample directories \'" << options.prefix << "\' does not exist." << std::endl;
         res = ArgumentParser::PARSE_ERROR;
     }
 
@@ -1047,7 +1057,7 @@ ArgumentParser::ParseResult checkInput(ContigMapOptions &options){
 
 	if (options.prefix != "." && !exists(options.prefix))
 	{
-		std::cerr << "ERROR: Path to sample direcotories \'" << options.prefix << "\' does not exist." << std::endl;
+		std::cerr << "ERROR: Path to sample directories \'" << options.prefix << "\' does not exist." << std::endl;
 		res = ArgumentParser::PARSE_ERROR;
 	}
 
@@ -1073,7 +1083,7 @@ ArgumentParser::ParseResult checkInput(PlacingOptions<RefAlign> &options){
 
 	if (options.prefix != "." && !exists(options.prefix))
 	{
-		std::cerr << "ERROR: Path to sample direcotories \'" << options.prefix << "\' does not exist." << std::endl;
+		std::cerr << "ERROR: Path to sample directories \'" << options.prefix << "\' does not exist." << std::endl;
 		res = ArgumentParser::PARSE_ERROR;
 	}
 
@@ -1099,7 +1109,7 @@ ArgumentParser::ParseResult checkInput(PlacingOptions<SplitAlign> &options){
 
 	if (options.prefix != "." && !exists(options.prefix))
 	{
-		std::cerr << "ERROR: Path to sample direcotories \'" << options.prefix << "\' does not exist." << std::endl;
+		std::cerr << "ERROR: Path to sample directories \'" << options.prefix << "\' does not exist." << std::endl;
 		res = ArgumentParser::PARSE_ERROR;
 	}
 
@@ -1125,7 +1135,7 @@ ArgumentParser::ParseResult checkInput(PlacingOptions<SplitCombine> &options){
 
 	if (options.prefix != "." && !exists(options.prefix))
 	{
-		std::cerr << "ERROR: Path to sample direcotories \'" << options.prefix << "\' does not exist." << std::endl;
+		std::cerr << "ERROR: Path to sample directories \'" << options.prefix << "\' does not exist." << std::endl;
 		res = ArgumentParser::PARSE_ERROR;
 	}
 
@@ -1145,7 +1155,7 @@ ArgumentParser::ParseResult checkInput(GenotypingOptions &options){
 
 	if (options.prefix != "." && !exists(options.prefix))
 	{
-		std::cerr << "ERROR: Path to sample direcotories \'" << options.prefix << "\' does not exist." << std::endl;
+		std::cerr << "ERROR: Path to sample directories \'" << options.prefix << "\' does not exist." << std::endl;
 		res = ArgumentParser::PARSE_ERROR;
 	}
 
