@@ -14,7 +14,7 @@ Population-scale detection of non-reference sequence insertions using colored de
 | [sickle](https://github.com/najoshi/sickle) | vers. 1.33 |
 | [gatb-minia-pipeline](https://github.com/Krannich479/gatb-minia-pipeline) | (*submodule; no need to install*) |
 
-Prior to the installation make sure your system meets all the requirements. For the default settings of PopIns2 a *Bifrost* installation with MAX_KMER_SIZE=64 is required. If the executables of the software dependencies (bwa, samtools, sickle) are not accessible systemwide, you have to write the full paths to the executables into a configfile (see Installation). Submodules come by default with the git clone, there is no need for a manual installation. For backward compatibility PopIns2 still offers to use the *Velvet assembler* (see [popins](https://github.com/bkehr/popins) for installation recommendation).
+Prior to the installation make sure your system meets all the requirements. For the default settings of PopIns2 a *Bifrost* installation with MAX_KMER_SIZE=64 is required. If the executables of the software dependencies (bwa, samtools, sickle) are not accessible systemwide, you have to write the full paths to the executables into a configfile (see [Installation](#installation)). Submodules come by default with the git clone, there is no need for a manual installation. For backward compatibility PopIns2 still offers to use the *Velvet assembler* (see [popins](https://github.com/bkehr/popins) for installation recommendation).
 
 ## Installation:
 
@@ -25,33 +25,36 @@ mkdir build
 make
 ```
 
-If you don't append the binaries of the software dependencies to your system `PATH`, set the paths to the binaries within the *popins2.config* prior to executing `make`. After the compilation with `make` you should see the binary *popins2* in the main folder.
+If the binaries of the software dependencies are not globally available on your system (e.g. by appending them to your `PATH`) you have to set the paths to the binaries within the *popins2.config* prior to executing `make`. After the compilation with `make` you should see the binary *popins2* in the main folder.
 
 ## Usage:
 
-PopIns2 is a tool consisting of several submodules. To display the help page of every module type _popins2 [command] --help_ as shown in the [help section](#help). 
+PopIns2 is a program consisting of several submodules. To display the help page of a submodule type `popins2 <command> --help` as shown in the [help section](#help). 
 
 #### The assemble command
 ```
-popins2 assemble [OPTIONS] myMappedSample.bam
+popins2 assemble [OPTIONS] sample.bam
 ```
-The assemble command filters, clips and assembles a set of mapped reads. At first, the unmapped reads from the input BAM file are identified.
-The unmapped reads can be further filtered via an additional reference (parameter __-r__), for instance to remove contamination from the read library.
-Next, if the option is specified, sequencing adapters will be removed from the remaining unmapped reads.
-Finally, the unmapped reads are assembled using the minia multi-k pipeline (default) or the Velvet assembler. \
-After completion the assemble module returns the assembly (called 'assembly_final.contigs.fa') and some meta files.
+The assemble command identifies reads without high-quality alignment to the refence genome, filters reads with poor base quality and assembles them into a set of contigs. Optionally, reads can be remapped to an additional reference FASTA before the filtering and assembly such that only the remaining reads without a high-quality alignment are further processed (e.g. useful for decontamination). The additional reference FASTQ must be indexed using _bwa_. The assembly of contigs can be turned off.
 
 #### The merge command
 ```
-popins2 merge [OPTIONS] {-s|-r} /path/to/input/
+popins2 merge [OPTIONS] {-s|-r} DIR
 ```
-The merge command builds and writes a colored and compacted de Bruijn Graph (ccdbg) of all samples in a given source directory.
-The source files in that directory can be of any (gzipped) plain sequence format: fa, fa.gz, fq, fq.gz, fasta, fasta.gz, fastq or fastq.gz.
-Once the ccdbg is built, the merge module finds paths in the graph and returns them as contigs. \
-It is common practise to create a directory of symbolic links to the assemblies from the _assemble_ module and use that directory as input.
-In that case you probably like to use the __-r__ option since contigs out of an assembler are typically of high quality.
-If you use raw reads for the merge module you probably like to use the __-s__ option to filter for low frequent k-mers. \
-After completion the merge module returns the ccdbg and a file of merged contigs from all samples (called 'supercontigs').
+The merge command builds a colored and compacted de Bruijn Graph (ccdbg) of all contigs of all samples in a given source directory _DIR_. 
+By default, the merge module finds all files of the pattern `<DIR>/*/assembly_final.contigs.fa`. To process the contigs of the [assemble command](#the-assemble-command) the __-r__ input parameter is recommended. Once the ccdbg is built, the merge module identifies paths in the graph and returns _supercontigs_. \
+ \
+An alternative way of providing input for the merge command is to directly pass a ccdbg, e.g. as returned from the [multik command](#the-multik-command).
+```
+popins2 merge [OPTIONS] -y GFA -z BFG_COLORS
+```
+Here, the __-y__ parameter takes a _GFA_ file and the __-z__ parameter takes a _bfg_colors_ file, which is specific to the Bifrost library.
+
+#### The multik command
+```
+TODO
+```
+TODO
 
 ## Help:
 
@@ -83,4 +86,6 @@ Try `popins2 COMMAND --help' for more information on each command.
 
 ## Troubleshooting / FAQ:
 
-- **Q:** Where do I install _SeqAn_ and _Bifrost_ for PopIns2? **A:** The C++ libraries SeqAn and Bifrost have to be found by your compiler, i.e. they should usually be located in your system's `local/include` and `local/lib` folders. The respective website and github page (see Requirements) provide more details.
+- **Q1:** Where do I install _SeqAn_ and _Bifrost_ for PopIns2? **A:** The C++ libraries SeqAn and Bifrost have to be found by your compiler, i.e. they should usually be located in your system's `local/include` and `local/lib` folders. The respective website and github page (see [Requirements](#requirements)) provide more details.
+
+- **Q2:** Why do I get an **Illegal instruction (core dump)** error if I distribute PopIns2 jobs among a HPC cluster? **A:** PopIns2, by default, uses the `-march=native` compiler option to build the binary. This option opitimizes the code using the current maschine's processor architecture. If you distribute PopIns2 jobs among cluster nodes you have to make sure that all nodes support the same CPU instructions like the machine that the binary was built on.
