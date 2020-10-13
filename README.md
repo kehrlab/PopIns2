@@ -42,8 +42,8 @@ The assemble command identifies reads without high-quality alignment to the refe
 popins2 merge [OPTIONS] {-s|-r} DIR
 ```
 The merge command builds a colored and compacted de Bruijn Graph (ccdbg) of all contigs of all samples in a given source directory _DIR_. 
-By default, the merge module finds all files of the pattern `<DIR>/*/assembly_final.contigs.fa`. To process the contigs of the [assemble command](#the-assemble-command) the __-r__ input parameter is recommended. Once the ccdbg is built, the merge module identifies paths in the graph and returns _supercontigs_. \
- \
+By default, the merge module finds all files of the pattern `<DIR>/*/assembly_final.contigs.fa`. To process the contigs of the [assemble command](#the-assemble-command) the __-r__ input parameter is recommended. Once the ccdbg is built, the merge module identifies paths in the graph and returns _supercontigs_.
+
 ```
 popins2 merge [OPTIONS] -y GFA -z BFG_COLORS
 ```
