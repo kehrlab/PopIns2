@@ -44,11 +44,11 @@ popins2 merge [OPTIONS] {-s|-r} DIR
 The merge command builds a colored and compacted de Bruijn Graph (ccdbg) of all contigs of all samples in a given source directory _DIR_. 
 By default, the merge module finds all files of the pattern `<DIR>/*/assembly_final.contigs.fa`. To process the contigs of the [assemble command](#the-assemble-command) the __-r__ input parameter is recommended. Once the ccdbg is built, the merge module identifies paths in the graph and returns _supercontigs_. \
  \
-An alternative way of providing input for the merge command is to directly pass a ccdbg, e.g. as returned from the [multik command](#the-multik-command).
 ```
 popins2 merge [OPTIONS] -y GFA -z BFG_COLORS
 ```
-Here, the __-y__ parameter takes a _GFA_ file and the __-z__ parameter takes a _bfg_colors_ file, which is specific to the Bifrost library.
+An alternative way of providing input for the merge command is to directly pass a ccdbg, e.g. as returned from the [multik command](#the-multik-command).
+Here, the merge command expects a _GFA_ file and a _bfg_colors_ file, which is specific to the Bifrost library. If you choose to run the merge command with a _pre_-built GFA graph, mind that you have to set the Algorithm options accordingly (in particular __-k__).
 
 #### The multik command
 ```
