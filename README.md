@@ -6,15 +6,15 @@ Population-scale detection of non-reference sequence insertions using colored de
 | Requirement | Tested with |
 | --- | --- |
 | 64 bits POSIX-compliant operating system | Ubuntu 16.04 / 18.04, CentOS Linux 7.6 |
-| C++14 capable compiler | g++ vers. 4.9.2, 5.5.0, 7.X |
+| C++14 capable compiler | g++ vers. 4.9.2, 5.5.0, 7.2.0 |
 | [SeqAn](https://www.seqan.de/) | vers. 2.2.0 |
-| [Bifrost](https://github.com/pmelsted/bfgraph) | vers. 0.2-699bdcf |
+| [Bifrost](https://github.com/pmelsted/bfgraph) | vers. 1.0.4-ab43065 |
 | [bwa](https://github.com/lh3/bwa) | vers. 0.7.15-r1140 |
 | [samtools](https://github.com/samtools/samtools) | vers. 1.3, 1.5 |
-| [sickle](https://github.com/najoshi/sickle) |  |
+| [sickle](https://github.com/najoshi/sickle) | vers. 1.33 |
 | [gatb-minia-pipeline](https://github.com/Krannich479/gatb-minia-pipeline) | (*submodule; no need to install*) |
 
-Prior to the installation make sure your system meets all the requirements. The C++ libraries *SeqAn* and *Bifrost* have to be installed system-wide, i.e. they have to be in your system's `local/include` and `local/lib` folder. For the default parameters of PopIns2 a *Bifrost* installation with a maximal kmer size of 64 is required. Ideally, for an easier installation of PopIns2, the executables of the software dependencies (bwa, samtools, sickle) are appended to your system `PATH`. Otherwise the full paths to the executables have to be written into a configfile (explained below). Submodules (gatb-minia-pipeline) come with the download by default, there is no need for a manual installation. For downwards compatibility PopIns2 still offers to use the *Velvet assembler* (see [popins](https://github.com/bkehr/popins) for installation recommendation).
+Prior to the installation make sure your system meets all the requirements. For the default settings of PopIns2 a *Bifrost* installation with MAX_KMER_SIZE=64 is required. If the executables of the software dependencies (bwa, samtools, sickle) are not accessible systemwide, you have to write the full paths to the executables into a configfile (see Installation). Submodules come by default with the git clone, there is no need for a manual installation. For backward compatibility PopIns2 still offers to use the *Velvet assembler* (see [popins](https://github.com/bkehr/popins) for installation recommendation).
 
 ## Installation:
 
@@ -56,7 +56,7 @@ After completion the merge module returns the ccdbg and a file of merged contigs
 ## Help:
 
 ```
-./popins2 -h
+$ popins2 -h
 
 Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs
 ================================================================
@@ -65,12 +65,22 @@ SYNOPSIS
     popins2 COMMAND [OPTIONS]
 
 COMMAND
-    assemble        Filter, clip and assemble unmapped reads from a sample.
-    merge           Merge many samples into a colored compacted de Bruijn Graph.
+    assemble            Filter, clip and assemble unmapped reads from a sample.
+    merge               Generate supercontigs from a colored compacted de Bruijn Graph.
+    multik              Multi-k framework for a colored compacted de Bruijn Graph.
+    contigmap           Map unmapped reads to (super-)contigs.
+    place-refalign      Find position of (super-)contigs by aligning contig ends to the reference genome.
+    place-splitalign    Find position of (super-)contigs by split-read alignment (per sample).
+    place-finish        Combine position found by split-read alignment from all samples.
+    genotype            Determine genotypes of all insertions in a sample.
 
 VERSION
-    0.7.0-ffde310, Date: on 2019-10-29 16:18:37
+    0.11.0-0a8d447, Date: on 2020-10-08 17:06:03
 
 Try `popins2 COMMAND --help' for more information on each command.
 
 ```
+
+## Troubleshooting / FAQ:
+
+- **Q:** Where do I install _SeqAn_ and _Bifrost_ for PopIns2? **A:** The C++ libraries SeqAn and Bifrost have to be found by your compiler, i.e. they should usually be located in your system's `local/include` and `local/lib` folders. The respective website and github page (see Requirements) provide more details.
