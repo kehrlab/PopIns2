@@ -47,10 +47,30 @@ By default, the merge module finds all files of the pattern `<DIR>/*/assembly_fi
 ```
 popins2 merge [OPTIONS] -y GFA -z BFG_COLORS
 ```
-An alternative way of providing input for the merge command is to directly pass a ccdbg, e.g. as returned from the [multik command](#the-multik-command).
+An alternative way of providing input for the merge command is to directly pass a ccdbg, e.g. as returned from the [multik command](#the-multik-command-beta).
 Here, the merge command expects a _GFA_ file and a _bfg_colors_ file, which is specific to the Bifrost library. If you choose to run the merge command with a _pre_-built GFA graph, mind that you have to set the Algorithm options accordingly (in particular __-k__).
 
-#### The multik command
+#### The contigmap command
+```
+popins contigmap [OPTIONS] SAMPLE_ID
+```
+The contigmap command maps all reads with low-quality alignments of a sample to the set of supercontigs using BWA-MEM. The mapping informtion is then merged with the reads' mates.
+
+#### The place commands
+```
+popins place-refalign [OPTIONS]
+popins place-splitalign [OPTIONS] SAMPLE_ID
+popins place-finish [OPTIONS]
+```
+In brief, the place commands attempt to anker the supercontigs to the samples. At first, all potential anker locations from all samples are collected. Then prefixes/suffixes of the supercontigs are aligned to all collected locations. For successful alignments records are written to a VCF file. In the second step, all remaining locations are split-aligned per sample. Finally, all locations from all successful split-alignments are combined and added to the VCF file.
+
+#### The genotype command
+```
+TODO
+```
+TODO
+
+#### The multik command (beta)
 ```
 TODO
 ```
