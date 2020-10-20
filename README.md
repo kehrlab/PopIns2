@@ -125,7 +125,7 @@ popins2 genotype sample3
 
 ## Snakemake
 
-The workflow of PopIns2 can be effectively distributed among a HPC cluster environment. This [Github project](https://github.com/Krannich479/PopIns2_snakeproject) provides an example of a full PopIns2 workflow as individual cluster jobs using [Snakemake](https://snakemake.readthedocs.io/en/stable/), a Python-based workflow management tool.
+The workflow of PopIns2 can be effectively distributed among a HPC cluster environment. This [Github project](https://github.com/Krannich479/PopIns2_snakeproject) provides a template of a full PopIns2 workflow as individual cluster jobs using [Snakemake](https://snakemake.readthedocs.io/en/stable/), a Python-based workflow management tool.
 
 ## Help:
 
