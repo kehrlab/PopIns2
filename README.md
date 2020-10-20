@@ -1,4 +1,5 @@
 # PopIns2
+
 Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs
 
 ## Requirements:
@@ -29,25 +30,25 @@ If the binaries of the software dependencies are not globally available on your 
 
 ## Usage:
 
-PopIns2 is a program consisting of several submodules. To display the help page of a submodule type `popins2 <command> --help` as shown in the [help section](#help). 
+PopIns2 is a program consisting of several submodules. The submodules are designed to be executed one after another and fit together into a consecutive workflow. To display the help page of a submodule type `popins2 <command> --help` as shown in the [help section](#help). 
 
 #### The assemble command
 ```
 popins2 assemble [OPTIONS] sample.bam
 ```
-The assemble command identifies reads without high-quality alignment to the refence genome, filters reads with poor base quality and assembles them into a set of contigs. Optionally, reads can be remapped to an additional reference FASTA before the filtering and assembly such that only the remaining reads without a high-quality alignment are further processed (e.g. useful for decontamination). The additional reference FASTQ must be indexed using _bwa_. The assembly of contigs can be turned off.
+The assemble command identifies reads without high-quality alignment to the refence genome, filters reads with poor base quality and assembles them into a set of contigs. The reads, given as BAM file, must be indexed by _bwa index_. Optionally, reads can be remapped to an additional reference FASTA before the filtering and assembly such that only the remaining reads without a high-quality alignment are further processed (e.g. useful for decontamination). The additional reference FASTQ must be indexed by _bwa index_. The assembly of contigs can be turned off.
 
 #### The merge command
 ```
 popins2 merge [OPTIONS] {-s|-r} DIR
 ```
-The merge command builds a colored and compacted de Bruijn Graph (ccdbg) of all contigs of all samples in a given source directory _DIR_. 
+\[Generally recommended\] The merge command builds a colored and compacted de Bruijn Graph (ccdbg) of all contigs of all samples in a given source directory _DIR_. 
 By default, the merge module finds all files of the pattern `<DIR>/*/assembly_final.contigs.fa`. To process the contigs of the [assemble command](#the-assemble-command) the __-r__ input parameter is recommended. Once the ccdbg is built, the merge module identifies paths in the graph and returns _supercontigs_.
 
 ```
 popins2 merge [OPTIONS] -y GFA -z BFG_COLORS
 ```
-An alternative way of providing input for the merge command is to directly pass a ccdbg, e.g. as returned from the [multik command](#the-multik-command-beta).
+\[For small-medium sample sizes\] An alternative way of providing input for the merge command is to directly pass a ccdbg, e.g. as returned from the [multik command](#the-multik-command-beta).
 Here, the merge command expects a _GFA_ file and a _bfg_colors_ file, which is specific to the Bifrost library. If you choose to run the merge command with a _pre_-built GFA graph, mind that you have to set the Algorithm options accordingly (in particular __-k__).
 
 #### The contigmap command
@@ -66,15 +67,65 @@ In brief, the place commands attempt to anker the supercontigs to the samples. A
 
 #### The genotype command
 ```
-TODO
+popins2 genotype [OPTIONS] SAMPLE_ID
 ```
 TODO
 
 #### The multik command (beta)
 ```
-TODO
+popins2 multik --sample-path STRING [OPTIONS]
 ```
-TODO
+TODO - disclaimer, this module is currently subject to a lot of changes and the CLI will probably change soon
+
+## Example:
+
+Assuming a minimal project structure like
+
+```
+$ tree /path/to/your/project/
+/path/to/your/project/
+├── myFirstSample
+│   ├── first_sample.bam
+│   └── first_sample.bam.bai
+├── mySecondSample
+│   ├── second_sample.bam
+│   └── second_sample.bam.bai
+└── myThirdSample
+    ├── third_sample.bam
+    └── third_sample.bam.bai
+```
+
+a workflow could look like
+
+```
+cd /path/to/your/project
+ln -s /path/to/reference_genome.fa genome.fa
+ln -s /path/to/reference_genome.fa.fai genome.fa.fai
+
+popins2 assemble --sample sample1 /path/to/your/project/myFirstSample/first_sample.bam
+popins2 assemble --sample sample2 /path/to/your/project/mySecondSample/second_sample.bam
+popins2 assemble --sample sample3 /path/to/your/project/myThirdSample/third_sample.bam
+
+popins2 merge -r /path/to/your/project -di
+
+popins2 contigmap sample1
+popins2 contigmap sample2
+popins2 contigmap sample3
+
+popins2 place-refalign
+popins2 place-splitalign sample1
+popins2 place-splitalign sample2
+popins2 place-splitalign sample3
+popins2 place-finish
+
+popins2 genotype sample1
+popins2 genotype sample2
+popins2 genotype sample3
+```
+
+## Snakemake
+
+The workflow of PopIns2 can be effectively distributed among a HPC cluster environment. This [Github project](https://github.com/Krannich479/PopIns2_snakeproject) provides an example of a full PopIns2 workflow as individual cluster jobs using [Snakemake](https://snakemake.readthedocs.io/en/stable/), a Python-based workflow management tool.
 
 ## Help:
 
