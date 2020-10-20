@@ -119,7 +119,7 @@ int popins2_merge(int argc, char const *argv[]){
     }
 
     std::ofstream ofs;
-    ofs.open(mo.prefixFilenameOut+".contigs.fasta");
+    ofs.open(mo.prefixFilenameOut+".fa");
 
     if(ofs.is_open()){
         msg.str("");

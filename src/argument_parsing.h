@@ -100,7 +100,7 @@ struct MergeOptions {
         deleteIsolated(false),
         useMercyKmers(false),
 
-        prefixFilenameOut("ccdbg"),
+        prefixFilenameOut("supercontigs"),
         contigsFileName("assembly_final.contigs.fa"),
 
         setcover_min_kmers(62),
@@ -623,8 +623,8 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
 
     // Setup options
     seqan::addSection(parser, "I/O options");
-    seqan::addOption(parser, seqan::ArgParseOption("s", "input-seq-files",   "Source directory with FASTA/Q files", seqan::ArgParseArgument::STRING, "DIR"));
-    seqan::addOption(parser, seqan::ArgParseOption("r", "input-ref-files",   "Source directory with reference FASTA/Q files (no abundance filter)", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("s", "input-seq-files",   "Path to the sample directories.", seqan::ArgParseArgument::STRING, "DIR"));
+    seqan::addOption(parser, seqan::ArgParseOption("r", "input-ref-files",   "Path to the sample directories. (no abundance filter)", seqan::ArgParseArgument::STRING, "DIR"));
     seqan::addOption(parser, seqan::ArgParseOption("y", "input-graph-file",  "Source file with dBG", seqan::ArgParseArgument::STRING, "GFA"));
     seqan::addOption(parser, seqan::ArgParseOption("z", "input-colors-file", "Source file with dBG colors", seqan::ArgParseArgument::STRING, "BFG_COLORS"));
     seqan::addOption(parser, seqan::ArgParseOption("p", "outputfile-prefix", "Specify a prefix for the output files.", seqan::ArgParseArgument::STRING, "STRING"));

@@ -213,7 +213,12 @@ inline void listFiles(std::vector<std::string> &v, const std::string &path, cons
                 continue;
             }
 
-            std::string fileWithPath = path+"/"+sampleID+"/"+contigsFileName;
+            std::string fileWithPath;
+            if (path.back() != '/')
+                fileWithPath = path+"/"+sampleID+"/"+contigsFileName;
+            else
+                fileWithPath = path+sampleID+"/"+contigsFileName;
+
 
             if (file_exist(fileWithPath))
                 v.push_back(fileWithPath);
