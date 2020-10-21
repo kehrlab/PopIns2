@@ -2,6 +2,17 @@
 
 Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs
 
+---
+## Contents
+1. [Requirements](#requirements)
+2. [Installation](#installation)
+3. [Usage](#usage)
+4. [Example](#example)
+5. [Snakemake](#snakemake)
+6. [Help](#help)
+7. [Troubleshooting / FAQ](#troubleshooting--faq)
+
+---
 ## Requirements:
 
 | Requirement | Tested with |
