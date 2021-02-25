@@ -82,8 +82,14 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold, ofstream &ofs, con
 
                 ++sv_counter;
 
+                DEBUG_PRINT_UCM_STATUS("[PRE] About to write supercontig.");
+
                 tb.write(ofs, sv_counter);
+
+                DEBUG_PRINT_UCM_STATUS("[PRE] Wrote supercontig.");
             }
+
+            DEBUG_PRINT_UCM_STATUS("I am done with this node.");
 
             reset_dfs_states();
         }
@@ -108,8 +114,14 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold, ofstream &ofs, con
 
                 ++sv_counter;
 
+                DEBUG_PRINT_UCM_STATUS("[SUC] About to write supercontig.");
+                
                 tb.write(ofs, sv_counter);
+
+                DEBUG_PRINT_UCM_STATUS("[SUC] Wrote supercontig.");
             }
+
+            DEBUG_PRINT_UCM_STATUS("I am done with this node.");
 
             reset_dfs_states();
         }
@@ -140,10 +152,20 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold, ofstream &ofs, con
             // no reset_dfs_states() needed here
         }
 
+        DEBUG_PRINT_STATUS("[BREAKPOINT] Done with if/else case.");
+
     }   // end for all unitigs
 
-    if(write_setcover)
+    DEBUG_PRINT_STATUS("[BREAKPOINT] Outside if/else case.");
+
+    if(write_setcover){
+
+        DEBUG_PRINT_STATUS("[BREAKPOINT] Writing setcover.");
+
         sc.write(prefixFilenameOut);
+    }
+
+    DEBUG_PRINT_STATUS("[BREAKPOINT] Return 1 from traverse.");
 
     return 1;
 }
@@ -184,11 +206,11 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
             ordered_multimap_t ranked_predecessors;
             rank_neighbors(ranked_predecessors, ucm, predecessors, VISIT_PREDECESSOR);
 
-            /*DEBUG
+            #ifdef DEBUG
             std::cout << "*** ranked predecessors ***" << std::endl;
             for (auto &t : ranked_predecessors)
                 cout << t.first << " => " << t.second << " (float => partner ID)" << endl;
-            DEBUG*/
+            #endif
 
             for (auto it = ranked_predecessors.cbegin(); it != ranked_predecessors.cend(); ++it){           // check all ranked neighbors starting from the best color fit
 
@@ -294,11 +316,11 @@ uint8_t ExtendedCCDBG::DFS(const UnitigColorMap<UnitigExtension> &ucm, const dir
             ordered_multimap_t ranked_successors;
             rank_neighbors(ranked_successors, ucm, successors, VISIT_SUCCESSOR);
 
-            /*DEBUG
+            #ifdef DEBUG
             std::cout << "*** ranked successors ***" << std::endl;
             for (auto &t : ranked_successors)
                 cout << t.first << " => " << t.second << " (float => partner ID)" << endl;
-            DEBUG*/
+            #endif
 
             for (auto it = ranked_successors.cbegin(); it != ranked_successors.cend(); ++it){           // check all ranked neighbors starting from the best color fit
 

@@ -68,6 +68,7 @@ void Traceback::addN(){
 void Traceback::write(ofstream &of, const size_t counter) const{
 
     try{
+        DEBUG_PRINT_STATUS("[BREAKPOINT] Traceback::write() writing to file");
 
         of << ">contig_" << counter << "\n";
         of << _contig << "\n";
@@ -80,4 +81,9 @@ void Traceback::write(ofstream &of, const size_t counter) const{
              << std::endl;
 
     }
+    catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
+    }
+
+    DEBUG_PRINT_STATUS("[BREAKPOINT] End of Traceback::write()");
 }

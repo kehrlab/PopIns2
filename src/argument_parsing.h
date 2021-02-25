@@ -116,6 +116,8 @@ struct MultikOptions {
     unsigned k_max;
     unsigned delta_k;
 
+    vector<string> inputFiles;
+
     std::string samplePath;
     std::string tempPath;
 
@@ -338,9 +340,12 @@ void setupBifrostOptions(const MergeOptions &options, CCDBG_Build_opt &graph_opt
 
 
 bool getOptionValues(MultikOptions &options, seqan::ArgumentParser &parser){
-
-    if (isSet(parser, "sample-path"))
+    if (isSet(parser, "sample-path")){
+        // store sample path
         getOptionValue(options.samplePath, parser, "sample-path");
+        // get fastx files from sample path
+        getFastx(options.inputFiles, options.samplePath);
+    }
     if (isSet(parser, "temp-path"))
         getOptionValue(options.tempPath, parser, "temp-path");
     if (isSet(parser, "outputfile-prefix"))
@@ -1239,6 +1244,7 @@ void printMultikOptions(const MultikOptions &options){
     cout << "popins2 version    : " << VERSION                          << endl;
     cout << "PARAMETER ======== : VALUE ==============================" << endl;
     cout << "sample-path        : " << options.samplePath               << endl;
+    cout << "#input files       : " << options.inputFiles.size()        << endl;
     cout << "temp-path          : " << options.tempPath                 << endl;
     cout << "outputfile-prefix  : " << options.prefixFilenameOut        << endl;
     cout << "k-init             : " << options.k_init                   << endl;

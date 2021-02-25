@@ -30,7 +30,7 @@ using namespace seqan;
  * @param   fasta_names is a vector reference to store the absolute FASTA filenames in
  * @return  bool; 1 if error, 0 else
  */
-inline bool fastq2fastq(const std::string &fastq_file, const std::string &outpath, std::vector<std::string> &fasta_names){
+inline bool fastq2fasta(const std::string &fastq_file, const std::string &outpath, std::vector<std::string> &fasta_names){
     // read FASTQ
     CharString seqFileName = fastq_file;
     SeqFileIn seqFileIn;
@@ -43,7 +43,6 @@ inline bool fastq2fastq(const std::string &fastq_file, const std::string &outpat
     StringSet<CharString> ids;
     StringSet<Dna5String> seqs;
     StringSet<CharString> quals;
-    clear(quals);   // we don't need them
 
     try{
         readRecords(ids, seqs, quals, seqFileIn);
@@ -54,6 +53,7 @@ inline bool fastq2fastq(const std::string &fastq_file, const std::string &outpat
     }
 
     close(seqFileIn);
+    clear(quals);   // we don't need them
 
     // get FASTQ filename without path and without file ending
     size_t lastSlashPos = fastq_file.find_last_of("/");
@@ -164,28 +164,28 @@ int popins2_multik(int argc, char const *argv[]){
         return 1;
     }
 
-    // manage a temporary directory
-    if (strcmp(mko.tempPath.c_str(), "") != 0)      // if mko.tempPath != ""
-        (mkdir(mko.tempPath.c_str(), 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "[popins2 multik] Temp directory created.\n";
+    printMultikOptions(mko);
 
     int delta_k = mko.delta_k;
     int k_max   = mko.k_max;
 
-    printMultikOptions(mko);
-
     std::ostringstream msg;
     msg << "[popins2 multik] Starting ..."; printTimeStatus(msg);
 
+    // manage a temporary directory
+    if (strcmp(mko.tempPath.c_str(), "") != 0)      // if mko.tempPath != ""
+        (mkdir(mko.tempPath.c_str(), 0750) == -1) ? cerr << "Error :  " << strerror(errno) << endl : cout << "[popins2 multik] Temp directory created.\n";
+
     // read original FASTQ samples
-    std::vector<std::string> samples;
-    getFastx(samples, mko.samplePath);
+    //std::vector<std::string> samples;
+    //getFastx(samples, mko.samplePath);
 
     // create a FASTA at tempDir for every input FASTQ
     std::vector<std::string> temp_fastas;
     bool fastq2fasta_failed = false;
 
-    for (auto &sample : samples){
-        bool ret = fastq2fastq(sample, mko.tempPath, temp_fastas);
+    for (auto &sample : mko.inputFiles){
+        bool ret = fastq2fasta(sample, mko.tempPath, temp_fastas);
         fastq2fasta_failed = fastq2fasta_failed || ret;
     }
     if (fastq2fasta_failed){
@@ -193,7 +193,7 @@ int popins2_multik(int argc, char const *argv[]){
         return 1;
     }
 
-    samples.clear();
+    (mko.inputFiles).clear();
 
     // =====================
     // Graph options

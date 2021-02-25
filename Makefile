@@ -14,7 +14,7 @@ TOOLS=-DSAMTOOLS=\"$(SAMTOOLS)\" -DBWA=\"$(BWA)\" -DSICKLE=\"$(SICKLE)\" -DVELVE
 
 # Date and version number from git
 DATE := on $(shell git log --pretty=format:"%cd" --date=iso | cut -f 1,2 -d " " | head -n 1)
-VERSION := 0.11.1-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
+VERSION := 0.12.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
 CXXFLAGS += -DDATE=\""$(DATE)"\" -DVERSION=\""$(VERSION)"\"
 
 # Compiler flags
@@ -25,8 +25,11 @@ CXXFLAGS += -march=native -DMAX_KMER_SIZE=128
 # Linker flags
 LDLIBS = -lbifrost -pthread -lz -lrt -rdynamic -DMAX_KMER_SIZE=128
 
-# DEBUG build
+# DEBUG   build
 #CXXFLAGS += -g -pg -O0 -DDEBUG -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
+
+# VERBOSE build
+#CXXFLAGS += -O3 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=0 -DDEBUG
 
 # RELEASE build
 CXXFLAGS += -O3 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=0

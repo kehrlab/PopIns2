@@ -2,7 +2,6 @@
 
 Population-scale detection of non-reference sequence insertions using colored de Bruijn Graphs
 
----
 ## Contents
 1. [Requirements](#requirements)
 2. [Installation](#installation)
@@ -10,9 +9,7 @@ Population-scale detection of non-reference sequence insertions using colored de
 4. [Example](#example)
 5. [Snakemake](#snakemake)
 6. [Help](#help)
-7. [Troubleshooting / FAQ](#troubleshooting--faq)
 
----
 ## Requirements:
 
 | Requirement | Tested with |
@@ -37,11 +34,11 @@ mkdir build
 make
 ```
 
-If the binaries of the software dependencies are not globally available on your system (e.g. by appending them to your `PATH`) you have to set the paths to the binaries within the *popins2.config* prior to executing `make`. After the compilation with `make` you should see the binary *popins2* in the main folder.
+If the binaries of the software dependencies are not globally available on your system (e.g. by appending them to your `PATH`) you have to set the paths to the binaries within the *popins2.config* prior to executing `make`. After the compilation with `make` you should see the binary *popins2* in the main folder. The PopIns2 [Wiki](https://github.com/kehrlab/PopIns2/wiki) gathers known issues that might occur during installation or runtime.
 
 ## Usage:
 
-PopIns2 is a program consisting of several submodules. The submodules are designed to be executed one after another and fit together into a consecutive workflow. To display the help page of a submodule type `popins2 <command> --help` as shown in the [help section](#help). 
+PopIns2 is a program consisting of several submodules. The submodules are designed to be executed one after another and fit together into a consecutive workflow. To display the help page of a submodule type `popins2 <command> --help` as shown in the [help section](#help).
 
 #### The assemble command
 ```
@@ -53,7 +50,7 @@ The assemble command identifies reads without high-quality alignment to the refe
 ```
 popins2 merge [OPTIONS] {-s|-r} DIR
 ```
-\[Generally recommended\] The merge command builds a colored and compacted de Bruijn Graph (ccdbg) of all contigs of all samples in a given source directory _DIR_. 
+\[Generally recommended\] The merge command builds a colored and compacted de Bruijn Graph (ccdbg) of all contigs of all samples in a given source directory _DIR_.
 By default, the merge module finds all files of the pattern `<DIR>/*/assembly_final.contigs.fa`. To process the contigs of the [assemble command](#the-assemble-command) the __-r__ input parameter is recommended. Once the ccdbg is built, the merge module identifies paths in the graph and returns _supercontigs_.
 
 ```
@@ -160,14 +157,10 @@ COMMAND
     genotype            Determine genotypes of all insertions in a sample.
 
 VERSION
-    0.11.0-0a8d447, Date: on 2020-10-08 17:06:03
+    0.12.0-a935f00, Date: on 2020-10-21 12:50:29
 
 Try `popins2 COMMAND --help' for more information on each command.
 
 ```
 
-## Troubleshooting / FAQ:
-
-- **Q1:** Where do I install _SeqAn_ and _Bifrost_ for PopIns2? **A:** The C++ libraries SeqAn and Bifrost have to be found by your compiler, i.e. they should usually be located in your system's `local/include` and `local/lib` folders. The respective website and github page (see [Requirements](#requirements)) provide more details.
-
-- **Q2:** Why do I get an _Illegal instruction (core dump)_ error if I distribute PopIns2 jobs among a HPC cluster? **A:** PopIns2, by default, uses the `-march=native` compiler option to build the binary. This option opitimizes the code using the processor architecture of the machine it is compiled on. If you distribute PopIns2 jobs among cluster nodes you have to make sure that all nodes support the same CPU instructions like the machine that the binary was built on.
+For more troubleshooting, FAQs and tips about the usage of PopIns2 please have a look into the PopIns2 [Wiki](https://github.com/kehrlab/PopIns2/wiki).
