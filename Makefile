@@ -23,7 +23,9 @@ CXXFLAGS += -W -Wall -Wno-long-long -pedantic -Wno-variadic-macros -Wno-unused-r
 CXXFLAGS += -march=native -DMAX_KMER_SIZE=128
 
 # Linker flags
-LDLIBS = -lbifrost -pthread -lz -lrt -rdynamic -DMAX_KMER_SIZE=128
+LDLIBS = -lbifrost -pthread -lz -rdynamic -DMAX_KMER_SIZE=128
+# MacOS users might have to comment out the next line
+LDLIBS += -lrt
 
 # DEBUG   build
 #CXXFLAGS += -g -pg -O0 -DDEBUG -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
