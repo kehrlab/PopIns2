@@ -10,7 +10,7 @@
 #include <unordered_map>
 
 #include "debug_macros.h"
-#include "prettyprint.h"        // TODO: delete at release
+//#include "prettyprint.h"        // TODO: delete at release
 
 
 
@@ -74,7 +74,7 @@ public:
 
 private:
 
-    void print_current_path() const{prettyprint::print(_current_path);}
+//    void print_current_path() const{prettyprint::print(_current_path);}
 
 
     /**

@@ -115,7 +115,7 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold, ofstream &ofs, con
                 ++sv_counter;
 
                 DEBUG_PRINT_UCM_STATUS("[SUC] About to write supercontig.");
-                
+
                 tb.write(ofs, sv_counter);
 
                 DEBUG_PRINT_UCM_STATUS("[SUC] Wrote supercontig.");
@@ -565,10 +565,8 @@ inline float ExtendedCCDBG::get_neighbor_overlap(const UnitigColorMap<UnitigExte
         for (; cit != tail_colors->end(); ++cit)
             tail_color_bits[cit.getColorID()] = true;
 
-        /*DEBUG
-        std::cout << "HEAD COLORS (OF UNITIG ID " << get_unitig_id(head_ucm) << "): " ; prettyprint::print(head_color_bits);
-        std::cout << "TAIL COLORS (OF UNITIG ID " << get_unitig_id(tail_ucm) << "): " ; prettyprint::print(tail_color_bits);
-        DEBUG*/
+        //std::cout << "HEAD COLORS (OF UNITIG ID " << get_unitig_id(head_ucm) << "): " ; prettyprint::print(head_color_bits);
+        //std::cout << "TAIL COLORS (OF UNITIG ID " << get_unitig_id(tail_ucm) << "): " ; prettyprint::print(tail_color_bits);
 
         // calculate Jaccard index
         unsigned numerator = 0;
