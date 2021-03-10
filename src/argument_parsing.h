@@ -95,7 +95,7 @@ struct MergeOptions {
         filename_colors_in(""),
 
         k(63),
-        g(23),
+        g(49),
         clipTips(false),
         deleteIsolated(false),
         useMercyKmers(false),
@@ -660,9 +660,9 @@ void setupParser(seqan::ArgumentParser &parser, MergeOptions &options){
     seqan::setDefaultValue(parser, "t",   options.nb_threads);
 
     seqan::setMinValue(parser, "k", "1");
-    seqan::setMaxValue(parser, "k", std::to_string(MAX_KMER_SIZE));
+    seqan::setMaxValue(parser, "k", std::to_string(MAX_KMER_SIZE-1));
     seqan::setMinValue(parser, "g", "1");
-    seqan::setMaxValue(parser, "g", std::to_string(MAX_KMER_SIZE-1));
+    seqan::setMaxValue(parser, "g", std::to_string(MAX_KMER_SIZE-3));
     seqan::setMinValue(parser, "m", "1");
     seqan::setMinValue(parser, "e", "0.0");
     seqan::setMaxValue(parser, "e", "1.0");
@@ -1016,6 +1016,11 @@ ArgumentParser::ParseResult checkInput(MergeOptions & options){
         strcmp(options.filename_graph_in.c_str(), "")==0 && strcmp(options.filename_colors_in.c_str(), "")!=0){
         cerr << "[popins2 merge][parser] ERROR: One of the colored de Bruijn Graph files is missing (-y/-z)." << endl;
         cerr << "[popins2 merge][parser] ERROR: If a graph should be read, please provide a graph (-y) AND a colors file (-z)." << endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
+
+    if (options.g > options.k - 2){
+        cerr << "[popins2 merge][parser] ERROR: Minimizer length (-g) should not be larger than k-2." << endl;
         res = ArgumentParser::PARSE_ERROR;
     }
 

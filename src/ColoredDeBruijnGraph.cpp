@@ -53,8 +53,22 @@ uint8_t ExtendedCCDBG::traverse(const int setcover_threshold, ofstream &ofs, con
 
     unsigned sv_counter = 0;
 
+    // Progress message
+    const size_t nb_unitigs_in_graph = this->size();
+    size_t nb_unitigs_traversed = 0;
+    size_t progress_message_thresholds[10] = {};
+    unsigned progress_message_iterator = 0;
+    for (unsigned i=0; i<10; ++i){progress_message_thresholds[i]=nb_unitigs_in_graph*((i+1)/10.0f);}
+
     // main routine
     for (auto &ucm : *this){
+
+        //Progress message
+        ++nb_unitigs_traversed;
+        if (nb_unitigs_traversed > progress_message_thresholds[progress_message_iterator]){
+            std::cout << "[popins2                 " << (progress_message_iterator+1)*10 << "%] Traversing unitigs..." << endl;
+            ++progress_message_iterator;
+        }
 
         if (!is_startnode(ucm)) continue;                       // NOTE: improvement: receive traversal direction from is_startnode() s.t. traverse() doesn't have to find out again
 
