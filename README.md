@@ -44,20 +44,19 @@ PopIns2 is a program consisting of several submodules. The submodules are design
 ```
 popins2 assemble [OPTIONS] sample.bam
 ```
-The assemble command identifies reads without high-quality alignment to the refence genome, filters reads with poor base quality and assembles them into a set of contigs. The reads, given as BAM file, must be indexed by _bwa index_. Optionally, reads can be remapped to an additional reference FASTA before the filtering and assembly such that only the remaining reads without a high-quality alignment are further processed (e.g. useful for decontamination). The additional reference FASTQ must be indexed by _bwa index_. The assembly of contigs can be turned off.
+The assemble command identifies reads without high-quality alignment to the refence genome, filters reads with poor base quality and assembles them into a set of contigs. The reads, given as BAM file, must be indexed by _bwa index_. Optionally, reads can be remapped to an additional reference FASTA before the filtering and assembly such that only the remaining reads without a high-quality alignment are further processed (e.g. useful for decontamination). The additional reference FASTQ must be indexed by _bwa index_ too.
 
 #### The merge command
 ```
 popins2 merge [OPTIONS] {-s|-r} DIR
 ```
-\[Generally recommended\] The merge command builds a colored and compacted de Bruijn Graph (ccdbg) of all contigs of all samples in a given source directory _DIR_.
+\[Default\] The merge command builds a colored and compacted de Bruijn Graph (ccdbg) of all contigs of all samples in a given source directory _DIR_.
 By default, the merge module finds all files of the pattern `<DIR>/*/assembly_final.contigs.fa`. To process the contigs of the [assemble command](#the-assemble-command) the __-r__ input parameter is recommended. Once the ccdbg is built, the merge module identifies paths in the graph and returns _supercontigs_.
 
 ```
 popins2 merge [OPTIONS] -y GFA -z BFG_COLORS
 ```
-\[For small-medium sample sizes\] An alternative way of providing input for the merge command is to directly pass a ccdbg, e.g. as returned from the [multik command](#the-multik-command-beta).
-Here, the merge command expects a _GFA_ file and a _bfg_colors_ file, which is specific to the Bifrost library. If you choose to run the merge command with a _pre_-built GFA graph, mind that you have to set the Algorithm options accordingly (in particular __-k__).
+An alternative way of providing input for the merge command is to directly pass a ccdbg. Here, the merge command expects a _GFA_ file and a _bfg_colors_ file, which is specific to the Bifrost. If you choose to run the merge command with a _pre_-built GFA graph, mind that you have to set the Algorithm options accordingly (in particular __-k__).
 
 #### The contigmap command
 ```
@@ -77,13 +76,7 @@ In brief, the place commands attempt to anker the supercontigs to the samples. A
 ```
 popins2 genotype [OPTIONS] SAMPLE_ID
 ```
-TODO
-
-#### The multik command (beta)
-```
-popins2 multik --sample-path STRING [OPTIONS]
-```
-TODO - disclaimer, this module is currently subject to a lot of changes and the CLI will probably change soon
+The genotype command generates alleles (ALT) of the supercontigs with some flanking reference genome sequence. Then, the reads of a sample are aligned to ALT and the reference genome around the breakpoint (REF). The ratio of alignments to ALT and REF determines a genotype quality and a final genotype prediction per variant per sample.
 
 ## Example:
 
