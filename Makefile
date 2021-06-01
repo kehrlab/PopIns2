@@ -23,7 +23,8 @@ CXXFLAGS += -DDATE=\""$(DATE)"\" -DVERSION=\""$(VERSION)"\"
 
 # Compiler flags
 CXXFLAGS += -DSEQAN_HAS_ZLIB=1 -DSEQAN_DISABLE_VERSION_CHECK
-CXXFLAGS += -W -Wall -Wno-long-long -pedantic -Wno-variadic-macros -Wno-unused-result
+CXXFLAGS += -W -Wall -pedantic 
+CXXFLAGS += -Wno-long-long -Wno-variadic-macros -Wno-unused-result
 CXXFLAGS += -march=native -DMAX_KMER_SIZE=64
 CXXFLAGS += -I$(SEQAN_LIB)
 
@@ -36,10 +37,10 @@ LDLIBS += -lrt
 #CXXFLAGS += -g -pg -O0 -DDEBUG -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=1
 
 # VERBOSE build
-#CXXFLAGS += -O3 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=0 -DDEBUG
+#CXXFLAGS += -O3 -DDEBUG -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=0
 
 # RELEASE build
-CXXFLAGS += -O3 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=0
+CXXFLAGS += -O3 -DSEQAN_ENABLE_TESTING=0 -DSEQAN_ENABLE_DEBUG=0 -Wno-implicit-fallthrough -Wno-maybe-uninitialized
 
 all: $(TARGET)
 
