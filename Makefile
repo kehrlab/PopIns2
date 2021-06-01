@@ -9,18 +9,23 @@ OBJS := $(patsubst $(SRC_DIR)/%,$(BUILD_DIR)/%,$(SRCS:.cpp=.o))
 CXX = g++ -std=c++14
 CC = $(CXX)
 
+# SeqAn
+SEQAN_LIB = ./external/seqan-library-2.2.0/include/
+
+# Include config
 -include popins2.config
 TOOLS=-DSAMTOOLS=\"$(SAMTOOLS)\" -DBWA=\"$(BWA)\" -DSICKLE=\"$(SICKLE)\" -DVELVETH=\"$(VELVETH)\" -DVELVETG=\"$(VELVETG)\" -DMINIA=\"$(PWD)/$(MINIA)\"
 
 # Date and version number from git
 DATE := on $(shell git log --pretty=format:"%cd" --date=iso | cut -f 1,2 -d " " | head -n 1)
-VERSION := 0.12.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
+VERSION := 0.13.0-$(shell git log --pretty=format:"%h" --date=iso | head -n 1)
 CXXFLAGS += -DDATE=\""$(DATE)"\" -DVERSION=\""$(VERSION)"\"
 
 # Compiler flags
 CXXFLAGS += -DSEQAN_HAS_ZLIB=1 -DSEQAN_DISABLE_VERSION_CHECK
 CXXFLAGS += -W -Wall -Wno-long-long -pedantic -Wno-variadic-macros -Wno-unused-result
 CXXFLAGS += -march=native -DMAX_KMER_SIZE=64
+CXXFLAGS += -I$(SEQAN_LIB)
 
 # Linker flags
 LDLIBS = -lbifrost -pthread -lz -rdynamic -DMAX_KMER_SIZE=64
