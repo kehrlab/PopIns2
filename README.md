@@ -1,5 +1,7 @@
 # PopIns2
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4890793.svg)](https://doi.org/10.5281/zenodo.4890793)
+
 Population-scale detection of non-reference sequence variants using colored de Bruijn Graphs
 
 ## Contents
@@ -80,7 +82,7 @@ The genotype command generates alleles (ALT) of the supercontigs with some flank
 
 ## Example:
 
-Assuming a minimal project structure like
+Test data for a minimum working example can be found at [zenodo](https://doi.org/10.5281/zenodo.4890793). A simple project structure for PopIns2 looks like
 
 ```
 $ tree /path/to/your/project/
@@ -96,7 +98,7 @@ $ tree /path/to/your/project/
     └── third_sample.bam.bai
 ```
 
-a workflow could look like
+and a simple workflow could look like
 
 ```
 cd /path/to/your/project
