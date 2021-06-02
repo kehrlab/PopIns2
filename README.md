@@ -1,5 +1,7 @@
 # PopIns2
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4890793.svg)](https://doi.org/10.5281/zenodo.4890793)
+
 Population-scale detection of non-reference sequence variants using colored de Bruijn Graphs
 
 ## Contents
@@ -16,14 +18,14 @@ Population-scale detection of non-reference sequence variants using colored de B
 | --- | --- |
 | 64 bits POSIX-compliant operating system | Ubuntu 16.04 / 18.04, CentOS Linux 7.6 |
 | C++14 capable compiler | g++ vers. 4.9.2, 5.5.0, 7.2.0 |
-| [SeqAn](https://www.seqan.de/) | vers. 2.2.0 |
 | [Bifrost](https://github.com/pmelsted/bfgraph) | vers. 1.0.4-ab43065 |
 | [bwa](https://github.com/lh3/bwa) | vers. 0.7.15-r1140 |
 | [samtools](https://github.com/samtools/samtools) | vers. 1.3, 1.5 |
 | [sickle](https://github.com/najoshi/sickle) | vers. 1.33 |
 | [gatb-minia-pipeline](https://github.com/Krannich479/gatb-minia-pipeline) | (*submodule; no need to install*) |
+| [SeqAn](https://www.seqan.de/) | (*header library; no need to install*) |
 
-Prior to the installation make sure your system meets all the requirements. For the default settings of PopIns2 a *Bifrost* installation with MAX_KMER_SIZE=64 is required. Presently, the conda package of Bifrost does not meet this requirement. If the executables of the software dependencies (bwa, samtools, sickle) are not accessible systemwide, you have to write the full paths to the executables into a configfile (see [Installation](#installation)). Submodules come by default with the git clone, there is no need for a manual installation. For backward compatibility PopIns2 still offers to use the *Velvet assembler* (see [popins](https://github.com/bkehr/popins) for installation recommendation).
+Prior to the installation make sure your system meets all the requirements. For the default settings of PopIns2 a *Bifrost* installation with MAX_KMER_SIZE=64 is required. Presently, the conda package of Bifrost does not meet this requirement. If the executables of the software dependencies (bwa, samtools, sickle) are not accessible systemwide, you have to write the full paths to the executables into a configfile (see [Installation](#installation)). Submodules and header libraries come by default with the git clone, there is no need for a manual installation. For backward compatibility PopIns2 still offers to use the *Velvet assembler* (see [popins](https://github.com/bkehr/popins) for installation recommendation).
 
 ## Installation:
 
@@ -44,7 +46,7 @@ PopIns2 is a program consisting of several submodules. The submodules are design
 ```
 popins2 assemble [OPTIONS] sample.bam
 ```
-The assemble command identifies reads without high-quality alignment to the refence genome, filters reads with poor base quality and assembles them into a set of contigs. The reads, given as BAM file, must be indexed by _bwa index_. Optionally, reads can be remapped to an additional reference FASTA before the filtering and assembly such that only the remaining reads without a high-quality alignment are further processed (e.g. useful for decontamination). The additional reference FASTQ must be indexed by _bwa index_ too.
+The assemble command identifies reads without high-quality alignment to the reference genome, filters reads with poor base quality and assembles them into a set of contigs. The reads, given as BAM file, must be indexed by _bwa index_. Optionally, reads can be remapped to an additional reference FASTA before the filtering and assembly such that only the remaining reads without a high-quality alignment are further processed (e.g. useful for decontamination). The additional reference FASTQ must be indexed by _bwa index_ too.
 
 #### The merge command
 ```
@@ -60,15 +62,15 @@ An alternative way of providing input for the merge command is to directly pass 
 
 #### The contigmap command
 ```
-popins contigmap [OPTIONS] SAMPLE_ID
+popins2 contigmap [OPTIONS] SAMPLE_ID
 ```
-The contigmap command maps all reads with low-quality alignments of a sample to the set of supercontigs using BWA-MEM. The mapping informtion is then merged with the reads' mates.
+The contigmap command maps all reads with low-quality alignments of a sample to the set of supercontigs using BWA-MEM. The mapping information is then merged with the reads' mates.
 
 #### The place commands
 ```
-popins place-refalign [OPTIONS]
-popins place-splitalign [OPTIONS] SAMPLE_ID
-popins place-finish [OPTIONS]
+popins2 place-refalign [OPTIONS]
+popins2 place-splitalign [OPTIONS] SAMPLE_ID
+popins2 place-finish [OPTIONS]
 ```
 In brief, the place commands attempt to anker the supercontigs to the samples. At first, all potential anker locations from all samples are collected. Then prefixes/suffixes of the supercontigs are aligned to all collected locations. For successful alignments records are written to a VCF file. In the second step, all remaining locations are split-aligned per sample. Finally, all locations from all successful split-alignments are combined and added to the VCF file.
 
@@ -80,7 +82,7 @@ The genotype command generates alleles (ALT) of the supercontigs with some flank
 
 ## Example:
 
-Assuming a minimal project structure like
+Test data for a minimum working example can be found at [zenodo](https://doi.org/10.5281/zenodo.4890793). A simple project structure for PopIns2 looks like
 
 ```
 $ tree /path/to/your/project/
@@ -96,7 +98,7 @@ $ tree /path/to/your/project/
     └── third_sample.bam.bai
 ```
 
-a workflow could look like
+and a simple workflow could look like
 
 ```
 cd /path/to/your/project
