@@ -36,6 +36,7 @@ struct AssemblyOptions {
     CharString memory;
 
     bool use_velvet;
+    bool use_spades;
     bool skip_assembly;
     float alignment_score_factor;
 
@@ -49,6 +50,7 @@ struct AssemblyOptions {
         threads(1),
         memory("768M"),
         use_velvet(false),
+        use_spades(false),
         skip_assembly(false),
         alignment_score_factor(0.67f)
     {}
@@ -249,6 +251,8 @@ bool getOptionValues(AssemblyOptions & options, ArgumentParser const & parser){
         getOptionValue(options.humanSeqs, parser, "filter");
     if (isSet(parser, "use-velvet"))
         getOptionValue(options.use_velvet, parser, "use-velvet");
+    if (isSet(parser, "use-spades"))
+        getOptionValue(options.use_spades, parser, "use-spades");
     if (isSet(parser, "skip-assembly"))
         getOptionValue(options.skip_assembly, parser, "skip-assembly");
     if (isSet(parser, "kmerLength"))
@@ -588,6 +592,7 @@ void setupParser(ArgumentParser & parser, AssemblyOptions & options){
     addOption(parser, ArgParseOption("f", "filter", "Treat reads aligned to all but the first INT reference sequences after remapping as high-quality aligned even if their alignment quality is low. "
           "Recommended for non-human reference sequences.", ArgParseArgument::INTEGER, "INT"));
     addOption(parser, ArgParseOption("vel", "use-velvet", "Use the velvet assembler. Default: Minia."));
+    addOption(parser, ArgParseOption("d", "use-spades", "Use the SPAdes assembler. Default: Minia."));
     addOption(parser, ArgParseOption("n", "skip-assembly", "Skip assembly per sample."));
     addOption(parser, ArgParseOption("k", "kmerLength", "The k-mer size if the velvet assembler is used.", ArgParseArgument::INTEGER, "INT"));
     addOption(parser, ArgParseOption("c", "alignment-score-factor", "A record is considered low quality if the alignment score (AS) is below FLOAT*read length", seqan::ArgParseArgument::DOUBLE, "FLOAT"));
@@ -965,6 +970,12 @@ void setupParser(seqan::ArgumentParser &parser, GenotypingOptions &options){
 ArgumentParser::ParseResult checkInput(AssemblyOptions & options){
 
     ArgumentParser::ParseResult res = ArgumentParser::PARSE_OK;
+
+    if (options.use_spades && options.use_velvet)
+    {
+        std::cerr << "ERROR: Multiple assemblers specified! Choose only one of them per program call." << std::endl;
+        res = ArgumentParser::PARSE_ERROR;
+    }
 
     if (options.prefix != "." && !exists(options.prefix))
     {

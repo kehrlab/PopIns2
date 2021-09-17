@@ -29,6 +29,7 @@ removeAssemblyDirectory(CharString & path)
     remove(toCString(path));
 }
 
+
 bool retrieveSampleID(CharString & sampleID, CharString & mappingBam)
 {
     BamFileIn inStream(toCString(mappingBam));
@@ -481,7 +482,7 @@ velvet_assembly(Triple<CharString> & filteredFiles, Triple<CharString> & filtere
 
 
 // ==========================================================================
-// Function velvet_assembly()
+// Function minia_assembly()
 // ==========================================================================
 
 inline bool minia_assembly(Triple<CharString> & filteredFiles, CharString & assemblyDirectory, const unsigned threads) {
@@ -509,7 +510,34 @@ inline bool minia_assembly(Triple<CharString> & filteredFiles, CharString & asse
 
 
 // ==========================================================================
-// Function popins_assemble()
+// Function spades_assembly()
+// ==========================================================================
+
+inline bool spades_assembly(Triple<CharString> & filteredFiles, CharString & assemblyDirectory, const unsigned threads) {
+    std::stringstream cmd;
+
+    std::ostringstream msg;
+    msg << "Preparing assembly of unmapped reads from filtered fastq files using " << SPADES;
+    printStatus(msg);
+
+    cmd.str("");
+    cmd << SPADES << " --threads " << threads;
+    cmd << " -1 " << filteredFiles.i1 << " -2 " << filteredFiles.i2 << " -s " << filteredFiles.i3;
+    cmd << " -o " << assemblyDirectory;
+
+    if (system(cmd.str().c_str()) != 0) // prepares SPAdes assembly, default k for PE data is 21,33,55
+    {
+        std::cerr << "ERROR while preparing assembly with " << SPADES << " of ";
+        std::cerr << filteredFiles.i3 << ", " << filteredFiles.i1 << ", and " << filteredFiles.i2 << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
+
+
+// ==========================================================================
+// Function popins2_assemble()
 // ==========================================================================
 
 int popins2_assemble(int argc, char const ** argv)
@@ -751,6 +779,32 @@ int popins2_assemble(int argc, char const ** argv)
             src.close();
             dst.close();
             removeAssemblyDirectory(assemblyDirectory);
+        }
+        else if (options.use_spades){
+
+            // Assembly with SPAdes.
+            if (spades_assembly(filteredFiles, assemblyDirectory, options.threads) != 0)
+                return 7;
+
+            if (options.matepairFile == ""){            // legacy code from the Velvet code. This should actually never be true for SPAdes with the current implementation of spades_assembly()
+                remove(toCString(firstMPFiltered));
+                remove(toCString(secondMPFiltered));
+                remove(toCString(singleMPFiltered));
+            }
+
+            // Copy contigs file to workingDirectory and remove assembly directory.
+            CharString contigFileAssembly = getFileName(assemblyDirectory, "contigs.fasta");
+            CharString contigFile = getFileName(workingDirectory, "contigs.fasta");
+
+            cout << "workingDirectory: " << workingDirectory << endl;
+            cout << "assemblyDirectory: " << assemblyDirectory << endl;
+
+            std::ifstream src(toCString(contigFileAssembly), std::ios::binary);
+            std::ofstream dst(toCString(contigFile), std::ios::binary);
+            dst << src.rdbuf();
+            src.close();
+            dst.close();
+            //removeAssemblyDirectory(assemblyDirectory);       // this function is tailored to Minia/Velvet and does not work out-of-the-box for SPAdes
         }
         else{
 
