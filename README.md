@@ -158,4 +158,4 @@ Try `popins2 COMMAND --help' for more information on each command.
 
 ```
 
-Every subcommand of PopIns2 has its dedicated help page that can be printed via `popins2 <subcommand> --help`. For more troubleshooting, FAQs and tips about the usage of PopIns2 please have a look into the PopIns2 [Wiki](https://github.com/kehrlab/PopIns2/wiki).
+For more troubleshooting, FAQs and tips about the usage of PopIns2 please have a look into the PopIns2 [Wiki](https://github.com/kehrlab/PopIns2/wiki).
