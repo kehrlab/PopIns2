@@ -4,13 +4,14 @@
 
 Population-scale detection of non-reference sequence variants using colored de Bruijn Graphs
 
-## Contents
+## Contents:
 1. [Requirements](#requirements)
 2. [Installation](#installation)
 3. [Usage](#usage)
 4. [Example](#example)
 5. [Snakemake](#snakemake)
 6. [Help](#help)
+7. [Citation](#citation)
 
 ## Requirements:
 
@@ -126,7 +127,7 @@ popins2 genotype sample2
 popins2 genotype sample3
 ```
 
-## Snakemake
+## Snakemake:
 
 The workflow of PopIns2 can be effectively distributed among a HPC cluster environment. This [Github project](https://github.com/Krannich479/PopIns2_snakeproject) provides a template of a full PopIns2 workflow as individual cluster jobs using [Snakemake](https://snakemake.readthedocs.io/en/stable/), a Python-based workflow management tool.
 
@@ -159,3 +160,7 @@ Try `popins2 COMMAND --help' for more information on each command.
 ```
 
 For more troubleshooting, FAQs and tips about the usage of PopIns2 please have a look into the PopIns2 [Wiki](https://github.com/kehrlab/PopIns2/wiki).
+
+## Citation:
+
+Thomas Krannich, W Timothy J White, Sebastian Niehus, Guillaume Holley, Bjarni V Halldórsson, Birte Kehr. _Population-scale detection of non-reference sequence variants using colored de Bruijn graphs_. Bioinformatics, 2021, btab749, https://doi.org/10.1093/bioinformatics/btab749
