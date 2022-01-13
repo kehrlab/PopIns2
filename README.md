@@ -163,4 +163,4 @@ For more troubleshooting, FAQs and tips about the usage of PopIns2 please have a
 
 ## Citation:
 
-Thomas Krannich, W Timothy J White, Sebastian Niehus, Guillaume Holley, Bjarni V Halldórsson, Birte Kehr. _Population-scale detection of non-reference sequence variants using colored de Bruijn graphs_. Bioinformatics, 2021, btab749, https://doi.org/10.1093/bioinformatics/btab749
+Thomas Krannich, W Timothy J White, Sebastian Niehus, Guillaume Holley, Bjarni V Halldórsson, Birte Kehr. _Population-scale detection of non-reference sequence variants using colored de Bruijn graphs_. Bioinformatics, Volume 38, Issue 3, 1 February 2022, Pages 604–611, https://doi.org/10.1093/bioinformatics/btab749
