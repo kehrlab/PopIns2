@@ -2,8 +2,6 @@
 
 set -xe
 
-rm -rf bifrost bwa htslib samtools sickle
-
 BIN_FOLDER=$(mktemp -d)
 PATH=$BIN_FOLDER:$PATH
 NPROC=$(nproc)
