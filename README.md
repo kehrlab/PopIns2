@@ -30,6 +30,8 @@ Population-scale detection of non-reference sequence variants using colored de B
 | [SeqAn](https://www.seqan.de/) | (*header library; no need to install*) |
 
 Prior to the installation make sure your system meets all the requirements. For the default settings of PopIns2 a *Bifrost* installation with MAX_KMER_SIZE=64 is required. Presently, the conda package of Bifrost does not meet this requirement. If the executables of the software dependencies (bwa, samtools, sickle) are not accessible systemwide, you have to write the full paths to the executables into a configfile (see [Installation](#installation)). Submodules and header libraries come by default with the git clone, there is no need for a manual installation. For backward compatibility PopIns2 still offers to use the *Velvet assembler* (see [popins](https://github.com/bkehr/popins) for installation recommendation).
+<br>
+**Important update note**: With a release on April 28, 2022, the Bifrost API underwent major changes in the color implementation. The compatibility of PopIns2 with these newer releases has not been tested and might break the functionality of PopIns2. For the time being, please stick to older releases.
 
 ## Installation:
 
