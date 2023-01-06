@@ -1,7 +1,7 @@
 # PopIns2
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/kehrlab/popins2)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/kehrlab/popins2/CI)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/kehrlab/popins2/ci.yaml?branch=main)
 ![GitHub Repo stars](https://img.shields.io/github/stars/kehrlab/PopIns2?style=social)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4890793.svg)](https://doi.org/10.5281/zenodo.4890793)
 
